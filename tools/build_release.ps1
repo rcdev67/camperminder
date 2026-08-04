@@ -53,11 +53,20 @@ Write-Host ("Firmware: {0}  ({1:N0} Bytes, {2})" -f $bin.FullName, $bin.Length, 
 $factory = Join-Path $bin.DirectoryName 'firmware.factory.bin'
 if (-not (Test-Path $factory)) { throw "firmware.factory.bin nicht gefunden neben $($bin.Name)" }
 
-# Warnen, wenn die Firmware älter ist als die Quelle - dann wurde nach der
-# letzten Änderung nicht neu gebaut, und das Release enthielte einen alten
-# Stand unter neuer Nummer.
-if ($bin.LastWriteTime -lt (Get-Item $hardware).LastWriteTime) {
-  Write-Warning "Die Firmware ist ÄLTER als hardware.yaml. Vor dem Release neu bauen!"
+# Warnen, wenn die Firmware älter ist als eine ihrer Quellen - dann wurde nach
+# der letzten Änderung nicht neu gebaut, und das Release enthielte einen alten
+# Stand unter neuer Nummer. Geprüft wird jede Datei, die in die Firmware
+# eingeht: die Gerätedatei, das Paket und die Bedienoberfläche. Letztere steckt
+# über js_include mit im Abbild - eine Änderung daran ist von außen nicht zu
+# sehen, fällt also ohne diese Prüfung erst beim Anwender auf.
+$quellen = @('campermaid-level.yaml', 'hardware.yaml', 'webui.js') |
+           ForEach-Object { Join-Path $here $_ } |
+           Where-Object   { Test-Path $_ } |
+           ForEach-Object { Get-Item $_ }
+$veraltet = $quellen | Where-Object { $_.LastWriteTime -gt $bin.LastWriteTime }
+if ($veraltet) {
+  Write-Warning ("Die Firmware ist ÄLTER als: {0}" -f (($veraltet.Name) -join ', '))
+  Write-Warning "Vor dem Release neu bauen - sonst liegt ein alter Stand unter neuer Nummer."
 }
 
 # --- Ausgabeordner ----------------------------------------------------------
