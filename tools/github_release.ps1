@@ -44,12 +44,27 @@ foreach ($d in $dateien) {
 # Ein Release zeigt auf einen Commit. Liegt lokal etwas, das nicht auf GitHub
 # ist, veröffentlicht man eine Firmware zu einem Quelltext, den niemand sehen
 # kann - bei GPLv3 nicht nur unsauber, sondern ein Verstoß.
+#
+# Geprüft wird ausdrücklich nur der Zweig, auf dem gerade gearbeitet wird.
+# "--branches --not --remotes" sähe jeden lokalen Zweig an und schlüge auch bei
+# einer bewusst zurückgehaltenen Sicherung an - die soll gerade nicht auf
+# GitHub landen.
 Push-Location $root
 $dirty  = git status --porcelain
-$unpush = git log --branches --not --remotes --oneline
+$zweig  = (git rev-parse --abbrev-ref HEAD).Trim()
+$oben   = (git rev-parse --abbrev-ref --symbolic-full-name "$zweig@{upstream}")
+$hatOben = ($LASTEXITCODE -eq 0 -and $oben)
+$unpush = if ($hatOben) { git log "$($oben.Trim())..HEAD" --oneline } else { $null }
 Pop-Location
-if ($dirty)  { throw "Es gibt nicht committete Änderungen. Erst committen." }
-if ($unpush) { throw "Es gibt nicht gepushte Commits. Erst pushen." }
+
+if ($dirty)    { throw "Es gibt nicht committete Änderungen. Erst committen." }
+if (-not $hatOben) {
+  throw "Der Zweig '$zweig' hat kein Gegenstück auf GitHub. Erst pushen:  git push -u origin $zweig"
+}
+if ($unpush) {
+  $liste = ($unpush | ForEach-Object { "    $_" }) -join "`n"
+  throw "Auf '$zweig' liegen Commits, die nicht auf GitHub sind:`n$liste`nErst pushen."
+}
 
 # --- Token -----------------------------------------------------------------
 $token = $env:CAMPERMAID_GH_TOKEN
