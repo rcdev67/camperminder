@@ -30,6 +30,24 @@ if (-not $m.Success) { throw "firmware_version nicht gefunden in $hardware" }
 $version = $m.Groups[1].Value
 $tag = "v$version"
 
+# --- Vorabfassung oder Auslieferung? ---------------------------------------
+# Die Versionsnummer entscheidet, nicht ein Schalter: Enthält sie einen
+# Bindestrich ("2.0.4-rc1"), ist es eine interne Fassung. Das ist die
+# Schreibweise aus der Versionierungsregel und zugleich der Punkt, an dem man
+# es nicht vergessen kann - anders als bei einem Haken, den man beim
+# fünfzehnten Release übersieht.
+#
+# Was der Unterschied bewirkt:
+#
+#   GitHub liefert unter "releases/latest" ausdrücklich die neueste Fassung,
+#   die WEDER Entwurf NOCH Vorabversion ist. Genau diese Adresse fragen die
+#   Geräte ab. Eine Vorabversion ist für sie damit nicht vorhanden - sie
+#   bleiben auf der letzten ausgelieferten Fassung stehen.
+#
+#   HACS blendet Vorabversionen ebenfalls aus, solange beim Repository nicht
+#   ausdrücklich Betafassungen eingeschaltet sind.
+$istVorab = $version.Contains('-')
+
 # --- Anhänge --------------------------------------------------------------
 $out = Join-Path $root 'release'
 $dateien = @('level-firmware.ota.bin', 'level-firmware.ota.bin.md5',
@@ -101,6 +119,11 @@ function Sende-Json {
 
 Write-Host "Repository: $owner/$repo"
 Write-Host "Version:    $version   (Tag $tag)"
+if ($istVorab) {
+  Write-Host "Art:        VORABFASSUNG - bleibt fuer Geraete und HACS unsichtbar." -ForegroundColor Yellow
+} else {
+  Write-Host "Art:        AUSLIEFERUNG - jedes Geraet mit Internet holt sie sich." -ForegroundColor Cyan
+}
 Write-Host ""
 
 # --- Gibt es das Release schon? --------------------------------------------
@@ -131,7 +154,20 @@ if ($release) {
   # Release ohne vollständige Dateien zeigt.
   $release = Sende-Json -Uri "$api/releases/$($release.id)" -Methode Patch -Daten @{ draft = $true }
 } else {
-  $text = @"
+  if ($istVorab) {
+    $text = @"
+CamperMaid Level $version - interne Vorabfassung
+
+Diese Fassung ist **nicht zur Verwendung bestimmt**. Sie dient der Erprobung
+vor einer Auslieferung.
+
+Geräte erhalten sie nicht von selbst: Die Aktualisierungsprüfung folgt
+``releases/latest``, und dort werden Vorabfassungen ausgelassen. Wer sie
+dennoch aufspielen will, lädt ``level-firmware.ota.bin`` von Hand über
+Geräteseite -> Technik -> Software.
+"@
+  } else {
+    $text = @"
 CamperMaid Level $version
 
 Firmware für CamperMaid Level.
@@ -144,11 +180,13 @@ dann ``level-firmware.ota.bin`` wählen.
 mit web.esphome.io. Die OTA-Datei ist dafür nicht geeignet - sie enthält
 keinen Bootloader.
 "@
+  }
   $release = Sende-Json -Uri "$api/releases" -Methode Post -Daten @{
-    tag_name = $tag
-    name     = "CamperMaid Level $version"
-    body     = $text
-    draft    = $true
+    tag_name   = $tag
+    name       = "CamperMaid Level $version"
+    body       = $text
+    draft      = $true
+    prerelease = $istVorab
   }
   Write-Host "Entwurf angelegt."
 }
@@ -163,12 +201,30 @@ foreach ($d in $dateien) {
 }
 
 # --- Erst jetzt veröffentlichen -------------------------------------------
+# make_latest wird bei einer Vorabfassung ausdrücklich auf "false" gesetzt.
+# GitHub würde sie zwar ohnehin nicht als neueste führen, solange prerelease
+# gilt - aber wer den Haken später von Hand entfernt, hätte sonst schlagartig
+# eine ungeprüfte Fassung auf allen Geräten. Zwei Schlösser statt einem.
 $fertig = Sende-Json -Uri "$api/releases/$($release.id)" -Methode Patch -Daten @{
-  draft = $false; make_latest = 'true'
+  draft       = $false
+  prerelease  = $istVorab
+  make_latest = $(if ($istVorab) { 'false' } else { 'true' })
 }
 
 Write-Host ""
-Write-Host "Veröffentlicht: $($fertig.html_url)"
+Write-Host "Angelegt: $($fertig.html_url)"
 Write-Host ""
-Write-Host "Geräte mit Internet melden das Update innerhalb von 12 Stunden,"
-Write-Host "nach einem Neustart von Home Assistant sofort."
+if ($istVorab) {
+  Write-Host "Als VORABFASSUNG markiert. Kein Gerät und kein HACS holt sie sich."
+  Write-Host "Zum Erproben von Hand aufspielen:"
+  Write-Host "   Geräteseite -> Technik -> Software -> Datei aufspielen"
+  Write-Host "   oder aus dem Arbeitsstand:  esphome run campermaid-level.yaml"
+  Write-Host ""
+  Write-Host "Taugt die Fassung, den Bindestrich aus firmware_version und aus"
+  Write-Host "manifest.json entfernen und erneut veröffentlichen. Erst dann"
+  Write-Host "wird daraus eine Auslieferung."
+} else {
+  Write-Host "Als AUSLIEFERUNG markiert."
+  Write-Host "Geräte mit Internet melden das Update innerhalb von 12 Stunden,"
+  Write-Host "nach einem Neustart von Home Assistant sofort."
+}

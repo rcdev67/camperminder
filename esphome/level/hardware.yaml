@@ -51,7 +51,10 @@ substitutions:
   # Sie muss zeichengleich im Update-Manifest stehen: Die Prüfung im Gerät
   # vergleicht genau diese Zeichenkette. Weicht sie ab, meldet das Gerät
   # dauerhaft "Update verfügbar".
-  firmware_version: "2.0.3"
+  # Ein Bindestrich macht die Nummer zur Vorabfassung: "2.0.4-rc1" statt
+  # "2.0.4". Daran erkennen die Werkzeuge, dass dieser Stand NICHT
+  # veröffentlicht werden soll - Einzelheiten in docs/firmware_update.md.
+  firmware_version: "2.0.4-rc1"
 
   # I2C-Pins (0,42"-OLED-Board): SDA=GPIO5, SCL=GPIO6
   i2c_sda_pin: GPIO5
@@ -221,9 +224,15 @@ select:
 
 # --- Schriften fürs OLED (lädt sich beim Kompilieren automatisch) --------
 font:
+  # Zwei Größen, weil das Feld nur 72 x 40 Pixel hat: Die Adresse muss lesbar
+  # sein, der Rest darf klein bleiben. "192.168.100.123" wäre in Größe 10 zu
+  # breit - deshalb steht die Adresse in 10 und alles andere in 8.
   - file: "gfonts://Roboto"
-    id: font_num
+    id: font_zeile
     size: 10
+  - file: "gfonts://Roboto"
+    id: font_klein
+    size: 8
 
 sensor:
   - platform: wifi_signal
@@ -252,8 +261,17 @@ sensor:
       internal: true
     temperature:
       name: "MPU6050 Temperatur"
-      internal: true
       entity_category: diagnostic
+      accuracy_decimals: 2
+      # Nicht mehr internal: Ohne diesen Wert in Home Assistant lässt sich der
+      # Nullpunktdrift des Sensors über Temperatur nicht messen - und genau der
+      # begrenzt die Genauigkeit eines Neigungsmessers, nicht das Rauschen.
+      #
+      # throttle_average mittelt die 600 Messungen einer Minute zu einem Wert.
+      # Ungebremst kämen bei 100 ms Takt zehn Werte je Sekunde in der Datenbank
+      # an - für eine Temperatur sinnlos und für die Aufzeichnung eine Last.
+      filters:
+        - throttle_average: 60s
     gyro_x:
       name: "MPU6050 Gyro X"
       id: gyro_x
@@ -319,9 +337,74 @@ sensor:
       - exponential_moving_average:
           alpha: 0.5
 
+  # --- Diagnose: Nullpunktdrift über Temperatur ----------------------------
+  #
+  # Wozu das dient: Ein Grad Neigung entspricht rund 17 Milli-g. Was einen
+  # Neigungsmesser begrenzt, ist deshalb nicht das Rauschen, sondern das
+  # Wandern des Nullpunkts mit der Temperatur - und der Innenraum eines
+  # Wohnmobils schwankt zwischen Winternacht und Sommermittag um 40 bis 50
+  # Grad. Wandert der Nullpunkt dabei spürbar, stimmt die Kalibrierung vom
+  # Frühjahr im August nicht mehr.
+  #
+  # Warum eigene Werte statt der vorhandenen: Die Live-Werte oben tragen
+  # accuracy_decimals 1. Ein Drift von wenigen Hundertstelgrad ist darin
+  # unsichtbar. Diese Kopien mitteln je Minute über 600 Messungen - das drückt
+  # das Rauschen um etwa den Faktor 25 - und führen drei Nachkommastellen.
+  #
+  # Auswertung siehe docs/drift_messung.md.
+  - platform: copy
+    source_id: pitch
+    name: "Diagnose Pitch Mittel"
+    entity_category: diagnostic
+    unit_of_measurement: "°"
+    state_class: measurement
+    accuracy_decimals: 3
+    filters:
+      - throttle_average: 60s
+
+  - platform: copy
+    source_id: roll
+    name: "Diagnose Roll Mittel"
+    entity_category: diagnostic
+    unit_of_measurement: "°"
+    state_class: measurement
+    accuracy_decimals: 3
+    filters:
+      - throttle_average: 60s
+
+  # Der Betrag des Beschleunigungsvektors. Er muss im Stillstand immer 9,81
+  # betragen, ganz gleich wie das Fahrzeug steht - die Erdbeschleunigung ändert
+  # sich nicht mit der Neigung. Jede Abweichung, die mit der Temperatur
+  # mitwandert, ist deshalb eindeutig ein Sensorfehler und kann nicht vom
+  # Fahrzeug kommen. Das ist der einzige Wert der Messreihe, den weder
+  # Reifendruck noch Federung noch ein Umparken verfälschen können.
+  - platform: template
+    name: "Diagnose Betrag"
+    id: accel_magnitude
+    entity_category: diagnostic
+    unit_of_measurement: "m/s²"
+    state_class: measurement
+    accuracy_decimals: 4
+    update_interval: 100ms
+    lambda: |-
+      if (isnan(id(accel_x).state) || isnan(id(accel_y).state) || isnan(id(accel_z).state)) {
+        return NAN;
+      }
+      return sqrtf(
+        powf(id(accel_x).state, 2) +
+        powf(id(accel_y).state, 2) +
+        powf(id(accel_z).state, 2)
+      );
+    filters:
+      - throttle_average: 60s
+
 binary_sensor:
+  # id, weil die OLED-Anzeige daran abliest, ob eine Zentrale mithört. Ohne
+  # Home Assistant bleibt der Wert dauerhaft aus - das ist kein Fehler,
+  # sondern der Handbetrieb.
   - platform: status
     name: "Status"
+    id: zentrale_verbunden
 
   - platform: template
     name: "Camper steht gerade"
@@ -366,9 +449,11 @@ text_sensor:
   - platform: wifi_info
     ip_address:
       name: "IP Adresse"
+      id: ip_adresse
       entity_category: diagnostic
     ssid:
       name: "Verbundenes WLAN"
+      id: wlan_name
       entity_category: diagnostic
     mac_address:
       name: "WLAN MAC"
@@ -405,41 +490,47 @@ display:
     model: "SSD1306 72x40"
     i2c_id: grove
     address: 0x3C
-    update_interval: 200ms
+    # 1s statt 200ms: Hier steht kein wandernder Messwert mehr, sondern ein
+    # Zustand. Der ändert sich selten, und der I2C-Bus teilt sich die Leitung
+    # mit dem Beschleunigungssensor.
+    update_interval: 1s
     lambda: |-
-      const int   cx = 20, cy = 20, R = 18;   // Blasen-Kreis links
-      const float scale  = 1.9f;              // Pixel pro Grad
-      const float travel = R - 3;
+      // Das Feld zeigt den SYSTEMZUSTAND, nicht die Neigung.
+      //
+      // Die Nivellieranzeige gehört aufs Handy: Sie braucht Größe, Farbe und
+      // einen Blickwinkel, den ein 72 x 40 grosses Feld an der Einbaustelle
+      // nicht hergibt - wer Keile unterlegt, steht draußen und sieht es nicht.
+      //
+      // Was hier steht, beantwortet dafür genau die Fragen, die sich OHNE
+      // Handy nicht beantworten lassen: Läuft das Gerät? Und unter welcher
+      // Adresse ist es zu erreichen? Letzteres ist die häufigste Rückfrage
+      // überhaupt, und die Antwort stand bisher nirgends.
 
-      float p = id(pitch).state;
-      float r = id(roll).state;
-
-      // Rahmen + Zielkreuz
-      it.circle(cx, cy, R);
-      it.circle(cx, cy, 4);
-      it.line(cx - 3, cy, cx + 3, cy);
-      it.line(cx, cy - 3, cx, cy + 3);
-
-      if (isnan(p) || isnan(r)) {
-        it.print(cx, cy + 24, id(font_num), TextAlign::CENTER, "warte");
+      // Kein Messwert heißt: Der Sensor antwortet nicht. Das ist die einzige
+      // Störung, die der Nutzer selbst beheben kann, deshalb steht sie vorn.
+      if (isnan(id(pitch).state)) {
+        it.print(0,  0, id(font_zeile), "Sensor?");
+        it.print(0, 14, id(font_klein), "MPU6050 stumm");
+        it.print(0, 26, id(font_klein), "Verkabelung");
         return;
       }
 
-      // Blase: Roll->X, Pitch->Y (wandert zur hohen Seite)
-      float bx =  r * scale;
-      float by = -p * scale;
-      float d  = sqrtf(bx * bx + by * by);
-      if (d > travel) { bx *= travel / d; by *= travel / d; }
-      int px = cx + (int) lroundf(bx);
-      int py = cy + (int) lroundf(by);
+      const std::string ip   = id(ip_adresse).state;
+      const std::string netz = id(wlan_name).state;
 
-      if (id(camper_level_ok).state) {
-        it.filled_circle(cx, cy, 4);
+      // Solange keine gültige Adresse aus dem Heimnetz vorliegt, spannt das
+      // Gerät sein eigenes Netz auf - dann gilt die feste Adresse aus der
+      // manual_ip-Angabe der Gerätedatei.
+      const bool im_fremden_netz = !ip.empty() && ip != "0.0.0.0";
+
+      if (im_fremden_netz) {
+        it.printf(0,  0, id(font_klein), "WLAN %.9s", netz.c_str());
+        it.print (0, 12, id(font_zeile), ip.c_str());
       } else {
-        it.line(cx, cy, px, py);
-        it.filled_circle(px, py, 3);
+        it.print (0,  0, id(font_klein), "Netz CamperMaid");
+        it.print (0, 12, id(font_zeile), "192.168.4.1");
       }
 
-      // Exakte Werte rechts (0,1 Grad)
-      it.printf(41,  4, id(font_num), "P%+.1f", p);
-      it.printf(41, 22, id(font_num), "R%+.1f", r);
+      // Fußzeile: eigene Version, dazu ein Kürzel, wenn eine Zentrale mithört.
+      it.printf(0, 28, id(font_klein), "v${firmware_version}%s",
+                id(zentrale_verbunden).state ? "  HA" : "");

@@ -46,8 +46,13 @@ echo ============================================================
 echo  3/3  Auf GitHub ver”ffentlichen
 echo ============================================================
 echo.
-echo Dies legt ein ”ffentliches Release an. Ger„te mit Internet
-echo holen es sich anschlieáend selbst.
+echo Die Versionsnummer entscheidet, was daraus wird:
+echo.
+echo   mit Bindestrich  (2.0.4-rc1)  interne Vorabfassung, kein Ger„t
+echo                                 und kein HACS holt sie sich
+echo   ohne Bindestrich (2.0.4)      Auslieferung an alle Ger„te
+echo.
+echo Das Skript meldet gleich noch einmal, welcher Fall vorliegt.
 echo.
 set /p WEITER="Wirklich ver”ffentlichen? (j/n) "
 if /i not "%WEITER%"=="j" ( echo Abgebrochen. & pause & exit /b 0 )

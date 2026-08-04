@@ -6,11 +6,17 @@
   Fahrzeugkoerper hinausragen. Fuer ein quadratisches Icon muss sie mittig
   stehen, sonst wirkt sie in der Kachel abgesackt.
 
+  Das Feld beginnt bei 8 und ist 84 Einheiten breit statt 100. Grund: Die Form
+  liegt bei x 8 bis 92, fuellt die Breite damit vollstaendig aus. Die Vorgaben
+  von home-assistant/brands verlangen moeglichst wenig Leerraum am Rand, und in
+  der kleinen Liste von HACS traegt jedes Prozent. Senkrecht bleibt Luft - das
+  Motiv ist nun einmal breiter als hoch.
+
   Einfarbig mit ausgesparten Radnaben - siehe Begruendung in
   brand/campermaid-mark.svg. Nicht in zwei Farben aendern: Das Icon liegt mit
   Transparenz vor und erscheint auf hellem wie auf dunklem Grund.
 -->
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100%" height="100%">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="8 8 84 84" width="100%" height="100%">
   <g transform="translate(0 -3.25)">
     <path fill="#2fb6c9" fill-rule="evenodd" d="
       M8 64 L8 46 Q8 43 11 42 L30 30 Q32 29 35 29 L88 29 Q92 29 92 33 L92 62
