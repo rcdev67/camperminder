@@ -1,12 +1,15 @@
 @echo off
-rem Konsole auf UTF-8, sonst zeigt cmd.exe die Umlaute falsch an.
-chcp 65001 >nul
+rem Diese Datei ist in CP850 gespeichert - dort belegt jeder Umlaut genau
+rem ein Byte. Nur deshalb ist das Umschalten gefahrlos: cmd.exe merkt sich die
+rem Leseposition in Bytes, rechnet aber mit einem Zeichen je Byte. In einer
+rem UTF-8-Datei verrutscht dadurch jede folgende Zeile.
+chcp 850 >nul
 rem ===========================================================================
-rem  Bauen und auf GitHub ver√∂ffentlichen - zum Doppelklicken.
+rem  Bauen und auf GitHub verîffentlichen - zum Doppelklicken.
 rem
 rem  Macht alles, was bauen.cmd macht, und legt danach das Release an.
-rem  Bewusst mit R√ºckfrage: Ein Release ist √∂ffentlich und wird von jedem
-rem  Ger√§t mit Internet innerhalb von zw√∂lf Stunden abgeholt.
+rem  Bewusst mit RÅckfrage: Ein Release ist îffentlich und wird von jedem
+rem  GerÑt mit Internet innerhalb von zwîlf Stunden abgeholt.
 rem ===========================================================================
 
 setlocal
@@ -33,20 +36,20 @@ if not "%BUILD%"=="0" ( echo. & echo Build fehlgeschlagen. & pause & exit /b %BU
 
 echo.
 echo ============================================================
-echo  2/3  Release-Anh√§nge erzeugen
+echo  2/3  Release-AnhÑnge erzeugen
 echo ============================================================
 powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0build_release.ps1"
 if not "%ERRORLEVEL%"=="0" ( echo. & pause & exit /b 1 )
 
 echo.
 echo ============================================================
-echo  3/3  Auf GitHub ver√∂ffentlichen
+echo  3/3  Auf GitHub verîffentlichen
 echo ============================================================
 echo.
-echo Dies legt ein √∂ffentliches Release an. Ger√§te mit Internet
-echo holen es sich anschliessend selbst.
+echo Dies legt ein îffentliches Release an. GerÑte mit Internet
+echo holen es sich anschlie·end selbst.
 echo.
-set /p WEITER="Wirklich ver√∂ffentlichen? (j/n) "
+set /p WEITER="Wirklich verîffentlichen? (j/n) "
 if /i not "%WEITER%"=="j" ( echo Abgebrochen. & pause & exit /b 0 )
 
 powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0github_release.ps1"

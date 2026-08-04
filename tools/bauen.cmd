@@ -1,15 +1,18 @@
 @echo off
-rem Konsole auf UTF-8, sonst zeigt cmd.exe die Umlaute falsch an.
-chcp 65001 >nul
+rem Diese Datei ist in CP850 gespeichert - dort belegt jeder Umlaut genau
+rem ein Byte. Nur deshalb ist das Umschalten gefahrlos: cmd.exe merkt sich die
+rem Leseposition in Bytes, rechnet aber mit einem Zeichen je Byte. In einer
+rem UTF-8-Datei verrutscht dadurch jede folgende Zeile.
+chcp 850 >nul
 rem ===========================================================================
 rem  CamperMaid Level bauen - zum Doppelklicken.
 rem
 rem  Ruft esphome direkt aus der virtuellen Umgebung auf. Ein "Aktivieren" der
-rem  Umgebung w√§re hier nicht nur unn√∂tig, sondern scheitert auf vielen
-rem  Rechnern an der PowerShell-Ausf√ºhrungsrichtlinie.
+rem  Umgebung wÑre hier nicht nur unnîtig, sondern scheitert auf vielen
+rem  Rechnern an der PowerShell-AusfÅhrungsrichtlinie.
 rem
-rem  Erzeugt danach die Release-Anh√§nge in  release/  - fertig zum Hochladen,
-rem  aber ohne etwas zu ver√∂ffentlichen. Das macht veroeffentlichen.cmd.
+rem  Erzeugt danach die Release-AnhÑnge in  release/  - fertig zum Hochladen,
+rem  aber ohne etwas zu verîffentlichen. Das macht veroeffentlichen.cmd.
 rem ===========================================================================
 
 setlocal
@@ -56,12 +59,12 @@ if not "%BUILD%"=="0" (
 
 echo.
 echo ============================================================
-echo  Release-Anh√§nge erzeugen
+echo  Release-AnhÑnge erzeugen
 echo ============================================================
 powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0build_release.ps1"
 
 echo.
 echo Fertig. Die Dateien liegen in  release\
-echo Zum Ver√∂ffentlichen:  veroeffentlichen.cmd
+echo Zum Verîffentlichen:  veroeffentlichen.cmd
 echo.
 pause
