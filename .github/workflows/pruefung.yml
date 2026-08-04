@@ -1,14 +1,14 @@
-# Prueft bei jedem Push, ob das Repository installierbar und die Integration
-# formal in Ordnung ist. Beides faellt sonst erst beim Nutzer auf - und bei
-# einem verkauften Geraet heisst das Supportfall statt Fehlermeldung.
+# Prüft bei jedem Push, ob die Integration den Anforderungen von Home Assistant
+# entspricht. Ohne diese Prüfung fällt eine verschärfte Anforderung erst beim
+# Anwender auf - und dort als Störung statt als Fehlermeldung.
 name: Prüfung
 
 on:
   push:
   pull_request:
-  # Woechentlich auch ohne Aenderung: Home Assistant verschaerft die
-  # Anforderungen an manifest.json von Zeit zu Zeit. So faellt das auf,
-  # bevor die naechste Veroeffentlichung ansteht.
+  # Wöchentlich auch ohne Änderung: Home Assistant verschärft die Anforderungen
+  # an manifest.json von Zeit zu Zeit. So fällt das auf, bevor die nächste
+  # Veröffentlichung ansteht.
   schedule:
     - cron: "0 4 * * 1"
   workflow_dispatch:
@@ -18,18 +18,19 @@ jobs:
     name: Home Assistant (hassfest)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: home-assistant/actions/hassfest@master
 
-  hacs:
-    name: HACS
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: hacs/action@main
-        with:
-          category: integration
-          # Bewusst ohne "ignore": Jede uebergangene Pruefung waere eine
-          # Stelle, an der wir nicht wissen, ob sie haelt. Das Markenbild
-          # liegt in custom_components/campermaid/brand/, die Brands-Pruefung
-          # sollte also ohne Ausnahme durchlaufen.
+# ---------------------------------------------------------------------------
+# Warum hier keine HACS-Prüfung läuft
+#
+# Sie setzt eine Lizenz voraus, die GitHub selbsttätig einer der bekannten
+# Vorlagen zuordnen kann. CamperMaid steht unter eigenen Bedingungen
+# (siehe LICENSE), die GitHub folgerichtig als "nicht zugeordnet" ausweist.
+# Diese eine Prüfung lässt sich als einzige nicht übergehen - sie würde also
+# dauerhaft fehlschlagen und die übrigen Ergebnisse unlesbar machen.
+#
+# Auf die Installation hat das keinen Einfluss. Die Prüfung entscheidet allein
+# über die Aufnahme in den HACS-Standardkatalog. Das Einbinden über
+# "eigenes Repository" ist davon unberührt und in docs/ beschrieben.
+# ---------------------------------------------------------------------------

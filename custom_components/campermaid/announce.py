@@ -3,7 +3,7 @@
 Die Ansagen hängen am PHASEN-WECHSEL, nicht an einem Zeittakt. Ein Zeittakt
 mit cm-Text führte zu einer Ansage alle drei Sekunden ("noch 2" / "noch 3" /
 "noch 2" ...), weil der cm-Wert um rund einen Zentimeter zappelt und sich der
-Text dadurch ständig ändert. Nicht zurückbaün.
+Text dadurch ständig ändert. Nicht zurückbauen.
 """
 
 from __future__ import annotations

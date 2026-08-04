@@ -16,11 +16,8 @@
 #
 #  Erwartet Einträge in der secrets.yaml (siehe secrets.yaml.example).
 #
-#  Für Selbstbaür ohne secrets.yaml gibt es weiterhin
-#  campermaid-level-komplett.yaml zum Einfügen in einem Rutsch. Die bringt
-#  die ESPHome-Standardseite mit statt der eigenen Oberfläche - ein
-#  js_include zeigt auf eine Datei neben der YAML, und die hätte dort
-#  niemand. Siehe INSTALL.md.
+#  Wer nicht selbst bauen will, nimmt die fertige level-firmware.factory.bin
+#  aus dem Release - siehe INSTALL.md.
 # ============================================================================
 
 substitutions:
@@ -258,9 +255,9 @@ packages:
 
 # Eigene Oberfläche statt der ESPHome-Entitätenliste.
 #
-# Bewusst nur hier und nicht im Paket: campermaid-level-komplett.yaml wird
-# daraus erzeugt und ist zum Einfügen in einem Rutsch gedacht. Ein
-# js_include zeigt auf eine Datei neben der YAML - die hätte dort niemand.
+# Bewusst hier und nicht in hardware.yaml: js_include verweist auf eine Datei
+# neben der Konfiguration. Das Paket beschreibt die Messtechnik und soll ohne
+# Beidatei brauchbar bleiben.
 #
 # css_url und js_url leer räumen die Standardoberfläche ab, js_include
 # liefert unsere Datei als /0.js aus. Damit lädt die Seite nichts aus dem

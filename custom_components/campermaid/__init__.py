@@ -61,7 +61,7 @@ async def _async_register_resource(hass: HomeAssistant, card_url: str) -> None:
     und in der Praxis kommt das Tag auch nach einem Neustart nicht zwingend an.
     Die Ressourcenliste holt sich das Frontend dagegen zur Laufzeit über die
     Websocket-Verbindung. Nebenbei ist der Eintrag unter Einstellungen ->
-    Dashboards -> Ressourcen sichtbar, statt unauffindbar im Seitenqülltext.
+    Dashboards -> Ressourcen sichtbar, statt unauffindbar im Seitenquelltext.
     """
     lovelace = hass.data.get(LOVELACE_DOMAIN)
     resources = getattr(lovelace, "resources", None)
