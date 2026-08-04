@@ -66,7 +66,26 @@ esp32:
   board: esp32-c3-devkitm-1
 
 logger:
-  level: INFO
+  # Global DEBUG, aber die Dauerredner einzeln ruhiggestellt.
+  #
+  # Der Update-Weg meldet seine Zwischenschritte ausschließlich auf DEBUG. Auf
+  # INFO schweigt er selbst dann, wenn er scheitert - ein stiller Fehlschlag,
+  # den beim Kunden niemand findet. Genau das ist uns hier passiert.
+  #
+  # Andersherum ginge es nicht: ESPHome lässt für einen einzelnen Namen keine
+  # gesprächigere Stufe zu als die globale.
+  level: DEBUG
+  logs:
+    sensor: INFO
+    binary_sensor: INFO
+    text_sensor: INFO
+    number: INFO
+    select: INFO
+    text: INFO
+    mpu6050: INFO
+    i2c: INFO
+    api: INFO
+    api.service: INFO
 
 api:
   encryption:
@@ -89,6 +108,31 @@ http_request:
   # dann fällt allerdings die Echtheitsprüfung weg und ein Angreifer im
   # selben Netz könnte eigene Firmware unterschieben. Erst versuchen, dann
   # abschalten, nicht umgekehrt.
+
+  # Die vier folgenden Werte weichen bewusst von der Voreinstellung ab. Sie
+  # sind gemessen, nicht geschätzt - "releases/latest/download/..." führt über
+  # zwei Umleitungen zu release-assets.githubusercontent.com.
+  #
+  # buffer_size_tx (Voreinstellung 512) ist der wichtigste davon. ESP-IDF legt
+  #   die erste Zeile der Anfrage - Methode und Pfad - in diesem Puffer ab und
+  #   bricht ab, wenn sie nicht hineinpasst. Die Adresse nach der zweiten
+  #   Umleitung ist rund 900 Zeichen lang, weil GitHub eine Signatur anhängt.
+  #   Ohne diesen Wert scheitert die Prüfung mit "Out of buffer" in
+  #   esp_http_client_open - und zwar lautlos, solange logger auf INFO steht.
+  #
+  # buffer_size_rx (Voreinstellung 512): Die Antworten der Umleitungen tragen
+  #   üppige Kopfzeilen, allein die Content-Security-Policy misst 3627 Bytes.
+  #
+  # timeout (Voreinstellung 4,5 s): Die Kette führt über zwei verschiedene
+  #   Rechner, also zwei vollständige TLS-Handschläge. Die dauern auf einem
+  #   ESP32-C3 jeweils spürbar.
+  #
+  # redirect_limit (Voreinstellung 3): Gemessen sind zwei Umleitungen. Fünf
+  #   lassen Luft, falls GitHub die Auslieferung umbaut.
+  buffer_size_tx: 4096
+  buffer_size_rx: 8192
+  timeout: 15s
+  redirect_limit: 5
 
 # Alles über GitHub-Releases. "latest/download/<datei>" zeigt immer auf die
 # neueste Veröffentlichung - die Adressen ändern sich also nie, weder in der
