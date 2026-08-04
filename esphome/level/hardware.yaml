@@ -51,7 +51,7 @@ substitutions:
   # Sie muss zeichengleich im Update-Manifest stehen: Die Prüfung im Gerät
   # vergleicht genau diese Zeichenkette. Weicht sie ab, meldet das Gerät
   # dauerhaft "Update verfügbar".
-  firmware_version: "2.0.2"
+  firmware_version: "2.0.3"
 
   # I2C-Pins (0,42"-OLED-Board): SDA=GPIO5, SCL=GPIO6
   i2c_sda_pin: GPIO5

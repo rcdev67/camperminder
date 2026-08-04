@@ -32,6 +32,34 @@ if (-not $m.Success) { throw "firmware_version nicht gefunden in $hardware" }
 $version = $m.Groups[1].Value
 Write-Host "Version aus der Firmware-Quelle: $version"
 
+# --- Die Integration muss dieselbe Nummer tragen ----------------------------
+# Ein Release trägt genau ein Tag, und HACS richtet sich allein nach diesem Tag
+# - nicht nach der manifest.json. Läuft die Integration unter einer anderen
+# Nummer, geht das doppelt schief:
+#
+#   1. HACS bietet "2.0.3" an und installiert es, die Integration meldet aber
+#      weiterhin ihre alte Nummer. Was installiert ist, lässt sich dann nicht
+#      mehr ablesen.
+#   2. Schlimmer: Die Lovelace-Karte wird als "campermaid-card.js?v=<Nummer aus
+#      manifest.json>" eingebunden. Bleibt die Nummer stehen, bleibt die
+#      Adresse gleich - und der Browser liefert weiter die Karte aus seinem
+#      Zwischenspeicher. Die neuen Dateien liegen dann zwar auf der Platte,
+#      sind aber unsichtbar.
+#
+# Deshalb hier eine harte Prüfung statt einer stillen Abweichung.
+$manifest = Join-Path $root 'custom_components\campermaid\manifest.json'
+if (-not (Test-Path $manifest)) { throw "Nicht gefunden: $manifest" }
+$integrationsVersion = (Get-Content $manifest -Raw | ConvertFrom-Json).version
+if ($integrationsVersion -cne $version) {
+  throw @"
+Versionen weichen ab:
+    esphome/level/hardware.yaml          firmware_version = $version
+    custom_components/campermaid/...json version          = $integrationsVersion
+Ein Release hat eine Nummer. Beide angleichen, dann erneut bauen.
+"@
+}
+Write-Host "Integration traegt dieselbe Nummer: $integrationsVersion"
+
 # --- Gebaute Firmware suchen -----------------------------------------------
 # esphome legt sie unter .esphome/build/<name>/.pioenvs/<name>/ ab.
 # Gesucht wird der Name, den ESPHome vergibt. Das Produktpräfix bekommt erst

@@ -12,6 +12,33 @@
 
 const STATIC = "/campermaid_static";
 
+/*
+ * Version für die Fußzeile - aus der eigenen Skriptadresse gelesen.
+ *
+ * Die Integration registriert die Karte als ".../campermaid-card.js?v=<Version
+ * aus manifest.json>". Diese Angabe hier abzuschreiben hieße, eine zweite
+ * Wahrheit zu pflegen, die früher oder später von der ersten abweicht. Also
+ * fragen wir die Adresse, unter der wir selbst geladen wurden.
+ *
+ * Nebenwirkung, die uns gerade recht ist: Die Zeile zeigt genau dann eine neue
+ * Nummer, wenn der Browser die Datei wirklich neu geholt hat. Bleibt sie nach
+ * einem Update stehen, liegt noch die alte Fassung im Zwischenspeicher - das
+ * ist dann kein Rätsel, sondern eine Anzeige.
+ *
+ * BEDINGUNG: Die Datei muss als Modul geladen werden. Beide Wege tun das -
+ * add_extra_js_url legt sie ohne es5 unter den Modul-URLs ab, und die
+ * Lovelace-Ressource trägt res_type "module". Wer das umstellt, bekommt hier
+ * keinen leeren Wert, sondern einen Syntaxfehler beim Einlesen - und damit
+ * keine Karte mehr.
+ */
+const VERSION = (() => {
+  try {
+    return new URL(import.meta.url).searchParams.get("v") || "";
+  } catch (e) {
+    return "";
+  }
+})();
+
 const COLORS = {
   ok: "#37d67a",
   warn: "#ffb020",
@@ -237,6 +264,16 @@ class CamperMaidCard extends HTMLElement {
           padding-top: 10px; }
         .controls label { display: flex; align-items: center; gap: 6px;
           font-size: .9rem; cursor: pointer; }
+
+        /* Fußzeile: bewusst zurückhaltend. Sie soll im Betrieb nicht
+           auffallen, im Supportfall aber ohne Nachfragen die Version zeigen. */
+        .foot { margin-top: 10px; padding-top: 8px;
+          border-top: 1px solid var(--divider-color, rgba(255,255,255,.08));
+          display: flex; justify-content: space-between; gap: 10px;
+          font-size: .72rem; color: var(--secondary-text-color);
+          opacity: .75; }
+        .foot a { color: inherit; text-decoration: none; }
+        .foot a:hover { text-decoration: underline; }
       </style>
 
       <ha-card>
@@ -277,6 +314,12 @@ class CamperMaidCard extends HTMLElement {
         </div>
 
         <div class="controls" id="controls"></div>
+
+        <div class="foot">
+          <span>© 2026 rcdev</span>
+          <a href="https://github.com/rcdev67/campermaid" target="_blank"
+             rel="noopener noreferrer">CamperMaid${VERSION ? " " + VERSION : ""}</a>
+        </div>
       </ha-card>
     `;
     this._built = true;
