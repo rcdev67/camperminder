@@ -1,0 +1,95 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "CamperMaid",
+        "description": "The sensors of your levelling device are already filled in if the bundled firmware is running - please check them once. Then add your vehicle's dimensions. Everything can be changed later via \"Configure\".",
+        "data": {
+          "pitch_sensor": "Pitch (front to back)",
+          "roll_sensor": "Roll (side to side)",
+          "motion_sensor": "\"In motion\" sensor",
+          "calibrate_button": "Calibration button",
+          "wheelbase": "Wheelbase",
+          "track": "Track width",
+          "tolerance_cm": "Tolerance",
+          "wedge_step": "Levelling ramp: height per step",
+          "notify_tts": "Read the text out loud"
+        },
+        "data_description": {
+          "motion_sensor": "Announcements only happen while this is on — otherwise the vehicle speaks up at night when temperature drift crosses the threshold.",
+          "calibrate_button": "Checked after calibrating: if the readings are not back at zero, Home Assistant tells you.",
+          "tolerance_cm": "How much height difference still feels fine. 5 cm is a good starting point — tyre pressure and suspension absorb small differences anyway.",
+          "wedge_step": "Height gained per step of your levelling ramps. At 0 the distance is announced in centimetres. Irrelevant for hydraulic or air systems.",
+          "notify_tts": "For the Home Assistant app on Android: the text is spoken instead of shown. The announcement target itself is picked on the device page under \"Announcement target\"."
+        }
+      }
+    },
+    "abort": {
+      "already_configured": "Levelling is already set up for this sensor."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "CamperMaid",
+        "description": "Change sensors, vehicle dimensions and announcement target.",
+        "data": {
+          "pitch_sensor": "Pitch (front to back)",
+          "roll_sensor": "Roll (side to side)",
+          "motion_sensor": "\"In motion\" sensor",
+          "calibrate_button": "Calibration button",
+          "wheelbase": "Wheelbase",
+          "track": "Track width",
+          "tolerance_cm": "Tolerance",
+          "wedge_step": "Levelling ramp: height per step",
+          "notify_tts": "Read the text out loud"
+        }
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "tolerance_pitch": { "name": "Threshold lengthwise" },
+      "tolerance_roll": { "name": "Threshold sideways" },
+      "correction_pitch": { "name": "Correction lengthwise" },
+      "correction_roll": { "name": "Correction sideways" },
+      "last_calibration": { "name": "Last calibrated" },
+      "phase": {
+        "name": "Phase",
+        "state": {
+          "unbekannt": "Unknown",
+          "eben": "Level",
+          "fast": "Almost level",
+          "links": "Raise left side",
+          "rechts": "Raise right side",
+          "heck": "Raise rear",
+          "front": "Raise front"
+        }
+      }
+    },
+    "binary_sensor": {
+      "level": { "name": "Is level" }
+    },
+    "number": {
+      "wheelbase": { "name": "Wheelbase" },
+      "track": { "name": "Track width" },
+      "tolerance_cm": { "name": "Tolerance" },
+      "wedge_step": { "name": "Ramp: height per step" },
+      "tolerance_deg": { "name": "Exact tolerance" }
+    },
+    "select": {
+      "level_method": {
+        "name": "Levelling method",
+        "state": {
+          "keile": "Levelling ramps",
+          "hebesystem": "Hydraulic or air suspension"
+        }
+      },
+      "notify_target": { "name": "Announcement target" }
+    },
+    "switch": {
+      "voice": { "name": "Voice announcements" },
+      "precise": { "name": "Precision mode" }
+    }
+  }
+}

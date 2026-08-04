@@ -1,0 +1,29 @@
+# Geheimnisse niemals einchecken.
+# Die secrets.yaml enthaelt den API-Schluessel der Serie - ohne ihn laesst sich
+# keine Firmware bauen, die zu bereits ausgelieferten Geraeten passt. Sie
+# gehoert gesichert, aber nicht hierher.
+secrets.yaml
+esphome/secrets.yaml
+
+# ESPHome-Bauartefakte
+.esphome/
+*.bin
+
+# Von tools/build_release.ps1 erzeugt - gehoert an das GitHub-Release,
+# nicht ins Repository.
+release/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Zugangstoken fuer das Veroeffentlichen - niemals einchecken.
+tools/github_token.txt
+
+# Interne Notizen - gehoeren nicht ins oeffentliche Repository.
+INTERN.md

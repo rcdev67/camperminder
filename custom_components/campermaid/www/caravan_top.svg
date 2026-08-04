@@ -1,0 +1,50 @@
+<!--
+  Wohnwagen von oben. Gleiche viewBox wie camper_top.svg, damit Zielring und
+  Blase in der Karte an derselben Stelle sitzen.
+
+  Kennzeichen: die Deichsel als Dreieck nach vorn, EINE Achse etwa mittig
+  (beim Wohnmobil sind es zwei), und das Stuetzrad an der Deichselspitze.
+  Vorn ist oben - wie bei der Wohnmobilansicht.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 380">
+  <defs>
+    <linearGradient id="bodyCT" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#eef2f6"/>
+      <stop offset="0.5" stop-color="#e2e7ed"/>
+      <stop offset="1" stop-color="#cdd4dc"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Deichsel als A-Rahmen, nicht als Flaeche: zwei Holme, die auf die
+       Kupplung zulaufen. Als gefuelltes Dreieck sah es aus wie ein Trichter. -->
+  <path d="M112 96 L150 32" stroke="#aab3bd" stroke-width="10" stroke-linecap="round" fill="none"/>
+  <path d="M188 96 L150 32" stroke="#aab3bd" stroke-width="10" stroke-linecap="round" fill="none"/>
+  <rect x="139" y="12" width="22" height="22" rx="7" fill="#20242b"/>
+  <rect x="142" y="46" width="16" height="18" rx="5" fill="#5a626b"/>
+
+  <!-- Raeder der einen Achse. Sie ragen bewusst deutlich ueber den Aufbau
+       hinaus - sonst verschwinden sie dahinter und man sieht nicht, dass der
+       Wohnwagen nur EINE Achse hat. -->
+  <g fill="#20242b">
+    <rect x="36" y="176" width="26" height="44" rx="7"/>
+    <rect x="238" y="176" width="26" height="44" rx="7"/>
+  </g>
+
+  <rect x="58" y="80" width="184" height="284" rx="34" fill="url(#bodyCT)" stroke="#aab3bd" stroke-width="2"/>
+
+  <!-- Bugfenster -->
+  <path d="M92 96 Q150 86 208 96 L208 118 Q150 110 92 118 Z" fill="#38506a"/>
+
+  <!-- Dachreling / Kante -->
+  <rect x="74" y="130" width="4" height="216" rx="2" fill="#b7c0c9"/>
+  <rect x="222" y="130" width="4" height="216" rx="2" fill="#b7c0c9"/>
+
+  <!-- Dachfenster, Sitzgruppe, Bett -->
+  <rect x="118" y="144" width="64" height="48" rx="6" fill="#f3f6f9" stroke="#aab3bd" stroke-width="2"/>
+  <rect x="130" y="156" width="40" height="24" rx="3" fill="#c7d0d9"/>
+  <rect x="96" y="212" width="108" height="60" rx="6" fill="#24507a" stroke="#3d6a99"/>
+  <rect x="112" y="292" width="76" height="52" rx="8" fill="#dfe5ea" stroke="#aab3bd" stroke-width="2"/>
+  <line x1="150" y1="292" x2="150" y2="344" stroke="#aab3bd" stroke-width="1.5"/>
+
+  <rect x="58" y="352" width="184" height="10" fill="#2fb6c9" opacity="0.85"/>
+</svg>

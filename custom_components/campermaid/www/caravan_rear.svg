@@ -1,0 +1,38 @@
+<!--
+  Wohnwagen von hinten. Gleiche viewBox wie camper_rear.svg.
+
+  Unterschied zum Wohnmobil: schmalerer Aufbau mit staerker gerundeten Kanten,
+  ein durchgehendes Heckfenster statt Fahrerhaus, und nur die beiden Raeder
+  der einen Achse. Das Stuetzrad sitzt vorn und ist von hinten nicht zu sehen.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 200">
+  <defs>
+    <linearGradient id="bodyCR" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#d3dae1"/>
+      <stop offset="0.5" stop-color="#eef2f6"/>
+      <stop offset="1" stop-color="#d3dae1"/>
+    </linearGradient>
+  </defs>
+
+  <rect x="38" y="22" width="144" height="142" rx="24" fill="url(#bodyCR)" stroke="#aab3bd" stroke-width="2"/>
+
+  <!-- Heckfenster -->
+  <rect x="62" y="40" width="96" height="38" rx="8" fill="#38506a"/>
+
+  <!-- Serviceklappe -->
+  <rect x="86" y="90" width="48" height="34" rx="4" fill="#dbe1e7" stroke="#aab3bd" stroke-width="2"/>
+  <circle cx="126" cy="107" r="2.5" fill="#7a848e"/>
+
+  <!-- Rueckleuchten -->
+  <rect x="46" y="122" width="18" height="26" rx="4" fill="#e0544e"/>
+  <rect x="156" y="122" width="18" height="26" rx="4" fill="#e0544e"/>
+
+  <rect x="38" y="150" width="144" height="9" fill="#2fb6c9" opacity="0.85"/>
+
+  <!-- Stossstange -->
+  <rect x="46" y="164" width="128" height="12" rx="5" fill="#c2cad2"/>
+
+  <!-- Die beiden Raeder der einen Achse -->
+  <rect x="44" y="176" width="30" height="16" rx="6" fill="#20242b"/>
+  <rect x="146" y="176" width="30" height="16" rx="6" fill="#20242b"/>
+</svg>

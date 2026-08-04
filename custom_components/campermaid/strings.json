@@ -1,0 +1,95 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "CamperMaid",
+        "description": "Die Sensoren deines Nivelliergeräts sind bereits eingetragen, sofern die mitgelieferte Firmware läuft – bitte einmal prüfen. Ergänze dann die Maße deines Fahrzeugs. Alles lässt sich später über „Konfigurieren“ ändern.",
+        "data": {
+          "pitch_sensor": "Neigung längs (Pitch)",
+          "roll_sensor": "Neigung quer (Roll)",
+          "motion_sensor": "Sensor „in Bewegung“",
+          "calibrate_button": "Kalibrier-Taste",
+          "wheelbase": "Radstand",
+          "track": "Spurweite",
+          "tolerance_cm": "Toleranz",
+          "wedge_step": "Keil: Höhe pro Stufe",
+          "notify_tts": "Text vorlesen lassen"
+        },
+        "data_description": {
+          "motion_sensor": "Angesagt wird nur, solange dieser an ist – sonst meldet sich das Fahrzeug auch nachts bei Temperaturdrift.",
+          "calibrate_button": "Wird nach dem Kalibrieren geprüft: stehen die Werte danach nicht bei null, meldet sich Home Assistant.",
+          "tolerance_cm": "Ab wie viel Höhenunterschied es dich stört. 5 cm ist ein guter Startwert – Reifendruck und Federung gleichen kleine Differenzen ohnehin aus.",
+          "wedge_step": "Höhengewinn einer Stufe deiner Auffahrkeile. Bei 0 wird in Zentimetern angesagt. Bei Hydraulik oder Luftkissen ohne Bedeutung.",
+          "notify_tts": "Für die Home-Assistant-App unter Android: der Text wird vorgelesen statt angezeigt. Das Ansageziel selbst wählst du am Gerät unter „Ansageziel“."
+        }
+      }
+    },
+    "abort": {
+      "already_configured": "Für diesen Sensor ist bereits eine Nivellierung eingerichtet."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "CamperMaid",
+        "description": "Sensoren, Fahrzeugmaße und Ansageziel ändern.",
+        "data": {
+          "pitch_sensor": "Neigung längs (Pitch)",
+          "roll_sensor": "Neigung quer (Roll)",
+          "motion_sensor": "Sensor „in Bewegung“",
+          "calibrate_button": "Kalibrier-Taste",
+          "wheelbase": "Radstand",
+          "track": "Spurweite",
+          "tolerance_cm": "Toleranz",
+          "wedge_step": "Keil: Höhe pro Stufe",
+          "notify_tts": "Text vorlesen lassen"
+        }
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "tolerance_pitch": { "name": "Schwelle längs" },
+      "tolerance_roll": { "name": "Schwelle quer" },
+      "correction_pitch": { "name": "Korrektur längs" },
+      "correction_roll": { "name": "Korrektur quer" },
+      "last_calibration": { "name": "Zuletzt kalibriert" },
+      "phase": {
+        "name": "Phase",
+        "state": {
+          "unbekannt": "Unbekannt",
+          "eben": "Eben",
+          "fast": "Fast eben",
+          "links": "Linke Seite anheben",
+          "rechts": "Rechte Seite anheben",
+          "heck": "Heck anheben",
+          "front": "Front anheben"
+        }
+      }
+    },
+    "binary_sensor": {
+      "level": { "name": "Steht eben" }
+    },
+    "number": {
+      "wheelbase": { "name": "Radstand" },
+      "track": { "name": "Spurweite" },
+      "tolerance_cm": { "name": "Toleranz" },
+      "wedge_step": { "name": "Keil: Höhe pro Stufe" },
+      "tolerance_deg": { "name": "Toleranz genau" }
+    },
+    "select": {
+      "level_method": {
+        "name": "Womit ausrichten",
+        "state": {
+          "keile": "Auffahrkeile",
+          "hebesystem": "Hydraulik oder Luftkissen"
+        }
+      },
+      "notify_target": { "name": "Ansageziel" }
+    },
+    "switch": {
+      "voice": { "name": "Sprachansage" },
+      "precise": { "name": "Präzisionsmodus" }
+    }
+  }
+}

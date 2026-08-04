@@ -1,0 +1,98 @@
+# ============================================================================
+#  Erzeugt die drei Dateien, die an ein GitHub-Release gehaengt werden.
+#
+#      pwsh ./build_release.ps1
+#
+#  Ergebnis in  esphome/release/ :
+#      firmware.ota.bin        die Firmware
+#      firmware.ota.bin.md5    ihre Pruefsumme
+#      manifest.json           was das Geraet abfragt
+#
+#  Warum ein Skript: Die Pruefsumme und die Versionsnummer muessen zur
+#  Firmwaredatei passen. Von Hand gepflegt gehen sie frueher oder spaeter
+#  auseinander - und dann verweigert entweder jedes Geraet die Installation
+#  (falsche MD5) oder es meldet dauerhaft "Update verfuegbar" (falsche
+#  Version). Beides faellt erst beim Kunden auf.
+#
+#  Die Version kommt aus esphome/level/hardware.yaml und wird
+#  nicht hier gepflegt - eine Quelle, keine zweite Wahrheit.
+# ============================================================================
+
+$ErrorActionPreference = 'Stop'
+$root = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path)
+$here = Join-Path $root 'esphome\level'
+
+$repoUrl = 'https://github.com/rcdev67/campermaid'
+
+# --- Version aus der einen Quelle lesen ------------------------------------
+$hardware = Join-Path $here 'hardware.yaml'
+if (-not (Test-Path $hardware)) { throw "Nicht gefunden: $hardware" }
+$m = [regex]::Match((Get-Content $hardware -Raw), '(?m)^\s*firmware_version\s*:\s*"([^"]+)"')
+if (-not $m.Success) { throw "firmware_version nicht gefunden in $hardware" }
+$version = $m.Groups[1].Value
+Write-Host "Version aus der Firmware-Quelle: $version"
+
+# --- Gebaute Firmware suchen -----------------------------------------------
+# esphome legt sie unter .esphome/build/<name>/.pioenvs/<name>/ ab.
+# Gesucht wird der Name, den ESPHome vergibt. Das Produktpraefix bekommt erst
+# die Kopie im Ausgabeordner - die Release-Anhaenge muessen je Produkt
+# unterscheidbar sein, im Bauverzeichnis heissen sie bei allen gleich.
+$candidates = Get-ChildItem (Join-Path $root 'esphome') -Recurse -Filter 'firmware.ota.bin' -ErrorAction SilentlyContinue |
+              Sort-Object LastWriteTime -Descending
+if (-not $candidates) {
+  throw "firmware.ota.bin nicht gefunden. Erst bauen:  esphome compile campermaid-level.yaml"
+}
+$bin = $candidates[0]
+Write-Host ("Firmware: {0}  ({1:N0} Bytes, {2})" -f $bin.FullName, $bin.Length, $bin.LastWriteTime)
+
+# Warnen, wenn die Firmware aelter ist als die Quelle - dann wurde nach der
+# letzten Aenderung nicht neu gebaut, und das Release enthielte einen alten
+# Stand unter neuer Nummer.
+if ($bin.LastWriteTime -lt (Get-Item $hardware).LastWriteTime) {
+  Write-Warning "Die Firmware ist AELTER als hardware.yaml. Vor dem Release neu bauen!"
+}
+
+# --- Ausgabeordner ----------------------------------------------------------
+$out = Join-Path $root 'release'
+if (-not (Test-Path $out)) { New-Item -ItemType Directory -Path $out | Out-Null }
+Copy-Item $bin.FullName (Join-Path $out 'level-firmware.ota.bin') -Force
+
+# --- Pruefsumme -------------------------------------------------------------
+# Genau 32 Zeichen, klein geschrieben, ohne Zeilenumbruch: Das Geraet
+# vergleicht den Inhalt der Datei unveraendert.
+$md5 = (Get-FileHash (Join-Path $out 'level-firmware.ota.bin') -Algorithm MD5).Hash.ToLower()
+[System.IO.File]::WriteAllText((Join-Path $out 'level-firmware.ota.bin.md5'), $md5)
+Write-Host "MD5: $md5"
+
+# --- Manifest ---------------------------------------------------------------
+# path als vollstaendige Adresse: Beginnt der Wert mit http, nimmt das Geraet
+# ihn unveraendert. Relative Angaben scheitern, weil GitHub den Download auf
+# einen anderen Rechner umleitet.
+$manifest = [ordered]@{
+  name    = 'CamperMaid Level'
+  version = $version
+  builds  = @(
+    [ordered]@{
+      chipFamily = 'ESP32-C3'
+      ota        = [ordered]@{
+        md5         = $md5
+        path        = "$repoUrl/releases/latest/download/level-firmware.ota.bin"
+        summary     = "CamperMaid $version"
+        release_url = "$repoUrl/releases/latest"
+      }
+    }
+  )
+}
+$json = $manifest | ConvertTo-Json -Depth 6
+[System.IO.File]::WriteAllText((Join-Path $out 'level-manifest.json'), $json, (New-Object System.Text.UTF8Encoding $false))
+
+Write-Host ""
+Write-Host "Fertig. Diese drei Dateien an das Release haengen:"
+Get-ChildItem $out | ForEach-Object { "   {0,-24} {1,10:N0} Bytes" -f $_.Name, $_.Length }
+Write-Host ""
+Write-Host "Zum Veroeffentlichen:  veroeffentlichen.cmd"
+Write-Host ""
+Write-Host "Beim Hochladen von Hand: erst die .bin und die .md5, zuletzt das Manifest."
+Write-Host "Andersherum sehen Geraete kurz eine Version, die es noch nicht zum Laden gibt."
+Write-Host "veroeffentlichen.cmd umgeht das - es laedt in einen Entwurf und schaltet"
+Write-Host "erst danach sichtbar."

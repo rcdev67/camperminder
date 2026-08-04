@@ -1,0 +1,47 @@
+<!--
+  Wohnwagen von der Seite. Gleiche viewBox wie camper_side.svg, damit die
+  Karte beide Fahrzeugarten ohne Umrechnung an derselben Stelle zeichnen kann.
+
+  Kennzeichen gegenueber dem Wohnmobil: Deichsel mit Kupplung vorn, EINE
+  Achse etwa mittig, und das Stuetzrad - der Punkt, an dem beim Wohnwagen die
+  Laengsneigung eingestellt wird. Es steht bewusst deutlich sichtbar da.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 380 170">
+  <defs>
+    <linearGradient id="bodyCS" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#eef2f6"/>
+      <stop offset="1" stop-color="#d3dae1"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Deichsel und Kupplung -->
+  <path d="M96 104 L30 113 L30 123 L96 126 Z" fill="#8d97a3"/>
+  <rect x="8" y="106" width="26" height="22" rx="6" fill="#20242b"/>
+
+  <!-- Stuetzrad: Strebe, Kurbel, Rad. Beim Wohnwagen der Punkt, an dem die
+       Laengsneigung eingestellt wird - deshalb deutlich gezeichnet. -->
+  <rect x="56" y="108" width="10" height="34" rx="3" fill="#5a626b"/>
+  <rect x="48" y="100" width="26" height="7" rx="3" fill="#8d97a3"/>
+  <circle cx="72" cy="103.5" r="4" fill="#5a626b"/>
+  <circle cx="61" cy="149" r="10" fill="#20242b"/>
+  <circle cx="61" cy="149" r="4" fill="#5a626b"/>
+
+  <!-- Aufbau: vorn leicht gezogen, hinten kantig -->
+  <path d="M96 128 L96 66 Q98 48 118 46 L344 44 Q356 44 356 60 L356 122 Q356 128 348 128 Z"
+        fill="url(#bodyCS)" stroke="#aab3bd" stroke-width="2"/>
+
+  <!-- Bugfenster, Seitenfenster, Tuer -->
+  <rect x="108" y="58" width="34" height="26" rx="4" fill="#38506a"/>
+  <rect x="158" y="58" width="62" height="34" rx="5" fill="#38506a"/>
+  <rect x="298" y="58" width="42" height="34" rx="5" fill="#38506a"/>
+  <rect x="236" y="56" width="46" height="72" rx="4" fill="#dbe1e7" stroke="#aab3bd" stroke-width="2"/>
+  <rect x="242" y="62" width="34" height="22" rx="3" fill="#38506a"/>
+  <circle cx="272" cy="100" r="2.5" fill="#7a848e"/>
+
+  <rect x="96" y="112" width="260" height="9" fill="#2fb6c9" opacity="0.85"/>
+  <rect x="102" y="128" width="248" height="8" rx="3" fill="#c2cad2"/>
+
+  <!-- Eine Achse -->
+  <circle cx="238" cy="138" r="20" fill="#20242b"/>
+  <circle cx="238" cy="138" r="9" fill="#5a626b"/>
+</svg>

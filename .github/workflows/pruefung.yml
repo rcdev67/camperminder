@@ -1,0 +1,35 @@
+# Prueft bei jedem Push, ob das Repository installierbar und die Integration
+# formal in Ordnung ist. Beides faellt sonst erst beim Nutzer auf - und bei
+# einem verkauften Geraet heisst das Supportfall statt Fehlermeldung.
+name: Prüfung
+
+on:
+  push:
+  pull_request:
+  # Woechentlich auch ohne Aenderung: Home Assistant verschaerft die
+  # Anforderungen an manifest.json von Zeit zu Zeit. So faellt das auf,
+  # bevor die naechste Veroeffentlichung ansteht.
+  schedule:
+    - cron: "0 4 * * 1"
+  workflow_dispatch:
+
+jobs:
+  hassfest:
+    name: Home Assistant (hassfest)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: home-assistant/actions/hassfest@master
+
+  hacs:
+    name: HACS
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hacs/action@main
+        with:
+          category: integration
+          # Bewusst ohne "ignore": Jede uebergangene Pruefung waere eine
+          # Stelle, an der wir nicht wissen, ob sie haelt. Das Markenbild
+          # liegt in custom_components/campermaid/brand/, die Brands-Pruefung
+          # sollte also ohne Ausnahme durchlaufen.

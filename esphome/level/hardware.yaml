@@ -1,0 +1,445 @@
+# ============================================================================
+#  CamperMaid  -  Hardware und Messlogik
+# ----------------------------------------------------------------------------
+#  Enthaelt AUSSCHLIESSLICH das Projektspezifische: Sensorik, OLED-Anzeige,
+#  Kalibrierung und Geraete-Webseite.
+#
+#  Bewusst NICHT enthalten: esphome:, wifi:, api:, ota:, captive_portal:.
+#  Diese Bloecke erzeugt der ESPHome-Assistent beim Anlegen eines neuen Geraets
+#  bereits selbst - mitsamt zufaelligem API-Schluessel und Passwoertern. Wer sie
+#  hier noch einmal mitliefern wuerde, zwaenge jeden Nutzer dazu, von Hand
+#  Eintraege in seine secrets.yaml zu schreiben. Genau das soll entfallen.
+#
+#  Verwendung - NICHT den Inhalt in die Geraetedatei kopieren! Diese Datei
+#  bringt eigene esphome:- und esp32:-Bloecke mit; untereinandergeschrieben
+#  ergaebe das doppelte Schluessel und einen YAML-Fehler. Stattdessen als
+#  PAKET einbinden, dann fuehrt ESPHome die Bloecke sauber zusammen:
+#
+#  A) Datei nach /config/esphome/campermaid/ legen - also in einen
+#     UNTERORDNER, nicht neben die Geraetedatei. Grund: Das ESPHome-Dashboard
+#     listet jede YAML-Datei der obersten Ebene als Geraet. Lag diese Datei
+#     dort, erschien sie als eigene Kachel, rot markiert (ihr fehlen
+#     zwangslaeufig esphome: und board:) und jederzeit versehentlich
+#     installierbar. Im Unterordner verschwindet sie aus der Liste.
+#
+#     Dann in der Geraetedatei am Ende:
+#
+#        packages:
+#          campermaid: !include hardware.yaml
+#
+#  B) Oder direkt von GitHub, ohne die Datei abzulegen (setzt ein
+#     oeffentliches Repository voraus):
+#
+#        packages:
+#          campermaid: github://rcdev67/campermaid/esphome/level/hardware.yaml@main
+#
+#  Hat die Geraetedatei eine Zeile "framework:", loesche sie - sonst gilt sie
+#  statt der hier eingestellten.
+#
+#  WICHTIG: Im Assistenten muss als Geraetetyp ESP32-C3 gewaehlt sein. Steht in
+#  der erzeugten Datei "board: esp32dev", auf "board: esp32-c3-devkitm-1"
+#  aendern - sonst passen die Pins nicht.
+# ============================================================================
+
+substitutions:
+  # Version DIESES Produkts. Sie zaehlt eigenstaendig - die Integration in
+  # custom_components/campermaid hat ihre eigene, und ein weiteres Produkt wird
+  # spaeter eine dritte haben. Frueher liefen Firmware und Integration im
+  # Gleichschritt; mit mehreren Geraeten geht das nicht mehr auf, weil sonst
+  # eine Aenderung an einem anderen Produkt jedem Nivelliergeraet ein Update aufzwingt.
+  #
+  # Sie muss zeichengleich im Update-Manifest stehen: Die Pruefung im Geraet
+  # vergleicht genau diese Zeichenkette. Weicht sie ab, meldet das Geraet
+  # dauerhaft "Update verfuegbar".
+  firmware_version: "2.0.0"
+
+  # I2C-Pins (0,42"-OLED-Board): SDA=GPIO5, SCL=GPIO6
+  i2c_sda_pin: GPIO5
+  i2c_scl_pin: GPIO6
+  # Toleranz in Grad, bis zu der "steht gerade" gilt.
+  # NUR fuer die Anzeige am Geraet (OLED + binary_sensor "steht gerade").
+  # Ansagen und Karte benutzen die Toleranz aus der HA-Integration.
+  level_tolerance_deg: "0.4"
+  # Achsen-Vorzeichen - nur "1" oder "-1".
+  # Konvention: pitch > 0 = Front hoeher, roll > 0 = rechte Seite hoeher.
+  pitch_sign: "1"
+  roll_sign: "1"
+  # Achs-ZUORDNUNG: auf welcher Beschleunigungsachse liegt welche Neigung?
+  # Nur "x" oder "y" (z ist immer die Schwerkraft-Achse).
+  #   Standard-Einbau (Platinenkante parallel zur Fahrtrichtung): y / x
+  #   Sensor um 90 Grad gedreht verbaut:                          x / y
+  # Wird an ALLEN drei Stellen benutzt (Pitch, Roll, Kalibrier-Button) - genau
+  # deshalb als Substitution: eine falsch mitgezogene Stelle war hier schon
+  # einmal die Ursache dafuer, dass Anzeige und gespeicherter Offset
+  # auseinanderliefen.
+  axis_pitch: "x"
+  axis_roll: "y"
+
+# Board-Feinheiten, die der Assistent nicht setzt. "board:" kommt bewusst aus
+# der Geraetedatei, damit die Wahl im Assistenten gilt.
+esp32:
+  flash_size: 4MB
+  framework:
+    type: esp-idf
+
+web_server:
+  port: 80
+  include_internal: true
+  # local: true bettet die Oberflaeche in die Firmware ein, statt sie von einem
+  # CDN nachzuladen. OHNE das bleibt die Seite auf dem Stellplatz ohne Internet
+  # leer - genau dann, wenn man sie braucht. Kostet etwas Flash (4 MB sind da).
+  local: true
+
+preferences:
+  flash_write_interval: 1min
+
+# --- I2C: OLED + MPU6050 auf einem Bus -------------------------------------
+i2c:
+  id: grove
+  sda: ${i2c_sda_pin}
+  scl: ${i2c_scl_pin}
+  scan: true
+  frequency: 100kHz          # stabil mit OLED+MPU; 400kHz moeglich, wenn Bus sauber
+  sda_pullup_enabled: true
+  scl_pullup_enabled: true
+
+globals:
+  - id: pitch_offset
+    type: float
+    initial_value: "0.0"
+    restore_value: true
+  - id: roll_offset
+    type: float
+    initial_value: "0.0"
+    restore_value: true
+
+# --- Fahrzeugmasse ---------------------------------------------------------
+# Gehoeren ins Geraet, nicht ins Handy: sie beschreiben das Fahrzeug, nicht den
+# Betrachter. Lagen sie im Browser, waeren sie beim Handywechsel weg und zwei
+# Mitfahrer saehen verschiedene Zahlen.
+#
+# restore_value haelt sie ueber Stromausfall und Neustart. optimistic, weil es
+# keine Gegenstelle gibt, die den Wert bestaetigen koennte - das Geraet ist die
+# Gegenstelle.
+#
+# Die Grenzen sind bewusst weit: ein Kastenwagen hat 3000 mm Radstand, ein
+# Liner ueber 7000. Zu enge Grenzen wuerden echte Fahrzeuge ausschliessen.
+number:
+  - platform: template
+    name: "Radstand"
+    id: wheelbase_mm
+    unit_of_measurement: mm
+    icon: mdi:arrow-left-right
+    entity_category: config
+    min_value: 1000
+    max_value: 8000
+    step: 10
+    initial_value: 3500
+    restore_value: true
+    optimistic: true
+    mode: box
+
+  - platform: template
+    name: "Spurweite"
+    id: track_mm
+    unit_of_measurement: mm
+    icon: mdi:arrow-expand-horizontal
+    entity_category: config
+    min_value: 800
+    max_value: 2600
+    step: 10
+    initial_value: 1800
+    restore_value: true
+    optimistic: true
+    mode: box
+
+  - platform: template
+    name: "Toleranz"
+    id: tolerance_cm
+    unit_of_measurement: cm
+    icon: mdi:plus-minus-variant
+    entity_category: config
+    min_value: 1
+    max_value: 20
+    step: 0.5
+    initial_value: 5
+    restore_value: true
+    optimistic: true
+    mode: box
+
+  # 0 bedeutet: in Zentimetern rechnen statt in Stufen. Wer Hydraulik hat,
+  # laesst den Wert ohnehin auf 0.
+  - platform: template
+    name: "Keilstufe"
+    id: wedge_step_cm
+    unit_of_measurement: cm
+    icon: mdi:stairs
+    entity_category: config
+    min_value: 0
+    max_value: 10
+    step: 0.5
+    initial_value: 0
+    restore_value: true
+    optimistic: true
+    mode: box
+
+# Bestimmt, wie die Geraeteseite ihre Hinweise ordnet: mit Keilen eine
+# Anweisung nach der anderen, mit einem Hebesystem alle Ecken auf einmal.
+select:
+  - platform: template
+    name: "Ausrichtart"
+    id: level_method
+    icon: mdi:car-lifted-pickup
+    entity_category: config
+    options:
+      - "Auffahrkeile"
+      - "Hydraulik oder Luftkissen"
+    initial_option: "Auffahrkeile"
+    restore_value: true
+    optimistic: true
+
+  # Aendert die Geometrie, nicht nur die Beschriftung:
+  #
+  # Wohnmobil - vier Auflagepunkte, zwei Achsen. "Radstand" ist der
+  #   Achsabstand, korrigiert wird ausschliesslich nach oben.
+  #
+  # Wohnwagen - eine Achse plus Stuetzrad. Quer laeuft es gleich, laengs
+  #   aber ueber das Stuetzrad, das sich in BEIDE Richtungen kurbeln laesst.
+  #   "Radstand" bedeutet dann Abstand Achse zu Stuetzrad - meist deutlich
+  #   groesser als ein Radstand, also unbedingt nachmessen.
+  - platform: template
+    name: "Fahrzeugart"
+    id: vehicle_type
+    icon: mdi:rv-truck
+    entity_category: config
+    options:
+      - "Wohnmobil"
+      - "Wohnwagen"
+    initial_option: "Wohnmobil"
+    restore_value: true
+    optimistic: true
+
+# --- Schriften fuers OLED (laedt sich beim Kompilieren automatisch) --------
+font:
+  - file: "gfonts://Roboto"
+    id: font_num
+    size: 10
+
+sensor:
+  - platform: wifi_signal
+    name: "WLAN Signal"
+    update_interval: 60s
+    entity_category: diagnostic
+
+  - platform: uptime
+    name: "Laufzeit"
+    update_interval: 60s
+    entity_category: diagnostic
+
+  # --- MPU6050: schnelle Rohwerte ------------------------------------------
+  - platform: mpu6050
+    i2c_id: grove
+    address: 0x68
+    update_interval: 100ms          # 10 Hz Rohdaten
+    accel_x:
+      id: accel_x
+      internal: true
+    accel_y:
+      id: accel_y
+      internal: true
+    accel_z:
+      id: accel_z
+      internal: true
+    temperature:
+      name: "MPU6050 Temperatur"
+      internal: true
+      entity_category: diagnostic
+    gyro_x:
+      name: "MPU6050 Gyro X"
+      id: gyro_x
+      internal: true
+    gyro_y:
+      name: "MPU6050 Gyro Y"
+      id: gyro_y
+      internal: true
+    gyro_z:
+      name: "MPU6050 Gyro Z"
+      id: gyro_z
+      internal: true
+
+  # --- Neigung Laengs (Pitch) ----------------------------------------------
+  - platform: template
+    name: "Neigung Pitch"
+    id: pitch
+    icon: mdi:caravan
+    unit_of_measurement: "°"
+    accuracy_decimals: 1
+    state_class: measurement
+    update_interval: 100ms          # live
+    lambda: |-
+      if (isnan(id(accel_${axis_pitch}).state) || isnan(id(accel_${axis_roll}).state) || isnan(id(accel_z).state)) {
+        return NAN;
+      }
+      // Laengs-Neigung liegt auf accel_${axis_pitch} (siehe axis_pitch oben)
+      const float raw = atan2f(
+        id(accel_${axis_pitch}).state,
+        sqrtf(powf(id(accel_${axis_roll}).state, 2) + powf(id(accel_z).state, 2))
+      ) * (180.0f / 3.14159265358979323846f);
+      return (raw - id(pitch_offset)) * ${pitch_sign};
+    filters:
+      - sliding_window_moving_average:
+          window_size: 3
+          send_every: 1
+      - exponential_moving_average:
+          alpha: 0.5                 # geringe Latenz, ruhige Anzeige
+
+  # --- Neigung Quer (Roll) -------------------------------------------------
+  - platform: template
+    name: "Neigung Roll"
+    id: roll
+    icon: mdi:axis-x-rotate-clockwise
+    unit_of_measurement: "°"
+    accuracy_decimals: 1
+    state_class: measurement
+    update_interval: 100ms
+    lambda: |-
+      if (isnan(id(accel_${axis_roll}).state) || isnan(id(accel_z).state)) {
+        return NAN;
+      }
+      // Quer-Neigung liegt auf accel_${axis_roll} (siehe axis_roll oben)
+      const float raw = atan2f(
+        -id(accel_${axis_roll}).state,
+        id(accel_z).state
+      ) * (180.0f / 3.14159265358979323846f);
+      return (raw - id(roll_offset)) * ${roll_sign};
+    filters:
+      - sliding_window_moving_average:
+          window_size: 3
+          send_every: 1
+      - exponential_moving_average:
+          alpha: 0.5
+
+binary_sensor:
+  - platform: status
+    name: "Status"
+
+  - platform: template
+    name: "Camper steht gerade"
+    id: camper_level_ok
+    icon: mdi:axis-arrow
+    lambda: |-
+      if (isnan(id(pitch).state) || isnan(id(roll).state)) {
+        return {};
+      }
+      return fabsf(id(pitch).state) <= ${level_tolerance_deg}
+        && fabsf(id(roll).state) <= ${level_tolerance_deg};
+
+  # Bewegungserkennung ueber Gyro -> "steht" erst 20 s nach letzter Bewegung
+  - platform: template
+    name: "In Bewegung"
+    id: in_motion
+    device_class: moving
+    lambda: |-
+      if (isnan(id(gyro_x).state) || isnan(id(gyro_y).state) || isnan(id(gyro_z).state)) {
+        return {};
+      }
+      const float g = fabsf(id(gyro_x).state) + fabsf(id(gyro_y).state) + fabsf(id(gyro_z).state);
+      return g > 3.0f;   // Summe der Drehraten (deg/s); Schwelle fuer "Bewegung"
+    filters:
+      - delayed_off: 20s   # gilt erst 20 s nach der letzten Bewegung als "steht"
+
+text_sensor:
+  # Unsere eigene Fassung, nicht die von ESPHome. Muss mit der Version in
+  # esphome.project und im Update-Manifest uebereinstimmen: Die Update-
+  # Pruefung vergleicht genau diese Zeichenkette.
+  - platform: template
+    name: "Firmware Version"
+    id: firmware_version_sensor
+    icon: mdi:tag-outline
+    entity_category: diagnostic
+    lambda: 'return {"${firmware_version}"};'
+    # 60s und nicht laenger: Ein Template-Sensor veroeffentlicht erst NACH
+    # Ablauf des ersten Intervalls, nicht beim Start. Mit 6h stand hier
+    # stundenlang "unbekannt" und die Zeile fehlte in der Technik-Liste.
+    update_interval: 60s
+
+  - platform: wifi_info
+    ip_address:
+      name: "IP Adresse"
+      entity_category: diagnostic
+    ssid:
+      name: "Verbundenes WLAN"
+      entity_category: diagnostic
+    mac_address:
+      name: "WLAN MAC"
+      entity_category: diagnostic
+
+button:
+  - platform: template
+    name: "Neigung kalibrieren"
+    id: calibrate_level
+    icon: mdi:crosshairs-gps
+    on_press:
+      then:
+        - lambda: |-
+            if (isnan(id(accel_${axis_pitch}).state) || isnan(id(accel_${axis_roll}).state) || isnan(id(accel_z).state)) {
+              ESP_LOGW("level", "Kalibrierung abgebrochen: MPU6050 liefert noch keine gueltigen Werte.");
+              return;
+            }
+            // MUSS dieselbe Achszuordnung benutzen wie die Sensoren oben -
+            // deshalb ebenfalls ueber ${axis_pitch} / ${axis_roll}.
+            id(pitch_offset) = atan2f(
+              id(accel_${axis_pitch}).state,
+              sqrtf(powf(id(accel_${axis_roll}).state, 2) + powf(id(accel_z).state, 2))
+            ) * (180.0f / 3.14159265358979323846f);
+            id(roll_offset) = atan2f(
+              -id(accel_${axis_roll}).state,
+              id(accel_z).state
+            ) * (180.0f / 3.14159265358979323846f);
+            ESP_LOGI("level", "Kalibrierung gespeichert: pitch_offset=%.2f, roll_offset=%.2f",
+                     id(pitch_offset), id(roll_offset));
+
+# --- OLED: Libelle (Blase) links + exakte Zahlen rechts --------------------
+display:
+  - platform: ssd1306_i2c
+    model: "SSD1306 72x40"
+    i2c_id: grove
+    address: 0x3C
+    update_interval: 200ms
+    lambda: |-
+      const int   cx = 20, cy = 20, R = 18;   // Blasen-Kreis links
+      const float scale  = 1.9f;              // Pixel pro Grad
+      const float travel = R - 3;
+
+      float p = id(pitch).state;
+      float r = id(roll).state;
+
+      // Rahmen + Zielkreuz
+      it.circle(cx, cy, R);
+      it.circle(cx, cy, 4);
+      it.line(cx - 3, cy, cx + 3, cy);
+      it.line(cx, cy - 3, cx, cy + 3);
+
+      if (isnan(p) || isnan(r)) {
+        it.print(cx, cy + 24, id(font_num), TextAlign::CENTER, "warte");
+        return;
+      }
+
+      // Blase: Roll->X, Pitch->Y (wandert zur hohen Seite)
+      float bx =  r * scale;
+      float by = -p * scale;
+      float d  = sqrtf(bx * bx + by * by);
+      if (d > travel) { bx *= travel / d; by *= travel / d; }
+      int px = cx + (int) lroundf(bx);
+      int py = cy + (int) lroundf(by);
+
+      if (id(camper_level_ok).state) {
+        it.filled_circle(cx, cy, 4);
+      } else {
+        it.line(cx, cy, px, py);
+        it.filled_circle(px, py, 3);
+      }
+
+      // Exakte Werte rechts (0,1 Grad)
+      it.printf(41,  4, id(font_num), "P%+.1f", p);
+      it.printf(41, 22, id(font_num), "R%+.1f", r);
