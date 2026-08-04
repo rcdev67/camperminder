@@ -84,14 +84,40 @@ $kopf = @{
 }
 $api = "https://api.github.com/repos/$owner/$repo"
 
+# JSON immer selbst nach UTF-8 wandeln und als Bytes senden.
+#
+# Invoke-RestMethod kodiert eine Zeichenkette in Windows PowerShell 5.1 nicht
+# als UTF-8, wenn im ContentType keine Kodierung steht. Umlaute im
+# Beschreibungstext kommen dann als ungültige Bytes an, und GitHub antwortet
+# mit "Problems parsing JSON" - einer Meldung, die auf alles Mögliche zeigt,
+# nur nicht auf die Ursache.
+function Sende-Json {
+  param($Uri, $Methode, $Daten)
+  $json  = $Daten | ConvertTo-Json -Depth 6
+  $bytes = [System.Text.Encoding]::UTF8.GetBytes($json)
+  Invoke-RestMethod -Uri $Uri -Headers $kopf -Method $Methode `
+    -Body $bytes -ContentType 'application/json; charset=utf-8'
+}
+
 Write-Host "Repository: $owner/$repo"
 Write-Host "Version:    $version   (Tag $tag)"
 Write-Host ""
 
 # --- Gibt es das Release schon? --------------------------------------------
+# Zuerst über das Tag. Das findet allerdings KEINE Entwürfe: Ein Entwurf legt
+# das Tag noch nicht an. Bricht ein Lauf nach dem Anlegen ab, entstünde beim
+# nächsten Versuch ein zweiter Entwurf. Deshalb danach die Liste durchsehen.
 $release = $null
 try   { $release = Invoke-RestMethod -Uri "$api/releases/tags/$tag" -Headers $kopf -Method Get }
 catch { $release = $null }
+
+if (-not $release) {
+  try {
+    $alle = Invoke-RestMethod -Uri "$api/releases?per_page=100" -Headers $kopf -Method Get
+    $release = $alle | Where-Object { $_.tag_name -eq $tag } | Select-Object -First 1
+    if ($release) { Write-Host "Vorhandenen Entwurf $tag gefunden - wird weiterverwendet." }
+  } catch { }
+}
 
 if ($release) {
   Write-Host "Release $tag besteht bereits - vorhandene Anhänge werden ersetzt."
@@ -103,8 +129,7 @@ if ($release) {
   }
   # Zum Hochladen zurück in den Entwurf, damit "latest" nicht auf ein
   # Release ohne vollständige Dateien zeigt.
-  $release = Invoke-RestMethod -Uri "$api/releases/$($release.id)" -Headers $kopf -Method Patch `
-    -Body (@{ draft = $true } | ConvertTo-Json) -ContentType 'application/json'
+  $release = Sende-Json -Uri "$api/releases/$($release.id)" -Methode Patch -Daten @{ draft = $true }
 } else {
   $text = @"
 CamperMaid Level $version
@@ -119,14 +144,12 @@ dann ``level-firmware.ota.bin`` wählen.
 mit web.esphome.io. Die OTA-Datei ist dafür nicht geeignet - sie enthält
 keinen Bootloader.
 "@
-  $body = @{
+  $release = Sende-Json -Uri "$api/releases" -Methode Post -Daten @{
     tag_name = $tag
     name     = "CamperMaid Level $version"
     body     = $text
     draft    = $true
-  } | ConvertTo-Json
-  $release = Invoke-RestMethod -Uri "$api/releases" -Headers $kopf -Method Post `
-    -Body $body -ContentType 'application/json'
+  }
   Write-Host "Entwurf angelegt."
 }
 
@@ -140,8 +163,9 @@ foreach ($d in $dateien) {
 }
 
 # --- Erst jetzt veröffentlichen -------------------------------------------
-$fertig = Invoke-RestMethod -Uri "$api/releases/$($release.id)" -Headers $kopf -Method Patch `
-  -Body (@{ draft = $false; make_latest = 'true' } | ConvertTo-Json) -ContentType 'application/json'
+$fertig = Sende-Json -Uri "$api/releases/$($release.id)" -Methode Patch -Daten @{
+  draft = $false; make_latest = 'true'
+}
 
 Write-Host ""
 Write-Host "Veröffentlicht: $($fertig.html_url)"
