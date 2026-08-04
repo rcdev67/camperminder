@@ -1,18 +1,18 @@
 /*
- * CamperMaid - Oberflaeche auf dem Geraet selbst
+ * CamperMaid - Oberfläche auf dem Gerät selbst
  * ---------------------------------------------------------------------------
- * Wird ueber web_server.js_include in die Firmware eingebettet und als /0.js
+ * Wird über web_server.js_include in die Firmware eingebettet und als /0.js
  * ausgeliefert. Braucht weder Home Assistant noch Internet noch eine App: das
- * Handy verbindet sich mit dem Geraet und oeffnet dessen Adresse.
+ * Handy verbindet sich mit dem Gerät und öffnet dessen Adresse.
  *
  * Die Rechnung ist absichtlich dieselbe wie in der Home-Assistant-Integration
- * (coordinator.py): Schwellen ueber den Arkustangens der Fahrzeugmasse,
- * Hubhoehe je Rad gegen das hoechste Rad. Wer eine Formel aendert, muss beide
- * Stellen aendern - sonst sagen Geraet und Karte Verschiedenes, und das
+ * (coordinator.py): Schwellen über den Arkustangens der Fahrzeugmaße,
+ * Hubhöhe je Rad gegen das höchste Rad. Wer eine Formel ändert, muss beide
+ * Stellen ändern - sonst sagen Gerät und Karte Verschiedenes, und das
  * merkt man erst im Fahrzeug.
  *
- * Vorzeichen wie in der Firmware: pitch > 0 = Front hoeher (Heck muss hoch),
- * roll > 0 = rechte Seite hoeher (linke Seite muss hoch).
+ * Vorzeichen wie in der Firmware: pitch > 0 = Front höher (Heck muss hoch),
+ * roll > 0 = rechte Seite höher (linke Seite muss hoch).
  */
 
 (function () {
@@ -29,9 +29,9 @@
     stuetzrad: "Stützrad"
   };
 
-  /* Beim Wohnwagen heissen zwei Dinge anders, weil sie anderes bedeuten:
-   * die Raeder sitzen auf einer Achse, und das Laengenmass geht bis zum
-   * Stuetzrad statt zur zweiten Achse. */
+  /* Beim Wohnwagen heißen zwei Dinge anders, weil sie anderes bedeuten:
+   * die Räder sitzen auf einer Achse, und das Längenmaß geht bis zum
+   * Stützrad statt zur zweiten Achse. */
   var CARAVAN_WHEEL_NAMES = {
     hinten_links: "Linkes Rad",
     hinten_rechts: "Rechtes Rad",
@@ -40,21 +40,21 @@
 
   var VEHICLE_CARAVAN = "Wohnwagen";
 
-  /* Die Fahrzeugmasse liegen im Geraet, nicht im Browser: sie beschreiben das
+  /* Die Fahrzeugmaße liegen im Gerät, nicht im Browser: sie beschreiben das
    * Fahrzeug, nicht den Betrachter. Dadurch sehen alle Mitfahrer dieselben
    * Zahlen, und ein neues Handy bringt sie nicht durcheinander.
    *
-   * Die Werte kommen ueber denselben Ereignisstrom wie die Messwerte und
-   * werden ueber die REST-Schnittstelle zurueckgeschrieben. Die Vorgaben hier
-   * gelten nur, solange noch nichts empfangen wurde - eine leere Anzeige waere
+   * Die Werte kommen über denselben Ereignisstrom wie die Messwerte und
+   * werden über die REST-Schnittstelle zurückgeschrieben. Die Vorgaben hier
+   * gelten nur, solange noch nichts empfangen wurde - eine leere Anzeige wäre
    * schlimmer als eine plausible Zahl. */
   var cfg = {
     wheelbase: 3500, track: 1800, tolerance_cm: 5, wedge_step: 0,
     method: "keile", vehicle: "wohnmobil"
   };
 
-  /* Objekt-Kennungen der Firmware. Die Schreibwege gehen ueber diese Namen,
-   * gelesen wird ueber Teilstrings - so haelt beides auch, wenn dem Geraet
+  /* Objekt-Kennungen der Firmware. Die Schreibwege gehen über diese Namen,
+   * gelesen wird über Teilstrings - so hält beides auch, wenn dem Gerät
    * ein anderer Name gegeben wird. */
   var IDS = {
     wheelbase: "radstand",
@@ -69,10 +69,10 @@
 
   var state = { pitch: null, roll: null, motion: false, seen: {}, ready: false };
 
-  /* Jeder Schreibzugriff wird geprueft.
+  /* Jeder Schreibzugriff wird geprüft.
    *
    * Vorher wurden Werte lokal gesetzt und blind abgeschickt. Antwortete das
-   * Geraet mit 404, sah der Nutzer trotzdem seine Eingabe stehen und durfte
+   * Gerät mit 404, sah der Nutzer trotzdem seine Eingabe stehen und durfte
    * annehmen, sie sei gespeichert. Eine Einstellung, die stillschweigend
    * nicht ankommt, ist schlimmer als eine, die sichtbar scheitert. */
   var writeError = null;
@@ -101,7 +101,7 @@
   function setVehicle(option) {
     cfg.vehicle = option === VEHICLE_CARAVAN ? "wohnwagen" : "wohnmobil";
     write("select", IDS.vehicle, "option=" + encodeURIComponent(option));
-    // Beschriftungen und Bedienfelder haengen davon ab - hier reicht das
+    // Beschriftungen und Bedienfelder hängen davon ab - hier reicht das
     // Nachziehen der Werte nicht, der feste Bereich muss neu entstehen.
     render();
   }
@@ -141,15 +141,15 @@
 
   function isCaravan() { return cfg.vehicle === "wohnwagen"; }
 
-  /* Wohnwagen: zwei Raeder auf einer Achse plus Stuetzrad.
+  /* Wohnwagen: zwei Räder auf einer Achse plus Stützrad.
    *
-   * Quer wie beim Wohnmobil ueber die Spurweite - ein Keil unter das tiefere
-   * Rad. Laengs dagegen ueber das Stuetzrad, und das kurbelt in BEIDE
-   * Richtungen; "nur anheben" waere hier eine kuenstliche Einschraenkung.
+   * Quer wie beim Wohnmobil über die Spurweite - ein Keil unter das tiefere
+   * Rad. Längs dagegen über das Stützrad, und das kurbelt in BEIDE
+   * Richtungen; "nur anheben" wäre hier eine künstliche Einschränkung.
    *
-   * Reihenfolge ist Absicht: erst quer, dann laengs. Das Auffahren auf den
-   * Keil kippt den Wagen laengs mit - eine vorher berechnete Stuetzradhoehe
-   * waere danach falsch. */
+   * Reihenfolge ist Absicht: erst quer, dann längs. Das Auffahren auf den
+   * Keil kippt den Wagen längs mit - eine vorher berechnete Stützradhöhe
+   * wäre danach falsch. */
   function caravanPlan() {
     if (!available()) return null;
     var out = [];
@@ -181,7 +181,7 @@
     if (!available()) return null;
     var halfLong = cfg.wheelbase * Math.tan(state.pitch * Math.PI / 180) / 20;
     var halfLat = cfg.track * Math.tan(state.roll * Math.PI / 180) / 20;
-    // pitch > 0 = Front hoeher, roll > 0 = rechts hoeher.
+    // pitch > 0 = Front höher, roll > 0 = rechts höher.
     var ground = {
       vorne_links: +halfLong - halfLat,
       vorne_rechts: +halfLong + halfLat,
@@ -219,7 +219,7 @@
     '<rect x="150" y="176" width="30" height="16" rx="6" fill="#20242b"/></svg>';
 
   /* Draufsicht mit wandernder Blase - die Hauptanzeige. Sie zeigt beide
-   * Achsen zugleich, waehrend die Wasserwaagen darueber jede fuer sich
+   * Achsen zugleich, während die Wasserwaagen darüber jede für sich
    * stehen. Deshalb steht sie zwischen Klartext und Seitenansichten und
    * nicht am Rand. */
   var CAMPER_TOP =
@@ -248,7 +248,7 @@
     '<rect x="20" y="112" width="336" height="9" fill="#2fb6c9" opacity="0.85"/>' +
     '<circle cx="86" cy="138" r="20" fill="#20242b"/><circle cx="300" cy="138" r="20" fill="#20242b"/></svg>';
 
-  /* Wohnwagen: Deichsel mit Kupplung, EINE Achse, Stuetzrad vorn. Gleiche
+  /* Wohnwagen: Deichsel mit Kupplung, EINE Achse, Stützrad vorn. Gleiche
    * viewBox wie die Wohnmobilfassungen, damit nichts umgerechnet werden muss. */
   var CARAVAN_SIDE =
     '<svg viewBox="0 0 380 170" id="svgSide"><defs><linearGradient id="bCS" x1="0" y1="0" x2="0" y2="1">' +
@@ -345,18 +345,18 @@
     return d.firstChild;
   }
 
-  /* Tabellenteile MUESSEN so gebaut werden, nicht ueber el().
+  /* Tabellenteile MÜSSEN so gebaut werden, nicht über el().
    *
    * Der HTML-Parser verwirft <tr> und <td>, wenn sie in einem <div> stehen -
    * das ist Absicht der Spezifikation, nicht ein Fehler des Browsers. el()
-   * lieferte daher fuer "<tr>..." nur die nackten Textknoten (die Technik-
-   * liste sah dadurch unformatiert aus) und fuer "<tr></tr>" gar nichts,
-   * worauf das Anhaengen mit einem Fehler abbrach und die ganze Liste leer
+   * lieferte daher für "<tr>..." nur die nackten Textknoten (die Technik-
+   * liste sah dadurch unformatiert aus) und für "<tr></tr>" gar nichts,
+   * worauf das Anhängen mit einem Fehler abbrach und die ganze Liste leer
    * blieb. Zwei Symptome, eine Ursache. */
   function cell(text, className) {
     var td = document.createElement("td");
     if (className) td.className = className;
-    // textContent, nicht innerHTML: die Namen kommen vom Geraet, spitze
+    // textContent, nicht innerHTML: die Namen kommen vom Gerät, spitze
     // Klammern darin sollen Text bleiben.
     td.textContent = text;
     return td;
@@ -394,13 +394,13 @@
   /*
    * Zwei Bereiche, und der Unterschied ist der wichtigste in dieser Datei:
    *
-   *   live   - Messwerte. Wird bei jeder Meldung des Geraets neu gezeichnet,
+   *   live   - Messwerte. Wird bei jeder Meldung des Geräts neu gezeichnet,
    *            also mehrmals pro Sekunde.
    *   fest   - Bedienelemente. Wird nur beim Wechsel des Reiters aufgebaut.
    *
-   * Vorher lag beides zusammen. Jede Messwertaenderung hat damit auch die
-   * Eingabefelder zerstoert und neu angelegt - wer tippte, verlor den Text
-   * nach Sekundenbruchteilen. Eingabefelder duerfen nie im Takt der Messwerte
+   * Vorher lag beides zusammen. Jede Messwertänderung hat damit auch die
+   * Eingabefelder zerstört und neu angelegt - wer tippte, verlor den Text
+   * nach Sekundenbruchteilen. Eingabefelder dürfen nie im Takt der Messwerte
    * neu entstehen.
    */
   var liveEl = null;
@@ -500,7 +500,7 @@
         html += "<ul>";
         if (isCaravan()) {
           // Beide Schritte auf einmal, aber in fester Reihenfolge - und mit
-          // Richtung, weil das Stuetzrad auch runter kann.
+          // Richtung, weil das Stützrad auch runter kann.
           lifts.forEach(function (i) {
             html += "<li><b>" + label(i) + "</b> " + i.direction + ", " +
               (i.steps ? "Keilstufe " + i.steps : i.cm.toFixed(1) + " cm") + "</li>";
@@ -565,7 +565,7 @@
   }
 
   /* Wird einmal je Reiterwechsel aufgebaut. Die Verweise bleiben erhalten,
-   * damit syncSettings() spaeter nur die Werte nachziehen kann. */
+   * damit syncSettings() später nur die Werte nachziehen kann. */
   var settingInputs = {};
   var methodSelect = null;
   var vehicleSelect = null;
@@ -575,7 +575,7 @@
     settingInputs = {};
     var box = el('<div class="plan"><h2>Fahrzeug</h2></div>');
     // Beim Wohnwagen misst dieselbe Zahl etwas anderes - deshalb die
-    // Beschriftung mitfuehren statt sie fest hinzuschreiben.
+    // Beschriftung mitführen statt sie fest hinzuschreiben.
     var rows = [
       ["wheelbase", isCaravan() ? "Achse → Stützrad (mm)" : "Radstand (mm)"],
       ["track", "Spurweite (mm)"],
@@ -607,8 +607,8 @@
     methodSelect.value = cfg.method === "hebesystem" ? METHOD_LIFT : "Auffahrkeile";
     methodSelect.onchange = function () { setMethod(methodSelect.value); };
     mrow.appendChild(methodSelect);
-    // Beim Wohnwagen ohne Bedeutung: laengs kurbelt man am Stuetzrad, quer
-    // faehrt man auf. Ein Hebesystem gibt es dort nicht.
+    // Beim Wohnwagen ohne Bedeutung: längs kurbelt man am Stützrad, quer
+    // fährt man auf. Ein Hebesystem gibt es dort nicht.
     if (!isCaravan()) box.appendChild(mrow);
 
     settingsNote = el('<div class="muted" style="margin-top:8px"></div>');
@@ -617,7 +617,7 @@
   }
 
   /* Werte nachziehen, ohne die Felder anzufassen, in denen gerade getippt
-   * wird. Sonst spraenge der Text waehrend der Eingabe zurueck - genau der
+   * wird. Sonst spränge der Text während der Eingabe zurück - genau der
    * Fehler, den die Trennung in live und fest beseitigen soll. */
   function syncSettings() {
     var focused = document.activeElement;
@@ -644,8 +644,8 @@
     }
   }
 
-  /* Ueberschriften je Bereich. Das Geraet liefert seine Kennungen als
-   * "<bereich>-<name>" (je nach Fassung auch mit Schraegstrich), sonst nichts
+  /* Überschriften je Bereich. Das Gerät liefert seine Kennungen als
+   * "<bereich>-<name>" (je nach Fassung auch mit Schrägstrich), sonst nichts
    * Gegliedertes - eine Liste aus 25 Zeilen ohne Ordnung liest niemand. */
   var DOMAIN_TITLES = {
     sensor: "Messwerte",
@@ -662,17 +662,17 @@
     "select", "text", "switch", "button", "update"];
 
   /*
-   * Technik zeigt Ablesewerte, keine Bedienelemente. Drei Gruende:
+   * Technik zeigt Ablesewerte, keine Bedienelemente. Drei Gründe:
    *
    *   button - Aktionen, keine Werte. Als Zeile mit Zustand sinnlos, und
    *            jede davon gibt es an der passenden Stelle als echten Knopf.
-   *   text   - hier stuende das WLAN-Passwort im Klartext in einer Liste.
-   *   update - meldet "unknown", solange nicht geprueft wurde. Direkt unter
+   *   text   - hier stünde das WLAN-Passwort im Klartext in einer Liste.
+   *   update - meldet "unknown", solange nicht geprüft wurde. Direkt unter
    *            unserer korrekten Versionsanzeige gelesen wirkt das wie ein
    *            Widerspruch, obwohl beides stimmt.
    *
-   * number und select sind die Fahrzeugmasse - die stehen auf der Anzeige
-   * und waeren hier eine zweite Darstellung derselben Sache.
+   * number und select sind die Fahrzeugmaße - die stehen auf der Anzeige
+   * und wären hier eine zweite Darstellung derselben Sache.
    */
   var TECH_DOMAINS = ["sensor", "binary_sensor", "text_sensor"];
 
@@ -715,7 +715,7 @@
       return;
     }
 
-    // Bekannte Bereiche in fester Reihenfolge, alles Uebrige hinten dran.
+    // Bekannte Bereiche in fester Reihenfolge, alles Übrige hinten dran.
     var order = DOMAIN_ORDER.filter(function (d) { return groups[d]; });
     Object.keys(groups).sort().forEach(function (d) {
       if (order.indexOf(d) < 0) order.push(d);
@@ -745,10 +745,10 @@
 
   var versionNote = null;
 
-  /* Aktualisierung von Hand - der Weg fuer die Betriebsart ohne Home
-   * Assistant. Ausgeloest wird die Taste im Geraet, die ihrerseits die neue
-   * Firmware von GitHub holt. Fuer Update-Entitaeten gibt es keinen
-   * dokumentierten REST-Endpunkt, fuer Tasten schon. */
+  /* Aktualisierung von Hand - der Weg für die Betriebsart ohne Home
+   * Assistant. Ausgelöst wird die Taste im Gerät, die ihrerseits die neue
+   * Firmware von GitHub holt. Für Update-Entitäten gibt es keinen
+   * dokumentierten REST-Endpunkt, für Tasten schon. */
   function softwareBox() {
     var up = el('<div class="plan"><h2>Software</h2></div>');
     versionNote = el('<div class="muted"></div>');
@@ -766,13 +766,13 @@
     up.appendChild(btn);
     up.appendChild(el('<div class="muted" style="margin-top:8px">Holt die neue Fassung von GitHub – das Gerät braucht dafür Internet. Steht es im eigenen Netz auf dem Stellplatz, gibt es keins; dann der Weg darunter.</div>'));
 
-    /* Weg ohne Internet: Datei vom Handy hochladen. Moeglich durch
+    /* Weg ohne Internet: Datei vom Handy hochladen. Möglich durch
      * "ota: platform: web_server" in der Firmware.
      *
      * ACHTUNG: ESPHome dokumentiert den Endpunkt dieses Formulars nicht -
-     * /update mit dem Feldnamen "file" ist der uebliche Weg, aber ungeprueft.
-     * Schlaegt es fehl, sagt die Seite das ausdruecklich statt stumm zu
-     * bleiben, und nennt den Ausweg. Beim ersten echten Build pruefen. */
+     * /update mit dem Feldnamen "file" ist der übliche Weg, aber ungeprüft.
+     * Schlägt es fehl, sagt die Seite das ausdrücklich statt stumm zu
+     * bleiben, und nennt den Ausweg. Beim ersten echten Build prüfen. */
     var form = el('<div style="margin-top:14px"></div>');
     form.appendChild(el('<div class="muted">Oder Firmwaredatei vom Handy aufspielen:</div>'));
     var file = el('<input type="file" accept=".bin" style="margin-top:8px;width:100%">');
@@ -805,11 +805,11 @@
     return up;
   }
 
-  /* WLAN-Einrichtung. Uebernimmt die Aufgabe des Captive Portals, das dafuer
-   * entfaellt: Es haette im eigenen Netz jede Seitenanfrage abgefangen und
+  /* WLAN-Einrichtung. Übernimmt die Aufgabe des Captive Portals, das dafür
+   * entfällt: Es hätte im eigenen Netz jede Seitenanfrage abgefangen und
    * die Wasserwaage unerreichbar gemacht.
    *
-   * Freiwillig - ohne WLAN funktioniert alles ausser den automatischen
+   * Freiwillig - ohne WLAN funktioniert alles außer den automatischen
    * Updates. Deshalb steht es unter Technik und nicht auf der Anzeige. */
   function wifiSetup() {
     var box = el('<div class="plan"><h2>WLAN</h2></div>');
@@ -821,7 +821,7 @@
     // white-space: pre-line, damit der Absatz im Erfolgstext wirkt.
     var note = el('<div class="muted" style="margin-top:10px;line-height:1.5;white-space:pre-line"></div>');
 
-    /* Rueckmeldung deutlich, nicht als graue Randnotiz: Nach dem Neustart
+    /* Rückmeldung deutlich, nicht als graue Randnotiz: Nach dem Neustart
      * verschwindet dieses Netz, und die Seite kann dann nichts mehr sagen.
      * Was hier steht, ist das Letzte, was der Nutzer sieht. */
     function say(text, kind) {
@@ -830,14 +830,14 @@
       note.style.fontWeight = kind ? "700" : "400";
     }
 
-    /* Wartet, bis das Geraet den gespeicherten Namen ueber den Ereignisstrom
-     * zurueckmeldet. Das ist der einzige echte Beweis, dass die Eingabe
+    /* Wartet, bis das Gerät den gespeicherten Namen über den Ereignisstrom
+     * zurückmeldet. Das ist der einzige echte Beweis, dass die Eingabe
      * angekommen ist - eine erfolgreiche HTTP-Antwort sagt nur, dass die
      * Anfrage entgegengenommen wurde. */
     function awaitEcho(expected, timeoutMs, done) {
       var waited = 0;
       var timer = window.setInterval(function () {
-        // Auch hier ueber Teilstring statt fester Kennung - siehe objectId().
+        // Auch hier über Teilstring statt fester Kennung - siehe objectId().
         if (findState("wlan_name") === expected) {
           window.clearInterval(timer);
           done(true);
@@ -862,8 +862,8 @@
           "Auf diesem Gerät läuft eine Firmware ohne diese Funktion.");
       }
 
-      // Nacheinander, nicht gleichzeitig: der Knopf im Geraet liest beide
-      // Felder, sie muessen also vorher angekommen sein.
+      // Nacheinander, nicht gleichzeitig: der Knopf im Gerät liest beide
+      // Felder, sie müssen also vorher angekommen sein.
       setText(pName, ssid.value, function (ok1) {
         if (!ok1) return fail("Das Gerät hat den Netzwerknamen nicht angenommen (" + pName + "/set).");
         setText(pPass, pass.value, function (ok2) {
@@ -895,7 +895,7 @@
     box.appendChild(note);
 
     /* Werksreset. Steht bewusst hier unten und nicht bei den Bedienelementen
-     * oben - er loescht WLAN, Kalibrierung und Fahrzeugmasse auf einmal. */
+     * oben - er löscht WLAN, Kalibrierung und Fahrzeugmaße auf einmal. */
     box.appendChild(el('<div class="grouphead" style="margin-top:22px">Zurücksetzen</div>'));
     var rnote = el('<div class="muted"></div>');
     rnote.textContent = "Löscht WLAN-Zugangsdaten, Kalibrierung und Fahrzeugmaße. " +
@@ -916,7 +916,7 @@
   }
 
   /* Erwartet den fertigen Pfad aus pathFor(), nicht die Kennung - der Pfad
-   * kommt vom Geraet und wird hier nicht mehr zusammengesetzt. */
+   * kommt vom Gerät und wird hier nicht mehr zusammengesetzt. */
   function setText(path, value, done) {
     var req = new XMLHttpRequest();
     req.open("POST", path + "/set?value=" + encodeURIComponent(value), true);
@@ -932,13 +932,13 @@
     return null;
   }
 
-  /* Die tatsaechliche Objektkennung aus dem Ereignisstrom holen, statt sie
+  /* Die tatsächliche Objektkennung aus dem Ereignisstrom holen, statt sie
    * fest hinzuschreiben.
    *
    * ESPHome bildet sie aus dem Namen ("WLAN Name" -> "wlan_name"), aber die
-   * Regel hat sich zwischen Fassungen schon geaendert, und ein falscher Name
-   * scheitert stumm mit 404. Das Geraet meldet seine Kennungen ohnehin - also
-   * fragen wir es, statt zu raten. Der Rueckfallwert greift nur, solange noch
+   * Regel hat sich zwischen Fassungen schon geändert, und ein falscher Name
+   * scheitert stumm mit 404. Das Gerät meldet seine Kennungen ohnehin - also
+   * fragen wir es, statt zu raten. Der Rückfallwert greift nur, solange noch
    * nichts empfangen wurde. */
   function objectId(domain, needle, fallback) {
     for (var id in state.seen) {
@@ -948,10 +948,10 @@
     return fallback;
   }
 
-  /* Den REST-Pfad einer Entitaet, wie das Geraet ihn selbst angibt.
+  /* Den REST-Pfad einer Entität, wie das Gerät ihn selbst angibt.
    *
-   * Rueckgabe etwa "/number/radstand". Findet sich nichts, kommt null - dann
-   * wird gar nicht erst geschrieben, statt auf gut Glueck eine Adresse zu
+   * Rückgabe etwa "/number/radstand". Findet sich nichts, kommt null - dann
+   * wird gar nicht erst geschrieben, statt auf gut Glück eine Adresse zu
    * bauen und den 404 zu verschlucken. */
   function pathFor(domain, needle) {
     for (var id in state.seen) {
@@ -963,10 +963,10 @@
     return null;
   }
 
-  // -- Geraet ---------------------------------------------------------------
+  // -- Gerät ---------------------------------------------------------------
 
-  /* Auch hier der Pfad vom Geraet. Kennt es die Taste nicht, wird nicht
-   * blind gedrueckt - der Aufrufer erfaehrt es ueber einen Status 0. */
+  /* Auch hier der Pfad vom Gerät. Kennt es die Taste nicht, wird nicht
+   * blind gedrückt - der Aufrufer erfährt es über einen Status 0. */
   function press(needle, done) {
     var path = pathFor("button", needle);
     if (!path) { if (done) done(0); return; }
@@ -979,8 +979,8 @@
       var data;
       try { data = JSON.parse(ev.data); } catch (e) { return; }
       if (!data || !data.id) return;
-      /* name_id ist der REST-Pfad, den das Geraet selbst nennt - etwa
-       * "sensor/accel_z" fuer /sensor/accel_z. Genau so uebernehmen, nicht
+      /* name_id ist der REST-Pfad, den das Gerät selbst nennt - etwa
+       * "sensor/accel_z" für /sensor/accel_z. Genau so übernehmen, nicht
        * aus dem Namen bilden: Beide bisherigen Versuche, ihn zu erraten,
        * endeten in 404. Ein "name"-Feld gibt es in diesem Strom nicht. */
       state.seen[data.id] = {
@@ -988,8 +988,8 @@
         state: data.state
       };
 
-      // Ueber Teilstrings statt die volle Kennung: dann haelt die Seite auch,
-      // wenn jemand dem Geraet einen anderen Namen gibt.
+      // Über Teilstrings statt die volle Kennung: dann hält die Seite auch,
+      // wenn jemand dem Gerät einen anderen Namen gibt.
       var id = data.id;
       if (id.indexOf("neigung_pitch") >= 0) state.pitch = num(data.value);
       else if (id.indexOf("neigung_roll") >= 0) state.roll = num(data.value);
@@ -1004,15 +1004,15 @@
         if (kind !== cfg.vehicle) { cfg.vehicle = kind; render(); return; }
       }
       else return;
-      // Nur der Messwertbereich - render() wuerde die Eingabefelder mitsamt
+      // Nur der Messwertbereich - render() würde die Eingabefelder mitsamt
       // Inhalt neu anlegen, und zwar mehrmals pro Sekunde.
       update();
     });
     src.onerror = function () {
       // Verbindung weg: keine Werte mehr behaupten. Lieber "kein Sensorwert"
-      // als eine eingefrorene Blase, die faelschlich eben anzeigt.
+      // als eine eingefrorene Blase, die fälschlich eben anzeigt.
       //
-      // Auch hier nur update(): ein Aussetzer waehrend der WLAN-Eingabe darf
+      // Auch hier nur update(): ein Aussetzer während der WLAN-Eingabe darf
       // die halb getippten Zugangsdaten nicht wegwerfen.
       state.pitch = null;
       state.roll = null;

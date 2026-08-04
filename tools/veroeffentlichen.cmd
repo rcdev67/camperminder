@@ -1,10 +1,12 @@
 @echo off
+rem Konsole auf UTF-8, sonst zeigt cmd.exe die Umlaute falsch an.
+chcp 65001 >nul
 rem ===========================================================================
-rem  Bauen und auf GitHub veroeffentlichen - zum Doppelklicken.
+rem  Bauen und auf GitHub veröffentlichen - zum Doppelklicken.
 rem
 rem  Macht alles, was bauen.cmd macht, und legt danach das Release an.
-rem  Bewusst mit Rueckfrage: Ein Release ist oeffentlich und wird von jedem
-rem  Geraet mit Internet innerhalb von zwoelf Stunden abgeholt.
+rem  Bewusst mit Rückfrage: Ein Release ist öffentlich und wird von jedem
+rem  Gerät mit Internet innerhalb von zwölf Stunden abgeholt.
 rem ===========================================================================
 
 setlocal
@@ -31,20 +33,20 @@ if not "%BUILD%"=="0" ( echo. & echo Build fehlgeschlagen. & pause & exit /b %BU
 
 echo.
 echo ============================================================
-echo  2/3  Release-Anhaenge erzeugen
+echo  2/3  Release-Anhänge erzeugen
 echo ============================================================
 powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0build_release.ps1"
 if not "%ERRORLEVEL%"=="0" ( echo. & pause & exit /b 1 )
 
 echo.
 echo ============================================================
-echo  3/3  Auf GitHub veroeffentlichen
+echo  3/3  Auf GitHub veröffentlichen
 echo ============================================================
 echo.
-echo Dies legt ein oeffentliches Release an. Geraete mit Internet
+echo Dies legt ein öffentliches Release an. Geräte mit Internet
 echo holen es sich anschliessend selbst.
 echo.
-set /p WEITER="Wirklich veroeffentlichen? (j/n) "
+set /p WEITER="Wirklich veröffentlichen? (j/n) "
 if /i not "%WEITER%"=="j" ( echo Abgebrochen. & pause & exit /b 0 )
 
 powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0github_release.ps1"

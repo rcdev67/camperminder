@@ -1,12 +1,12 @@
-# ============================================================================
-#  Legt auf GitHub ein Release an und haengt die Dateien aus release/ daran.
+﻿# ============================================================================
+#  Legt auf GitHub ein Release an und hängt die Dateien aus release/ daran.
 #
-#      pwsh ./github_release.ps1            (ueblich ueber veroeffentlichen.cmd)
+#      pwsh ./github_release.ps1            (üblich über veroeffentlichen.cmd)
 #
 #  ABLAUF: erst als ENTWURF anlegen, dann Dateien hochladen, zuletzt
-#  veroeffentlichen. Grund: "releases/latest/download/..." zeigt sofort auf ein
-#  veroeffentlichtes Release. Legte man es fertig an und lud danach hoch, gaebe
-#  es ein Zeitfenster, in dem Geraete ein Manifest sehen, dessen Firmware noch
+#  veröffentlichen. Grund: "releases/latest/download/..." zeigt sofort auf ein
+#  veröffentlichtes Release. Legte man es fertig an und lud danach hoch, gäbe
+#  es ein Zeitfenster, in dem Geräte ein Manifest sehen, dessen Firmware noch
 #  fehlt - und einen Update-Versuch ins Leere starten.
 #
 #  ZUGANG: ein GitHub-Token mit Schreibrecht auf Inhalte. Entweder in der
@@ -30,24 +30,25 @@ if (-not $m.Success) { throw "firmware_version nicht gefunden in $hardware" }
 $version = $m.Groups[1].Value
 $tag = "v$version"
 
-# --- Anhaenge --------------------------------------------------------------
+# --- Anhänge --------------------------------------------------------------
 $out = Join-Path $root 'release'
-$dateien = @('level-firmware.ota.bin', 'level-firmware.ota.bin.md5', 'level-manifest.json')
+$dateien = @('level-firmware.ota.bin', 'level-firmware.ota.bin.md5',
+             'level-firmware.factory.bin', 'level-manifest.json')
 foreach ($d in $dateien) {
   if (-not (Test-Path (Join-Path $out $d))) {
-    throw "Fehlt: release\$d  -  erst bauen.cmd ausfuehren."
+    throw "Fehlt: release\$d  -  erst bauen.cmd ausführen."
   }
 }
 
 # --- Sicherheitsnetz: Stand muss gepusht sein ------------------------------
 # Ein Release zeigt auf einen Commit. Liegt lokal etwas, das nicht auf GitHub
-# ist, veroeffentlicht man eine Firmware zu einem Quelltext, den niemand sehen
-# kann - bei GPLv3 nicht nur unsauber, sondern ein Verstoss.
+# ist, veröffentlicht man eine Firmware zu einem Quelltext, den niemand sehen
+# kann - bei GPLv3 nicht nur unsauber, sondern ein Verstoß.
 Push-Location $root
 $dirty  = git status --porcelain
 $unpush = git log --branches --not --remotes --oneline
 Pop-Location
-if ($dirty)  { throw "Es gibt nicht committete Aenderungen. Erst committen." }
+if ($dirty)  { throw "Es gibt nicht committete Änderungen. Erst committen." }
 if ($unpush) { throw "Es gibt nicht gepushte Commits. Erst pushen." }
 
 # --- Token -----------------------------------------------------------------
@@ -78,29 +79,30 @@ try   { $release = Invoke-RestMethod -Uri "$api/releases/tags/$tag" -Headers $ko
 catch { $release = $null }
 
 if ($release) {
-  Write-Host "Release $tag besteht bereits - vorhandene Anhaenge werden ersetzt."
+  Write-Host "Release $tag besteht bereits - vorhandene Anhänge werden ersetzt."
   foreach ($a in $release.assets) {
     if ($dateien -contains $a.name) {
       Invoke-RestMethod -Uri "$api/releases/assets/$($a.id)" -Headers $kopf -Method Delete | Out-Null
       Write-Host "  entfernt: $($a.name)"
     }
   }
-  # Zum Hochladen zurueck in den Entwurf, damit "latest" nicht auf ein
-  # Release ohne vollstaendige Dateien zeigt.
+  # Zum Hochladen zurück in den Entwurf, damit "latest" nicht auf ein
+  # Release ohne vollständige Dateien zeigt.
   $release = Invoke-RestMethod -Uri "$api/releases/$($release.id)" -Headers $kopf -Method Patch `
     -Body (@{ draft = $true } | ConvertTo-Json) -ContentType 'application/json'
 } else {
   $text = @"
 CamperMaid Level $version
 
-Firmware fuer CamperMaid Level.
+Firmware für CamperMaid Level.
 
-**Aktualisieren:** Geraete mit Internet melden das Update von selbst.
-Ohne Internet: Geraeteseite -> Technik -> Software -> Datei aufspielen,
-dann ``level-firmware.ota.bin`` waehlen.
+**Aktualisieren:** Geräte mit Internet melden das Update von selbst.
+Ohne Internet: Geräteseite -> Technik -> Software -> Datei aufspielen,
+dann ``level-firmware.ota.bin`` wählen.
 
-**Neues Geraet:** ``level-firmware.ota.bin`` ist eine OTA-Datei und fuer den
-ersten Flash ueber USB nicht geeignet - dafuer die Factory-Datei benutzen.
+**Neues Gerät:** ``level-firmware.factory.bin`` über USB aufspielen, etwa
+mit web.esphome.io. Die OTA-Datei ist dafür nicht geeignet - sie enthält
+keinen Bootloader.
 "@
   $body = @{
     tag_name = $tag
@@ -113,7 +115,7 @@ ersten Flash ueber USB nicht geeignet - dafuer die Factory-Datei benutzen.
   Write-Host "Entwurf angelegt."
 }
 
-# --- Anhaenge hochladen ----------------------------------------------------
+# --- Anhänge hochladen ----------------------------------------------------
 $uploadBase = ($release.upload_url -split '\{')[0]
 foreach ($d in $dateien) {
   $pfad = Join-Path $out $d
@@ -122,12 +124,12 @@ foreach ($d in $dateien) {
     -InFile $pfad -ContentType 'application/octet-stream' | Out-Null
 }
 
-# --- Erst jetzt veroeffentlichen -------------------------------------------
+# --- Erst jetzt veröffentlichen -------------------------------------------
 $fertig = Invoke-RestMethod -Uri "$api/releases/$($release.id)" -Headers $kopf -Method Patch `
   -Body (@{ draft = $false; make_latest = 'true' } | ConvertTo-Json) -ContentType 'application/json'
 
 Write-Host ""
-Write-Host "Veroeffentlicht: $($fertig.html_url)"
+Write-Host "Veröffentlicht: $($fertig.html_url)"
 Write-Host ""
-Write-Host "Geraete mit Internet melden das Update innerhalb von 12 Stunden,"
+Write-Host "Geräte mit Internet melden das Update innerhalb von 12 Stunden,"
 Write-Host "nach einem Neustart von Home Assistant sofort."

@@ -1,9 +1,9 @@
 """Sprachansagen und Kalibrier-Selbsttest.
 
-Die Ansagen haengen am PHASEN-WECHSEL, nicht an einem Zeittakt. Ein Zeittakt
-mit cm-Text fuehrte zu einer Ansage alle drei Sekunden ("noch 2" / "noch 3" /
+Die Ansagen hängen am PHASEN-WECHSEL, nicht an einem Zeittakt. Ein Zeittakt
+mit cm-Text führte zu einer Ansage alle drei Sekunden ("noch 2" / "noch 3" /
 "noch 2" ...), weil der cm-Wert um rund einen Zentimeter zappelt und sich der
-Text dadurch staendig aendert. Nicht zurueckbauen.
+Text dadurch ständig ändert. Nicht zurückbaün.
 """
 
 from __future__ import annotations
@@ -56,7 +56,7 @@ WHEEL_NAMES = {
     POINT_JOCKEY: "Stützrad",
 }
 
-# Beim Wohnwagen sitzen beide Raeder auf einer Achse - "hinten links" waere
+# Beim Wohnwagen sitzen beide Räder auf einer Achse - "hinten links" wäre
 # dort schlicht falsch.
 CARAVAN_NAMES = {
     WHEEL_REAR_LEFT: "Linkes Rad",
@@ -64,10 +64,10 @@ CARAVAN_NAMES = {
     POINT_JOCKEY: "Stützrad",
 }
 
-# Beim Auffahren auf einen Keil zaehlt jede Sekunde: drei Sekunden Wartezeit
+# Beim Auffahren auf einen Keil zählt jede Sekunde: drei Sekunden Wartezeit
 # sind im Schritttempo etwa ein Meter. Die Stabilisierung ist gegen das
 # Flattern an den Richtungsgrenzen gedacht - "eben" ist keine Grenze, sondern
-# das Ziel. Deshalb geht diese eine Phase ohne Verzoegerung durch.
+# das Ziel. Deshalb geht diese eine Phase ohne Verzögerung durch.
 IMMEDIATE_PHASES = (PHASE_LEVEL,)
 
 
@@ -115,7 +115,7 @@ class CamperAnnouncer:
 
     @callback
     def async_phase_changed(self) -> None:
-        """Vom Rechenkern gerufen, sobald sich etwas geaendert hat."""
+        """Vom Rechenkern gerufen, sobald sich etwas geändert hat."""
         phase = self.coordinator.phase
         if phase == self._last_phase:
             return
@@ -129,7 +129,7 @@ class CamperAnnouncer:
             self._phase_settled(None)
             return
 
-        # Alle anderen Phasen muessen erst eine Weile stabil stehen. Sonst
+        # Alle anderen Phasen müssen erst eine Weile stabil stehen. Sonst
         # redet das System an der Grenze zwischen zwei Phasen ununterbrochen.
         if phase != self._pending_phase:
             self._pending_phase = phase
@@ -152,8 +152,8 @@ class CamperAnnouncer:
         if not self.coordinator.voice:
             return
         if not self.coordinator.in_motion:
-            # Kein Manoever - sonst meldet sich das Fahrzeug nachts, wenn es
-            # durch Temperaturgang knapp ueber die Schwelle driftet.
+            # Kein Manöver - sonst meldet sich das Fahrzeug nachts, wenn es
+            # durch Temperaturgang knapp über die Schwelle driftet.
             return
 
         if (text := self.build_announcement(phase)) is not None:
@@ -170,14 +170,14 @@ class CamperAnnouncer:
         if phase not in DIRECTION_PHASES:
             return None
 
-        # Wohnwagen: quer der Keil, laengs das Stuetzrad. Zwei verschiedene
-        # Handgriffe an zwei Stellen - eine Richtungsansage waere hier
+        # Wohnwagen: quer der Keil, längs das Stützrad. Zwei verschiedene
+        # Handgriffe an zwei Stellen - eine Richtungsansage wäre hier
         # nutzlos.
         if self.coordinator.is_caravan:
             return self._build_caravan_announcement()
 
         # Mit Hydraulik oder Luftkissen steht das Fahrzeug. Dann ist nicht die
-        # naechste Fahrtrichtung gefragt, sondern was an welcher Ecke zu tun
+        # nächste Fahrtrichtung gefragt, sondern was an welcher Ecke zu tun
         # ist - und zwar alles auf einmal, weil nichts neu angefahren wird.
         if not self.coordinator.uses_wedges:
             return self._build_lift_announcement()
@@ -195,10 +195,10 @@ class CamperAnnouncer:
         return f"{side} anheben, etwa {_round_to_step(centimetres)} Zentimeter."
 
     def _build_caravan_announcement(self) -> str | None:
-        """Wohnwagen: erst der Keil, dann das Stuetzrad.
+        """Wohnwagen: erst der Keil, dann das Stützrad.
 
         Die Reihenfolge kommt aus dem Rechenkern und ist keine Kosmetik - das
-        Auffahren auf den Keil kippt den Wagen laengs mit. Wer zuerst kurbelt,
+        Auffahren auf den Keil kippt den Wagen längs mit. Wer zuerst kurbelt,
         kurbelt zweimal.
         """
         plan = self.coordinator.wheel_plan
@@ -215,11 +215,11 @@ class CamperAnnouncer:
         return ". ".join(teile) + "."
 
     def _build_lift_announcement(self) -> str | None:
-        """Alle Stuetzen auf einmal - fuer Hydraulik und Luftkissen.
+        """Alle Stützen auf einmal - für Hydraulik und Luftkissen.
 
-        Bewusst ohne Rundung auf 5-cm-Schritte: ein Hebesystem faehrt
-        stufenlos, da waere Runden ein kuenstlich verschenkter Rest. Und
-        bewusst hoechstes Rad zuerst, weil man dort anfaengt.
+        Bewusst ohne Rundung auf 5-cm-Schritte: ein Hebesystem fährt
+        stufenlos, da wäre Runden ein künstlich verschenkter Rest. Und
+        bewusst höchstes Rad zuerst, weil man dort anfängt.
         """
         plan = self.coordinator.wheel_plan
         if not plan:
@@ -235,24 +235,24 @@ class CamperAnnouncer:
 
     async def _async_speak(self, text: str) -> None:
         # Aus dem Rechenkern, nicht aus der Einrichtung: das Ziel ist eine
-        # Entitaet und darf sich im laufenden Betrieb aendern.
+        # Entität und darf sich im laufenden Betrieb ändern.
         service = self.coordinator.notify_service
         if not service or "." not in service:
-            _LOGGER.debug("Kein Ansageziel eingerichtet, Ansage entfaellt: %s", text)
+            _LOGGER.debug("Kein Ansageziel eingerichtet, Ansage entfällt: %s", text)
             return
 
         domain, name = service.split(".", 1)
         if self._config.get(CONF_NOTIFY_TTS, True):
             # Muster der Home-Assistant-App unter Android: die Nachricht "TTS"
-            # laesst das Telefon den Text vorlesen statt ihn anzuzeigen.
+            # lässt das Telefon den Text vorlesen statt ihn anzuzeigen.
             payload = {"message": "TTS", "data": {"tts_text": text}}
         else:
             payload = {"message": text, "title": "Nivellierung"}
 
         try:
             await self.hass.services.async_call(domain, name, payload, blocking=False)
-        except Exception:  # noqa: BLE001 - ein defektes Ansageziel darf nichts weiter stoeren
-            _LOGGER.exception("Ansage ueber %s fehlgeschlagen", service)
+        except Exception:  # noqa: BLE001 - ein defektes Ansageziel darf nichts weiter stören
+            _LOGGER.exception("Ansage über %s fehlgeschlagen", service)
 
     # -- Kalibrier-Selbsttest ----------------------------------------------
 
@@ -264,7 +264,7 @@ class CamperAnnouncer:
             return
         if old_state is None or old_state.state in (STATE_UNKNOWN, STATE_UNAVAILABLE):
             # Erster Zustand nach einem Neustart oder Wiederverbinden des
-            # Geraets - kein echter Tastendruck.
+            # Geräts - kein echter Tastendruck.
             return
 
         self.coordinator.async_set_calibration(dt_util.utcnow())
@@ -277,11 +277,11 @@ class CamperAnnouncer:
 
     @callback
     def _check_calibration(self, _now) -> None:
-        """Nach dem Kalibrieren muessen beide Achsen bei ~0 stehen.
+        """Nach dem Kalibrieren müssen beide Achsen bei ~0 stehen.
 
         Tun sie das nicht, rechnen Anzeige und gespeicherter Offset in der
         Firmware mit unterschiedlichen Achsen - ein Fehler, der sonst erst auf
-        dem Stellplatz auffaellt, wenn alle Angaben falsch sind.
+        dem Stellplatz auffällt, wenn alle Angaben falsch sind.
         """
         self._cancel_calibration = None
         pitch = self.coordinator.pitch
@@ -307,9 +307,9 @@ class CamperAnnouncer:
             return
 
         message = (
-            f"Fuenf Sekunden nach dem Kalibrieren steht laengs {pitch:.2f}° / quer "
+            f"Fünf Sekunden nach dem Kalibrieren steht längs {pitch:.2f}° / quer "
             f"{roll:.2f}° statt 0.\n\n"
-            "Moegliche Ursachen: das Fahrzeug hat sich waehrend des Tastendrucks "
+            "Mögliche Ursachen: das Fahrzeug hat sich während des Tastendrucks "
             "bewegt, oder Anzeige und gespeicherter Offset in der Firmware rechnen "
             "mit unterschiedlicher Achszuordnung (axis_pitch / axis_roll). "
             "Bis dahin sind alle Zentimeterangaben falsch."

@@ -1,4 +1,4 @@
-"""Gemeinsame Basis aller Entitaeten dieser Integration."""
+"""Gemeinsame Basis aller Entitäten dieser Integration."""
 
 from __future__ import annotations
 
@@ -12,7 +12,7 @@ from .coordinator import CamperCoordinator
 
 
 class CamperEntity(Entity):
-    """Haengt am Rechenkern und gehoert zum selben Geraet."""
+    """Hängt am Rechenkern und gehört zum selben Gerät."""
 
     _attr_has_entity_name = True
     _attr_should_poll = False
@@ -35,11 +35,11 @@ class CamperEntity(Entity):
 
     @property
     def extra_state_attributes(self) -> dict[str, str]:
-        """Rollenkennung fuer die mitgelieferte Karte.
+        """Rollenkennung für die mitgelieferte Karte.
 
-        Die Karte sucht ihre Entitaeten ueber diese Kennung statt ueber
-        Entity-IDs - die haengen an uebersetzten Namen und aendern sich, sobald
-        jemand das Geraet umbenennt.
+        Die Karte sucht ihre Entitäten über diese Kennung statt über
+        Entity-IDs - die hängen an übersetzten Namen und ändern sich, sobald
+        jemand das Gerät umbenennt.
         """
         return {"camper_role": self._role}
 

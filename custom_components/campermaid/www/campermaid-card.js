@@ -2,11 +2,11 @@
  * CamperMaid - Lovelace-Karte
  *
  * Wird von der Integration selbst ausgeliefert und registriert. Kein card-mod,
- * keine Base64-Grafiken im CSS: als echtes Custom Element duerfen wir normales
+ * keine Base64-Grafiken im CSS: als echtes Custom Element dürfen wir normales
  * SVG und normales CSS benutzen.
  *
  * Die Karte liest ihre Werte aus den Attributen des Phasen-Sensors. Dadurch
- * braucht sie genau eine Entitaet zu finden und kann Messwert und Schwelle
+ * braucht sie genau eine Entität zu finden und kann Messwert und Schwelle
  * nicht aus verschiedenen Quellen mischen.
  */
 
@@ -20,11 +20,11 @@ const COLORS = {
 };
 
 /*
- * Fuer die Beschriftung unter Seiten- und Heckansicht: farbige Flaeche,
+ * Für die Beschriftung unter Seiten- und Heckansicht: farbige Fläche,
  * dunkler Text. Farbige Schrift auf dunklem Grund ist am Handy schlecht zu
  * lesen - ausgerechnet Rot am schlechtesten, also genau dann, wenn es
  * wichtig wird. Rot und Grau sind hier aufgehellt, damit der dunkle Text auf
- * allen vier Flaechen deutlich steht; auf hellem wie auf dunklem Design.
+ * allen vier Flächen deutlich steht; auf hellem wie auf dunklem Design.
  */
 const CHIP = {
   [COLORS.ok]: "#37d67a",
@@ -67,8 +67,8 @@ const WHEEL_NAMES = {
   stuetzrad: "Stützrad",
 };
 
-/* Beim Wohnwagen sitzen beide Raeder auf einer Achse - "hinten links" waere
- * dort falsch. Und vorn steht kein Rad, sondern das Stuetzrad. */
+/* Beim Wohnwagen sitzen beide Räder auf einer Achse - "hinten links" wäre
+ * dort falsch. Und vorn steht kein Rad, sondern das Stützrad. */
 const CARAVAN_WHEEL_NAMES = {
   hinten_links: "Linkes Rad",
   hinten_rechts: "Rechtes Rad",
@@ -123,7 +123,7 @@ class CamperMaidCard extends HTMLElement {
     return null;
   }
 
-  /* Bedienelemente derselben Integration, ueber ihre Rolle gefunden. */
+  /* Bedienelemente derselben Integration, über ihre Rolle gefunden. */
   _findRole(hass, role) {
     for (const [entityId, state] of Object.entries(hass.states)) {
       if (state.attributes && state.attributes.camper_role === role) {
@@ -187,10 +187,10 @@ class CamperMaidCard extends HTMLElement {
         .top .bubble { width: 42px; height: 42px; margin: -21px 0 0 -21px;
           transition: all .3s ease; }
 
-        /* Untereinander statt nebeneinander: nebeneinander bleibt fuer die
+        /* Untereinander statt nebeneinander: nebeneinander bleibt für die
            Seitenansicht auf einem Handy nur die halbe Kartenbreite, und weil
            sie mehr als doppelt so breit wie hoch ist, schrumpft sie dabei auf
-           gut die Haelfte der Heckansicht zusammen. */
+           gut die Hälfte der Heckansicht zusammen. */
         .views { display: flex; flex-direction: column; gap: 12px; }
         .view {
           position: relative; height: 220px; border-radius: 16px;
@@ -216,11 +216,11 @@ class CamperMaidCard extends HTMLElement {
         }
 
         /* Gleich hohe Fahrzeuge bei jeder Kartenbreite: die Breiten stehen im
-           Verhaeltnis der beiden Seitenverhaeltnisse (380:170 und 220:200).
+           Verhältnis der beiden Seitenverhältnisse (380:170 und 220:200).
            220/200 geteilt durch 380/170 ergibt die 49.2 % - damit rendern
            beide Bilder rechnerisch exakt gleich hoch, statt dass eines an der
-           Breite und das andere an der Hoehe haengenbleibt. Die max-width
-           deckelt beide bei 140 px Hoehe, sonst waechst die Seitenansicht auf
+           Breite und das andere an der Höhe hängenbleibt. Die max-width
+           deckelt beide bei 140 px Höhe, sonst wächst die Seitenansicht auf
            breiten Bildschirmen aus der Kachel heraus. */
         #imgSide { width: 100%; max-width: 313px; }
         #imgRear { width: 49.2%; max-width: 154px; }
@@ -280,14 +280,14 @@ class CamperMaidCard extends HTMLElement {
       </ha-card>
     `;
     this._built = true;
-    // Der Neuaufbau setzt die Bilder auf die Wohnmobil-Fassung zurueck.
-    // Ohne das Vergessen hier wuerde _setArtwork den Wechsel verschlafen.
+    // Der Neuaufbau setzt die Bilder auf die Wohnmobil-Fassung zurück.
+    // Ohne das Vergessen hier würde _setArtwork den Wechsel verschlafen.
     this._artwork = null;
   }
 
   /* Zeichnungen zur Fahrzeugart. Nur bei echtem Wechsel angefasst - ein
-     erneutes Setzen desselben src laesst den Browser die Datei neu holen und
-     die Ansicht kurz flackern, und zwar bei jeder Messwertaenderung. */
+     erneutes Setzen desselben src lässt den Browser die Datei neu holen und
+     die Ansicht kurz flackern, und zwar bei jeder Messwertänderung. */
   _setArtwork(kind) {
     if (this._artwork === kind) return;
     this._artwork = kind;
@@ -452,7 +452,7 @@ class CamperMaidCard extends HTMLElement {
   }
 
   /* Keile: eine Anweisung nach der anderen. Zwischen zwei Versuchen muss das
-     Fahrzeug bewegt werden, eine Liste aller vier Raeder waere hier also
+     Fahrzeug bewegt werden, eine Liste aller vier Räder wäre hier also
      nicht hilfreich, sondern verwirrend. */
   _wedgeRows(a, ctx) {
     const rows = [];
@@ -471,8 +471,8 @@ class CamperMaidCard extends HTMLElement {
     return rows;
   }
 
-  /* Wohnwagen: quer der Keil unter das tiefere Rad, laengs das Stuetzrad.
-     Mit Richtung, weil das Stuetzrad auch nach unten kann - und in der
+  /* Wohnwagen: quer der Keil unter das tiefere Rad, längs das Stützrad.
+     Mit Richtung, weil das Stützrad auch nach unten kann - und in der
      Reihenfolge aus dem Rechenkern, die nicht vertauscht werden darf. */
   _caravanRows(a) {
     if (!Array.isArray(a.wheel_plan)) return [];
@@ -483,7 +483,7 @@ class CamperMaidCard extends HTMLElement {
     });
   }
 
-  /* Hebesystem: alle Ecken auf einmal, hoechste zuerst. Stufenlos, deshalb in
+  /* Hebesystem: alle Ecken auf einmal, höchste zuerst. Stufenlos, deshalb in
      Zentimetern statt in Stufen - und ohne Rundung, die es hier nicht braucht. */
   _liftRows(a) {
     if (!Array.isArray(a.wheel_plan)) return [];
@@ -529,8 +529,8 @@ class CamperMaidCard extends HTMLElement {
 /*
  * Zweimal registrieren wirft - und zwar bevor die Karte in customCards
  * eingetragen ist. Danach ist sie in der Auswahl unauffindbar, obwohl das
- * Element laengst existiert. Passiert, sobald jemand die Datei zusaetzlich von
- * Hand als Lovelace-Ressource eintraegt.
+ * Element längst existiert. Passiert, sobald jemand die Datei zusätzlich von
+ * Hand als Lovelace-Ressource einträgt.
  */
 const TAG = "campermaid-card";
 

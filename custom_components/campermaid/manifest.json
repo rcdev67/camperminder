@@ -1,8 +1,8 @@
 {
   "domain": "campermaid",
   "name": "CamperMaid",
-  "codeowners": ["@rcdev67"],
   "after_dependencies": ["lovelace"],
+  "codeowners": ["@rcdev67"],
   "config_flow": true,
   "dependencies": ["http", "frontend"],
   "documentation": "https://github.com/rcdev67/campermaid",

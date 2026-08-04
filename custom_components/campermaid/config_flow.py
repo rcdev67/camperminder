@@ -33,15 +33,15 @@ from .const import (
 
 DEFAULT_TITLE = "CamperMaid"
 
-# Felder, die leer bleiben duerfen. Ein leergeraeumtes Feld taucht im Ergebnis
-# des Formulars gar nicht auf - deshalb muessen sie beim Speichern ausdruecklich
-# auf None gesetzt werden, sonst ueberlebt der alte Wert aus entry.data.
+# Felder, die leer bleiben dürfen. Ein leergeräumtes Feld taucht im Ergebnis
+# des Formulars gar nicht auf - deshalb müssen sie beim Speichern ausdrücklich
+# auf None gesetzt werden, sonst überlebt der alte Wert aus entry.data.
 CLEARABLE_KEYS = (CONF_MOTION_SENSOR, CONF_CALIBRATE_BUTTON)
 
-# Die Namen, die die mitgelieferte Firmware vergibt. Gesucht wird nicht ueber
-# die Entity-ID, sondern ueber den urspruenglichen Namen aus der
-# Entitaetsregistrierung: der bleibt stehen, auch wenn jemand das Geraet oder
-# die Entitaeten im Frontend umbenennt.
+# Die Namen, die die mitgelieferte Firmware vergibt. Gesucht wird nicht über
+# die Entity-ID, sondern über den ursprünglichen Namen aus der
+# Entitätsregistrierung: der bleibt stehen, auch wenn jemand das Gerät oder
+# die Entitäten im Frontend umbenennt.
 FIRMWARE_ENTITIES: dict[str, tuple[str, str]] = {
     CONF_PITCH_SENSOR: ("sensor", "Neigung Pitch"),
     CONF_ROLL_SENSOR: ("sensor", "Neigung Roll"),
@@ -51,10 +51,10 @@ FIRMWARE_ENTITIES: dict[str, tuple[str, str]] = {
 
 
 def _autodetect(hass: HomeAssistant) -> dict[str, str]:
-    """Die vier Entitaeten des Nivelliergeraets vorschlagen.
+    """Die vier Entitäten des Nivelliergeräts vorschlagen.
 
-    Gewertet wird geraeteweise und das vollstaendigste Geraet gewinnt. Wer zwei
-    Fahrzeuge in einem Home Assistant hat, bekommt so nicht die Laengsneigung
+    Gewertet wird geräteweise und das vollständigste Gerät gewinnt. Wer zwei
+    Fahrzeuge in einem Home Assistant hat, bekommt so nicht die Längsneigung
     des einen mit der Querneigung des anderen gemischt - ein Fehler, den man am
     fertigen Dialog nicht sieht und im Fahrzeug teuer bezahlt.
     """
@@ -73,21 +73,21 @@ def _autodetect(hass: HomeAssistant) -> dict[str, str]:
 
     found = max(per_device.values(), key=len)
 
-    # Ohne beide Neigungsachsen ist der Fund kein Nivelliergeraet. Dann lieber
-    # nichts vorschlagen als zwei Felder halb ausgefuellt zu hinterlassen.
+    # Ohne beide Neigungsachsen ist der Fund kein Nivelliergerät. Dann lieber
+    # nichts vorschlagen als zwei Felder halb ausgefüllt zu hinterlassen.
     if CONF_PITCH_SENSOR not in found or CONF_ROLL_SENSOR not in found:
         return {}
     return found
 
 
 def _schema(hass: HomeAssistant, defaults: dict[str, Any]) -> vol.Schema:
-    """Formular fuer Einrichtung und spaetere Aenderungen.
+    """Formular für Einrichtung und spätere Änderungen.
 
-    Hier stehen nur Anschlussdaten und Fahrzeugmasse. Ausrichtart und
-    Ansageziel sind bewusst nicht mehr dabei: sie sind gewoehnliche
-    Bedieneinstellungen und liegen als Entitaeten auf der Geraeteseite. Sie
-    zusaetzlich hier zu fuehren haette zwei Wahrheiten ergeben - und die im
-    Dialog eingetragene haette nach jedem Neustart verloren.
+    Hier stehen nur Anschlussdaten und Fahrzeugmaße. Ausrichtart und
+    Ansageziel sind bewusst nicht mehr dabei: sie sind gewöhnliche
+    Bedieneinstellungen und liegen als Entitäten auf der Geräteseite. Sie
+    zusätzlich hier zu führen hätte zwei Wahrheiten ergeben - und die im
+    Dialog eingetragene hätte nach jedem Neustart verloren.
     """
 
     def default(key: str, fallback: Any = None) -> Any:
@@ -166,12 +166,12 @@ class CamperConfigFlow(ConfigFlow, domain=DOMAIN):
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
         if user_input is not None:
-            # Ein Neigungssensor gehoert genau einmal eingerichtet.
+            # Ein Neigungssensor gehört genau einmal eingerichtet.
             await self.async_set_unique_id(user_input[CONF_PITCH_SENSOR])
             self._abort_if_unique_id_configured()
             return self.async_create_entry(title=DEFAULT_TITLE, data=user_input)
 
-        # Vorbelegt, nicht festgelegt: die Felder bleiben aenderbar, falls die
+        # Vorbelegt, nicht festgelegt: die Felder bleiben änderbar, falls die
         # Erkennung danebenliegt oder die Firmware angepasst wurde.
         return self.async_show_form(
             step_id="user", data_schema=_schema(self.hass, _autodetect(self.hass))
@@ -184,17 +184,17 @@ class CamperConfigFlow(ConfigFlow, domain=DOMAIN):
 
 
 class CamperOptionsFlow(OptionsFlow):
-    """Spaetere Aenderungen ueber "Konfigurieren"."""
+    """Spätere Änderungen über "Konfigurieren"."""
 
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
         if user_input is not None:
-            # Die Optionen ueberschreiben die urspruenglichen Daten nur dort,
-            # wo ein Schluessel vorhanden ist. Ein geleertes Feld fehlt aber im
-            # Formularergebnis - ohne diese Ergaenzung liesse sich das
+            # Die Optionen überschreiben die ursprünglichen Daten nur dort,
+            # wo ein Schlüssel vorhanden ist. Ein geleertes Feld fehlt aber im
+            # Formularergebnis - ohne diese Ergänzung ließe sich das
             # Ansageziel zwar wechseln, aber nie wieder abschalten, und die
-            # Ansagen gingen weiter an das alte Geraet.
+            # Ansagen gingen weiter an das alte Gerät.
             cleaned = dict(user_input)
             for key in CLEARABLE_KEYS:
                 cleaned.setdefault(key, None)

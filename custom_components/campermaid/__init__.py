@@ -26,9 +26,9 @@ from .const import (
 )
 from .coordinator import CamperCoordinator
 
-# Aenderungen an diesen Schluesseln erfordern ein Neuaufsetzen: die Quell-
-# Entitaeten werden beim Start abonniert, die Vorleseeinstellung liest der
-# Ansageteil einmalig ein. Alles andere haelt der Rechenkern zur Laufzeit.
+# Änderungen an diesen Schlüsseln erfordern ein Neuaufsetzen: die Quell-
+# Entitäten werden beim Start abonniert, die Vorleseeinstellung liest der
+# Ansageteil einmalig ein. Alles andere hält der Rechenkern zur Laufzeit.
 STRUCTURAL_KEYS = (
     CONF_PITCH_SENSOR,
     CONF_ROLL_SENSOR,
@@ -55,23 +55,23 @@ LOVELACE_DOMAIN = "lovelace"
 async def _async_register_resource(hass: HomeAssistant, card_url: str) -> None:
     """Die Karte in die Ressourcenliste der Dashboards eintragen.
 
-    Der naheliegendere Weg waere add_extra_js_url - der schreibt aber nur ein
-    script-Tag in die Index-Seite, und darauf ist kein Verlass: laeuft das
+    Der naheliegendere Weg wäre add_extra_js_url - der schreibt aber nur ein
+    script-Tag in die Index-Seite, und darauf ist kein Verlass: läuft das
     Frontend als Single-Page-Anwendung weiter, wird die Seite nie neu geholt,
     und in der Praxis kommt das Tag auch nach einem Neustart nicht zwingend an.
-    Die Ressourcenliste holt sich das Frontend dagegen zur Laufzeit ueber die
+    Die Ressourcenliste holt sich das Frontend dagegen zur Laufzeit über die
     Websocket-Verbindung. Nebenbei ist der Eintrag unter Einstellungen ->
-    Dashboards -> Ressourcen sichtbar, statt unauffindbar im Seitenquelltext.
+    Dashboards -> Ressourcen sichtbar, statt unauffindbar im Seitenqülltext.
     """
     lovelace = hass.data.get(LOVELACE_DOMAIN)
     resources = getattr(lovelace, "resources", None)
 
-    # Bei YAML-verwalteten Dashboards ist die Liste unveraenderlich. Dort
+    # Bei YAML-verwalteten Dashboards ist die Liste unveränderlich. Dort
     # bleibt es beim script-Tag aus add_extra_js_url.
     if resources is None or not hasattr(resources, "async_create_item"):
         _LOGGER.debug(
             "Ressourcenliste nicht beschreibbar (YAML-Modus?) - "
-            "die Karte kommt nur ueber die Index-Seite"
+            "die Karte kommt nur über die Index-Seite"
         )
         return
 
@@ -83,7 +83,7 @@ async def _async_register_resource(hass: HomeAssistant, card_url: str) -> None:
             continue
         # Vorhandener Eintrag - nach einem Update zeigt er auf die alte
         # Version. Aktualisieren statt einen zweiten danebenzusetzen; das
-        # gilt auch fuer von Hand angelegte Eintraege.
+        # gilt auch für von Hand angelegte Einträge.
         if url != card_url:
             await resources.async_update_item(item["id"], {"url": card_url})
             _LOGGER.info("Lovelace-Ressource auf %s aktualisiert", card_url)
@@ -97,11 +97,11 @@ async def _async_register_card(hass: HomeAssistant) -> None:
     """Die mitgelieferte Lovelace-Karte ausliefern und bekannt machen.
 
     Dadurch muss niemand von Hand eine Ressource eintragen oder card-mod
-    installieren - die Karte gehoert zur Integration und wird mit ihr
+    installieren - die Karte gehört zur Integration und wird mit ihr
     aktualisiert.
 
-    Die Version aus der manifest.json haengt als Abfrage an der URL. Ohne sie
-    laedt der Browser nach einem Update die alte Karte aus dem Zwischenspeicher
+    Die Version aus der manifest.json hängt als Abfrage an der URL. Ohne sie
+    lädt der Browser nach einem Update die alte Karte aus dem Zwischenspeicher
     weiter - anders als bei HACS-Ressourcen gibt es hier keinen hacstag, der
     das von selbst erledigt.
     """
@@ -116,15 +116,15 @@ async def _async_register_card(hass: HomeAssistant) -> None:
     integration = await async_get_integration(hass, DOMAIN)
     card_url = f"{CARD_URL}?v={integration.version}"
 
-    # Zweiter Weg, kostenlos und fuer YAML-Dashboards der einzige. Dass die
-    # Karte dadurch doppelt geladen werden kann, faengt sie selbst ab.
+    # Zweiter Weg, kostenlos und für YAML-Dashboards der einzige. Dass die
+    # Karte dadurch doppelt geladen werden kann, fängt sie selbst ab.
     add_extra_js_url(hass, card_url)
     hass.data[CARD_REGISTERED] = True
 
     async def _register_when_ready(_: HomeAssistant) -> None:
         # Erst wenn Home Assistant durchgestartet ist, steht die
         # Ressourcenliste bereit. Ein Fehler hier darf die Integration nicht
-        # mitreissen - Werte und Ansagen funktionieren auch ohne Karte.
+        # mitreißen - Werte und Ansagen funktionieren auch ohne Karte.
         try:
             await _async_register_resource(hass, card_url)
         except Exception:  # noqa: BLE001
@@ -137,8 +137,8 @@ async def _async_register_card(hass: HomeAssistant) -> None:
 
     async_at_started(hass, _register_when_ready)
 
-    # Bewusst info und nicht debug: ohne diese Zeile laesst sich nicht
-    # nachsehen, ob die Karte ueberhaupt ausgeliefert wird.
+    # Bewusst info und nicht debug: ohne diese Zeile lässt sich nicht
+    # nachsehen, ob die Karte überhaupt ausgeliefert wird.
     _LOGGER.info("Lovelace-Karte unter %s ausgeliefert", card_url)
 
 
@@ -151,8 +151,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     coordinator = CamperCoordinator(hass, entry.entry_id, config)
     announcer = CamperAnnouncer(hass, coordinator, config)
 
-    # Der Rechenkern meldet jede Aenderung; die Ansage entscheidet selbst, ob
-    # daraus etwas Hoerbares wird.
+    # Der Rechenkern meldet jede Änderung; die Ansage entscheidet selbst, ob
+    # daraus etwas Hörbares wird.
     original_notify = coordinator.async_notify
 
     @callback
@@ -176,13 +176,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
 
 async def _async_update_listener(hass: HomeAssistant, entry: ConfigEntry) -> None:
-    """Auf Aenderungen am Config-Eintrag reagieren.
+    """Auf Änderungen am Config-Eintrag reagieren.
 
     Seit die Regler und Auswahlfelder ihren Wert selbst hier hineinschreiben,
-    laeuft jede Schieberbewegung durch diesen Listener. Ein Neuaufsetzen bei
-    jedem Zentimeter waere nicht nur verschwenderisch - die Entitaeten wuerden
-    mitten in ihrem eigenen Aufruf zerstoert. Neu aufgesetzt wird deshalb nur,
-    wenn sich etwas Strukturelles geaendert hat: eine Quell-Entitaet oder die
+    läuft jede Schieberbewegung durch diesen Listener. Ein Neuaufsetzen bei
+    jedem Zentimeter wäre nicht nur verschwenderisch - die Entitäten würden
+    mitten in ihrem eigenen Aufruf zerstört. Neu aufgesetzt wird deshalb nur,
+    wenn sich etwas Strukturelles geändert hat: eine Quell-Entität oder die
     Vorleseeinstellung, die der Ansageteil beim Start einliest.
     """
     stored = hass.data.get(DOMAIN, {}).get(entry.entry_id)
@@ -201,7 +201,7 @@ async def _async_update_listener(hass: HomeAssistant, entry: ConfigEntry) -> Non
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    """Aufraeumen."""
+    """Aufräumen."""
     unloaded = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
     if unloaded:
         stored = hass.data[DOMAIN].pop(entry.entry_id)

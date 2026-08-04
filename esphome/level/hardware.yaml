@@ -1,67 +1,67 @@
 # ============================================================================
 #  CamperMaid  -  Hardware und Messlogik
 # ----------------------------------------------------------------------------
-#  Enthaelt AUSSCHLIESSLICH das Projektspezifische: Sensorik, OLED-Anzeige,
-#  Kalibrierung und Geraete-Webseite.
+#  Enthält ausschließlich das Projektspezifische: Sensorik, OLED-Anzeige,
+#  Kalibrierung und Geräte-Webseite.
 #
 #  Bewusst NICHT enthalten: esphome:, wifi:, api:, ota:, captive_portal:.
-#  Diese Bloecke erzeugt der ESPHome-Assistent beim Anlegen eines neuen Geraets
-#  bereits selbst - mitsamt zufaelligem API-Schluessel und Passwoertern. Wer sie
-#  hier noch einmal mitliefern wuerde, zwaenge jeden Nutzer dazu, von Hand
-#  Eintraege in seine secrets.yaml zu schreiben. Genau das soll entfallen.
+#  Diese Blöcke erzeugt der ESPHome-Assistent beim Anlegen eines neuen Geräts
+#  bereits selbst - mitsamt zufälligem API-Schlüssel und Passwörtern. Wer sie
+#  hier noch einmal mitliefern würde, zwänge jeden Nutzer dazu, von Hand
+#  Einträge in seine secrets.yaml zu schreiben. Genau das soll entfallen.
 #
-#  Verwendung - NICHT den Inhalt in die Geraetedatei kopieren! Diese Datei
-#  bringt eigene esphome:- und esp32:-Bloecke mit; untereinandergeschrieben
-#  ergaebe das doppelte Schluessel und einen YAML-Fehler. Stattdessen als
-#  PAKET einbinden, dann fuehrt ESPHome die Bloecke sauber zusammen:
+#  Verwendung - NICHT den Inhalt in die Gerätedatei kopieren! Diese Datei
+#  bringt eigene esphome:- und esp32:-Blöcke mit; untereinandergeschrieben
+#  ergäbe das doppelte Schlüssel und einen YAML-Fehler. Stattdessen als
+#  PAKET einbinden, dann führt ESPHome die Blöcke sauber zusammen:
 #
 #  A) Datei nach /config/esphome/campermaid/ legen - also in einen
-#     UNTERORDNER, nicht neben die Geraetedatei. Grund: Das ESPHome-Dashboard
-#     listet jede YAML-Datei der obersten Ebene als Geraet. Lag diese Datei
+#     UNTERORDNER, nicht neben die Gerätedatei. Grund: Das ESPHome-Dashboard
+#     listet jede YAML-Datei der obersten Ebene als Gerät. Lag diese Datei
 #     dort, erschien sie als eigene Kachel, rot markiert (ihr fehlen
-#     zwangslaeufig esphome: und board:) und jederzeit versehentlich
+#     zwangsläufig esphome: und board:) und jederzeit versehentlich
 #     installierbar. Im Unterordner verschwindet sie aus der Liste.
 #
-#     Dann in der Geraetedatei am Ende:
+#     Dann in der Gerätedatei am Ende:
 #
 #        packages:
 #          campermaid: !include hardware.yaml
 #
 #  B) Oder direkt von GitHub, ohne die Datei abzulegen (setzt ein
-#     oeffentliches Repository voraus):
+#     öffentliches Repository voraus):
 #
 #        packages:
 #          campermaid: github://rcdev67/campermaid/esphome/level/hardware.yaml@main
 #
-#  Hat die Geraetedatei eine Zeile "framework:", loesche sie - sonst gilt sie
+#  Hat die Gerätedatei eine Zeile "framework:", lösche sie - sonst gilt sie
 #  statt der hier eingestellten.
 #
-#  WICHTIG: Im Assistenten muss als Geraetetyp ESP32-C3 gewaehlt sein. Steht in
+#  WICHTIG: Im Assistenten muss als Gerätetyp ESP32-C3 gewählt sein. Steht in
 #  der erzeugten Datei "board: esp32dev", auf "board: esp32-c3-devkitm-1"
-#  aendern - sonst passen die Pins nicht.
+#  ändern - sonst passen die Pins nicht.
 # ============================================================================
 
 substitutions:
-  # Version DIESES Produkts. Sie zaehlt eigenstaendig - die Integration in
+  # Version DIESES Produkts. Sie zählt eigenständig - die Integration in
   # custom_components/campermaid hat ihre eigene, und ein weiteres Produkt wird
-  # spaeter eine dritte haben. Frueher liefen Firmware und Integration im
-  # Gleichschritt; mit mehreren Geraeten geht das nicht mehr auf, weil sonst
-  # eine Aenderung an einem anderen Produkt jedem Nivelliergeraet ein Update aufzwingt.
+  # später eine dritte haben. Früher liefen Firmware und Integration im
+  # Gleichschritt; mit mehreren Geräten geht das nicht mehr auf, weil sonst
+  # eine Änderung an einem anderen Produkt jedem Nivelliergerät ein Update aufzwingt.
   #
-  # Sie muss zeichengleich im Update-Manifest stehen: Die Pruefung im Geraet
-  # vergleicht genau diese Zeichenkette. Weicht sie ab, meldet das Geraet
-  # dauerhaft "Update verfuegbar".
+  # Sie muss zeichengleich im Update-Manifest stehen: Die Prüfung im Gerät
+  # vergleicht genau diese Zeichenkette. Weicht sie ab, meldet das Gerät
+  # dauerhaft "Update verfügbar".
   firmware_version: "2.0.0"
 
   # I2C-Pins (0,42"-OLED-Board): SDA=GPIO5, SCL=GPIO6
   i2c_sda_pin: GPIO5
   i2c_scl_pin: GPIO6
   # Toleranz in Grad, bis zu der "steht gerade" gilt.
-  # NUR fuer die Anzeige am Geraet (OLED + binary_sensor "steht gerade").
+  # NUR für die Anzeige am Gerät (OLED + binary_sensor "steht gerade").
   # Ansagen und Karte benutzen die Toleranz aus der HA-Integration.
   level_tolerance_deg: "0.4"
   # Achsen-Vorzeichen - nur "1" oder "-1".
-  # Konvention: pitch > 0 = Front hoeher, roll > 0 = rechte Seite hoeher.
+  # Konvention: pitch > 0 = Front höher, roll > 0 = rechte Seite höher.
   pitch_sign: "1"
   roll_sign: "1"
   # Achs-ZUORDNUNG: auf welcher Beschleunigungsachse liegt welche Neigung?
@@ -70,13 +70,13 @@ substitutions:
   #   Sensor um 90 Grad gedreht verbaut:                          x / y
   # Wird an ALLEN drei Stellen benutzt (Pitch, Roll, Kalibrier-Button) - genau
   # deshalb als Substitution: eine falsch mitgezogene Stelle war hier schon
-  # einmal die Ursache dafuer, dass Anzeige und gespeicherter Offset
+  # einmal die Ursache dafür, dass Anzeige und gespeicherter Offset
   # auseinanderliefen.
   axis_pitch: "x"
   axis_roll: "y"
 
 # Board-Feinheiten, die der Assistent nicht setzt. "board:" kommt bewusst aus
-# der Geraetedatei, damit die Wahl im Assistenten gilt.
+# der Gerätedatei, damit die Wahl im Assistenten gilt.
 esp32:
   flash_size: 4MB
   framework:
@@ -85,7 +85,7 @@ esp32:
 web_server:
   port: 80
   include_internal: true
-  # local: true bettet die Oberflaeche in die Firmware ein, statt sie von einem
+  # local: true bettet die Oberfläche in die Firmware ein, statt sie von einem
   # CDN nachzuladen. OHNE das bleibt die Seite auf dem Stellplatz ohne Internet
   # leer - genau dann, wenn man sie braucht. Kostet etwas Flash (4 MB sind da).
   local: true
@@ -99,7 +99,7 @@ i2c:
   sda: ${i2c_sda_pin}
   scl: ${i2c_scl_pin}
   scan: true
-  frequency: 100kHz          # stabil mit OLED+MPU; 400kHz moeglich, wenn Bus sauber
+  frequency: 100kHz          # stabil mit OLED+MPU; 400kHz möglich, wenn Bus sauber
   sda_pullup_enabled: true
   scl_pullup_enabled: true
 
@@ -113,17 +113,17 @@ globals:
     initial_value: "0.0"
     restore_value: true
 
-# --- Fahrzeugmasse ---------------------------------------------------------
-# Gehoeren ins Geraet, nicht ins Handy: sie beschreiben das Fahrzeug, nicht den
-# Betrachter. Lagen sie im Browser, waeren sie beim Handywechsel weg und zwei
-# Mitfahrer saehen verschiedene Zahlen.
+# --- Fahrzeugmaße ---------------------------------------------------------
+# Gehören ins Gerät, nicht ins Handy: sie beschreiben das Fahrzeug, nicht den
+# Betrachter. Lagen sie im Browser, wären sie beim Handywechsel weg und zwei
+# Mitfahrer sähen verschiedene Zahlen.
 #
-# restore_value haelt sie ueber Stromausfall und Neustart. optimistic, weil es
-# keine Gegenstelle gibt, die den Wert bestaetigen koennte - das Geraet ist die
+# restore_value hält sie über Stromausfall und Neustart. optimistic, weil es
+# keine Gegenstelle gibt, die den Wert bestätigen könnte - das Gerät ist die
 # Gegenstelle.
 #
 # Die Grenzen sind bewusst weit: ein Kastenwagen hat 3000 mm Radstand, ein
-# Liner ueber 7000. Zu enge Grenzen wuerden echte Fahrzeuge ausschliessen.
+# Liner über 7000. Zu enge Grenzen würden echte Fahrzeuge ausschließen.
 number:
   - platform: template
     name: "Radstand"
@@ -168,7 +168,7 @@ number:
     mode: box
 
   # 0 bedeutet: in Zentimetern rechnen statt in Stufen. Wer Hydraulik hat,
-  # laesst den Wert ohnehin auf 0.
+  # lässt den Wert ohnehin auf 0.
   - platform: template
     name: "Keilstufe"
     id: wedge_step_cm
@@ -183,7 +183,7 @@ number:
     optimistic: true
     mode: box
 
-# Bestimmt, wie die Geraeteseite ihre Hinweise ordnet: mit Keilen eine
+# Bestimmt, wie die Geräteseite ihre Hinweise ordnet: mit Keilen eine
 # Anweisung nach der anderen, mit einem Hebesystem alle Ecken auf einmal.
 select:
   - platform: template
@@ -198,15 +198,15 @@ select:
     restore_value: true
     optimistic: true
 
-  # Aendert die Geometrie, nicht nur die Beschriftung:
+  # Ändert die Geometrie, nicht nur die Beschriftung:
   #
   # Wohnmobil - vier Auflagepunkte, zwei Achsen. "Radstand" ist der
-  #   Achsabstand, korrigiert wird ausschliesslich nach oben.
+  #   Achsabstand, korrigiert wird ausschließlich nach oben.
   #
-  # Wohnwagen - eine Achse plus Stuetzrad. Quer laeuft es gleich, laengs
-  #   aber ueber das Stuetzrad, das sich in BEIDE Richtungen kurbeln laesst.
-  #   "Radstand" bedeutet dann Abstand Achse zu Stuetzrad - meist deutlich
-  #   groesser als ein Radstand, also unbedingt nachmessen.
+  # Wohnwagen - eine Achse plus Stützrad. Quer läuft es gleich, längs
+  #   aber über das Stützrad, das sich in BEIDE Richtungen kurbeln lässt.
+  #   "Radstand" bedeutet dann Abstand Achse zu Stützrad - meist deutlich
+  #   größer als ein Radstand, also unbedingt nachmessen.
   - platform: template
     name: "Fahrzeugart"
     id: vehicle_type
@@ -219,7 +219,7 @@ select:
     restore_value: true
     optimistic: true
 
-# --- Schriften fuers OLED (laedt sich beim Kompilieren automatisch) --------
+# --- Schriften fürs OLED (lädt sich beim Kompilieren automatisch) --------
 font:
   - file: "gfonts://Roboto"
     id: font_num
@@ -267,7 +267,7 @@ sensor:
       id: gyro_z
       internal: true
 
-  # --- Neigung Laengs (Pitch) ----------------------------------------------
+  # --- Neigung Längs (Pitch) ----------------------------------------------
   - platform: template
     name: "Neigung Pitch"
     id: pitch
@@ -280,7 +280,7 @@ sensor:
       if (isnan(id(accel_${axis_pitch}).state) || isnan(id(accel_${axis_roll}).state) || isnan(id(accel_z).state)) {
         return NAN;
       }
-      // Laengs-Neigung liegt auf accel_${axis_pitch} (siehe axis_pitch oben)
+      // Längs-Neigung liegt auf accel_${axis_pitch} (siehe axis_pitch oben)
       const float raw = atan2f(
         id(accel_${axis_pitch}).state,
         sqrtf(powf(id(accel_${axis_roll}).state, 2) + powf(id(accel_z).state, 2))
@@ -334,7 +334,7 @@ binary_sensor:
       return fabsf(id(pitch).state) <= ${level_tolerance_deg}
         && fabsf(id(roll).state) <= ${level_tolerance_deg};
 
-  # Bewegungserkennung ueber Gyro -> "steht" erst 20 s nach letzter Bewegung
+  # Bewegungserkennung über Gyro -> "steht" erst 20 s nach letzter Bewegung
   - platform: template
     name: "In Bewegung"
     id: in_motion
@@ -344,21 +344,21 @@ binary_sensor:
         return {};
       }
       const float g = fabsf(id(gyro_x).state) + fabsf(id(gyro_y).state) + fabsf(id(gyro_z).state);
-      return g > 3.0f;   // Summe der Drehraten (deg/s); Schwelle fuer "Bewegung"
+      return g > 3.0f;   // Summe der Drehraten (deg/s); Schwelle für "Bewegung"
     filters:
       - delayed_off: 20s   # gilt erst 20 s nach der letzten Bewegung als "steht"
 
 text_sensor:
   # Unsere eigene Fassung, nicht die von ESPHome. Muss mit der Version in
-  # esphome.project und im Update-Manifest uebereinstimmen: Die Update-
-  # Pruefung vergleicht genau diese Zeichenkette.
+  # esphome.project und im Update-Manifest übereinstimmen: Die Update-
+  # Prüfung vergleicht genau diese Zeichenkette.
   - platform: template
     name: "Firmware Version"
     id: firmware_version_sensor
     icon: mdi:tag-outline
     entity_category: diagnostic
     lambda: 'return {"${firmware_version}"};'
-    # 60s und nicht laenger: Ein Template-Sensor veroeffentlicht erst NACH
+    # 60s und nicht länger: Ein Template-Sensor veröffentlicht erst NACH
     # Ablauf des ersten Intervalls, nicht beim Start. Mit 6h stand hier
     # stundenlang "unbekannt" und die Zeile fehlte in der Technik-Liste.
     update_interval: 60s
@@ -383,11 +383,11 @@ button:
       then:
         - lambda: |-
             if (isnan(id(accel_${axis_pitch}).state) || isnan(id(accel_${axis_roll}).state) || isnan(id(accel_z).state)) {
-              ESP_LOGW("level", "Kalibrierung abgebrochen: MPU6050 liefert noch keine gueltigen Werte.");
+              ESP_LOGW("level", "Kalibrierung abgebrochen: MPU6050 liefert noch keine gültigen Werte.");
               return;
             }
             // MUSS dieselbe Achszuordnung benutzen wie die Sensoren oben -
-            // deshalb ebenfalls ueber ${axis_pitch} / ${axis_roll}.
+            // deshalb ebenfalls über ${axis_pitch} / ${axis_roll}.
             id(pitch_offset) = atan2f(
               id(accel_${axis_pitch}).state,
               sqrtf(powf(id(accel_${axis_roll}).state, 2) + powf(id(accel_z).state, 2))

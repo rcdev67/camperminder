@@ -1,4 +1,4 @@
-"""Einstellbare Zahlenwerte: Fahrzeugmasse, Toleranz, Keilstufe."""
+"""Einstellbare Zahlenwerte: Fahrzeugmaße, Toleranz, Keilstufe."""
 
 from __future__ import annotations
 
@@ -28,7 +28,7 @@ from .entity import CamperEntity
 
 @dataclass(frozen=True, kw_only=True)
 class CamperNumberDescription(NumberEntityDescription):
-    """Beschreibung samt Schluessel im Rechenkern."""
+    """Beschreibung samt Schlüssel im Rechenkern."""
 
     value_key: str
 
@@ -99,8 +99,8 @@ async def async_setup_entry(
     hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback
 ) -> None:
     coordinator: CamperCoordinator = hass.data[DOMAIN][entry.entry_id]["coordinator"]
-    # Werte, die das Geraet selbst fuehrt, bekommen hier keinen zweiten Regler.
-    # Sonst gaebe es sie doppelt - und der Nutzer haette keine Chance zu
+    # Werte, die das Gerät selbst führt, bekommen hier keinen zweiten Regler.
+    # Sonst gäbe es sie doppelt - und der Nutzer hätte keine Chance zu
     # erkennen, welcher der beiden gilt.
     async_add_entities(
         CamperNumber(coordinator, entry, description)
@@ -110,7 +110,7 @@ async def async_setup_entry(
 
 
 class CamperNumber(CamperEntity, RestoreNumber):
-    """Ein Wert, den man im Betrieb verstellt - und der Neustarts uebersteht."""
+    """Ein Wert, den man im Betrieb verstellt - und der Neustarts übersteht."""
 
     entity_description: CamperNumberDescription
 
@@ -125,8 +125,8 @@ class CamperNumber(CamperEntity, RestoreNumber):
 
     async def async_added_to_hass(self) -> None:
         await super().async_added_to_hass()
-        # Nur fuer den Uebergang von aelteren Versionen, in denen sich die
-        # Entitaet ihren Wert selbst merkte. Steht er in den Optionen, gewinnt
+        # Nur für den Übergang von älteren Versionen, in denen sich die
+        # Entität ihren Wert selbst merkte. Steht er in den Optionen, gewinnt
         # der Config-Eintrag und der alte Zustand bleibt unbeachtet.
         if (last := await self.async_get_last_number_data()) is not None:
             if last.native_value is not None:

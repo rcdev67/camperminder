@@ -1,13 +1,15 @@
 @echo off
+rem Konsole auf UTF-8, sonst zeigt cmd.exe die Umlaute falsch an.
+chcp 65001 >nul
 rem ===========================================================================
 rem  CamperMaid Level bauen - zum Doppelklicken.
 rem
 rem  Ruft esphome direkt aus der virtuellen Umgebung auf. Ein "Aktivieren" der
-rem  Umgebung waere hier nicht nur unnoetig, sondern scheitert auf vielen
-rem  Rechnern an der PowerShell-Ausfuehrungsrichtlinie.
+rem  Umgebung wäre hier nicht nur unnötig, sondern scheitert auf vielen
+rem  Rechnern an der PowerShell-Ausführungsrichtlinie.
 rem
-rem  Erzeugt danach die Release-Anhaenge in  release/  - fertig zum Hochladen,
-rem  aber ohne etwas zu veroeffentlichen. Das macht veroeffentlichen.cmd.
+rem  Erzeugt danach die Release-Anhänge in  release/  - fertig zum Hochladen,
+rem  aber ohne etwas zu veröffentlichen. Das macht veroeffentlichen.cmd.
 rem ===========================================================================
 
 setlocal
@@ -54,12 +56,12 @@ if not "%BUILD%"=="0" (
 
 echo.
 echo ============================================================
-echo  Release-Anhaenge erzeugen
+echo  Release-Anhänge erzeugen
 echo ============================================================
 powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0build_release.ps1"
 
 echo.
 echo Fertig. Die Dateien liegen in  release\
-echo Zum Veroeffentlichen:  veroeffentlichen.cmd
+echo Zum Veröffentlichen:  veroeffentlichen.cmd
 echo.
 pause

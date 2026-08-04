@@ -1,18 +1,18 @@
-# ============================================================================
-#  Erzeugt die drei Dateien, die an ein GitHub-Release gehaengt werden.
+﻿# ============================================================================
+#  Erzeugt die drei Dateien, die an ein GitHub-Release gehängt werden.
 #
 #      pwsh ./build_release.ps1
 #
 #  Ergebnis in  esphome/release/ :
 #      firmware.ota.bin        die Firmware
-#      firmware.ota.bin.md5    ihre Pruefsumme
-#      manifest.json           was das Geraet abfragt
+#      firmware.ota.bin.md5    ihre Prüfsumme
+#      manifest.json           was das Gerät abfragt
 #
-#  Warum ein Skript: Die Pruefsumme und die Versionsnummer muessen zur
-#  Firmwaredatei passen. Von Hand gepflegt gehen sie frueher oder spaeter
-#  auseinander - und dann verweigert entweder jedes Geraet die Installation
-#  (falsche MD5) oder es meldet dauerhaft "Update verfuegbar" (falsche
-#  Version). Beides faellt erst beim Kunden auf.
+#  Warum ein Skript: Die Prüfsumme und die Versionsnummer müssen zur
+#  Firmwaredatei passen. Von Hand gepflegt gehen sie früher oder später
+#  auseinander - und dann verweigert entweder jedes Gerät die Installation
+#  (falsche MD5) oder es meldet dauerhaft "Update verfügbar" (falsche
+#  Version). Beides fällt erst beim Kunden auf.
 #
 #  Die Version kommt aus esphome/level/hardware.yaml und wird
 #  nicht hier gepflegt - eine Quelle, keine zweite Wahrheit.
@@ -34,9 +34,9 @@ Write-Host "Version aus der Firmware-Quelle: $version"
 
 # --- Gebaute Firmware suchen -----------------------------------------------
 # esphome legt sie unter .esphome/build/<name>/.pioenvs/<name>/ ab.
-# Gesucht wird der Name, den ESPHome vergibt. Das Produktpraefix bekommt erst
-# die Kopie im Ausgabeordner - die Release-Anhaenge muessen je Produkt
-# unterscheidbar sein, im Bauverzeichnis heissen sie bei allen gleich.
+# Gesucht wird der Name, den ESPHome vergibt. Das Produktpräfix bekommt erst
+# die Kopie im Ausgabeordner - die Release-Anhänge müssen je Produkt
+# unterscheidbar sein, im Bauverzeichnis heißen sie bei allen gleich.
 $candidates = Get-ChildItem (Join-Path $root 'esphome') -Recurse -Filter 'firmware.ota.bin' -ErrorAction SilentlyContinue |
               Sort-Object LastWriteTime -Descending
 if (-not $candidates) {
@@ -45,28 +45,37 @@ if (-not $candidates) {
 $bin = $candidates[0]
 Write-Host ("Firmware: {0}  ({1:N0} Bytes, {2})" -f $bin.FullName, $bin.Length, $bin.LastWriteTime)
 
-# Warnen, wenn die Firmware aelter ist als die Quelle - dann wurde nach der
-# letzten Aenderung nicht neu gebaut, und das Release enthielte einen alten
+# Die Factory-Datei liegt daneben und enthält zusätzlich Bootloader und
+# Partitionstabelle. Sie gehört ans Release, damit sich jede veröffentlichte
+# Version auch auf ein leeres Board bringen lässt - ohne vorher zu bauen und
+# ohne diesen Rechner. Verwechseln geht schief: Die OTA-Datei auf einen leeren
+# Chip geschrieben ergibt ein Gerät, das nicht startet.
+$factory = Join-Path $bin.DirectoryName 'firmware.factory.bin'
+if (-not (Test-Path $factory)) { throw "firmware.factory.bin nicht gefunden neben $($bin.Name)" }
+
+# Warnen, wenn die Firmware älter ist als die Quelle - dann wurde nach der
+# letzten Änderung nicht neu gebaut, und das Release enthielte einen alten
 # Stand unter neuer Nummer.
 if ($bin.LastWriteTime -lt (Get-Item $hardware).LastWriteTime) {
-  Write-Warning "Die Firmware ist AELTER als hardware.yaml. Vor dem Release neu bauen!"
+  Write-Warning "Die Firmware ist ÄLTER als hardware.yaml. Vor dem Release neu bauen!"
 }
 
 # --- Ausgabeordner ----------------------------------------------------------
 $out = Join-Path $root 'release'
 if (-not (Test-Path $out)) { New-Item -ItemType Directory -Path $out | Out-Null }
 Copy-Item $bin.FullName (Join-Path $out 'level-firmware.ota.bin') -Force
+Copy-Item $factory      (Join-Path $out 'level-firmware.factory.bin') -Force
 
-# --- Pruefsumme -------------------------------------------------------------
-# Genau 32 Zeichen, klein geschrieben, ohne Zeilenumbruch: Das Geraet
-# vergleicht den Inhalt der Datei unveraendert.
+# --- Prüfsumme -------------------------------------------------------------
+# Genau 32 Zeichen, klein geschrieben, ohne Zeilenumbruch: Das Gerät
+# vergleicht den Inhalt der Datei unverändert.
 $md5 = (Get-FileHash (Join-Path $out 'level-firmware.ota.bin') -Algorithm MD5).Hash.ToLower()
 [System.IO.File]::WriteAllText((Join-Path $out 'level-firmware.ota.bin.md5'), $md5)
 Write-Host "MD5: $md5"
 
 # --- Manifest ---------------------------------------------------------------
-# path als vollstaendige Adresse: Beginnt der Wert mit http, nimmt das Geraet
-# ihn unveraendert. Relative Angaben scheitern, weil GitHub den Download auf
+# path als vollständige Adresse: Beginnt der Wert mit http, nimmt das Gerät
+# ihn unverändert. Relative Angaben scheitern, weil GitHub den Download auf
 # einen anderen Rechner umleitet.
 $manifest = [ordered]@{
   name    = 'CamperMaid Level'
@@ -87,12 +96,12 @@ $json = $manifest | ConvertTo-Json -Depth 6
 [System.IO.File]::WriteAllText((Join-Path $out 'level-manifest.json'), $json, (New-Object System.Text.UTF8Encoding $false))
 
 Write-Host ""
-Write-Host "Fertig. Diese drei Dateien an das Release haengen:"
+Write-Host "Fertig. Diese Dateien an das Release hängen:"
 Get-ChildItem $out | ForEach-Object { "   {0,-24} {1,10:N0} Bytes" -f $_.Name, $_.Length }
 Write-Host ""
-Write-Host "Zum Veroeffentlichen:  veroeffentlichen.cmd"
+Write-Host "Zum Veröffentlichen:  veroeffentlichen.cmd"
 Write-Host ""
 Write-Host "Beim Hochladen von Hand: erst die .bin und die .md5, zuletzt das Manifest."
-Write-Host "Andersherum sehen Geraete kurz eine Version, die es noch nicht zum Laden gibt."
-Write-Host "veroeffentlichen.cmd umgeht das - es laedt in einen Entwurf und schaltet"
+Write-Host "Andersherum sehen Geräte kurz eine Version, die es noch nicht zum Laden gibt."
+Write-Host "veroeffentlichen.cmd umgeht das - es lädt in einen Entwurf und schaltet"
 Write-Host "erst danach sichtbar."

@@ -1,4 +1,4 @@
-"""Schalter: Sprachansage und Praezisionsmodus."""
+"""Schalter: Sprachansage und Präzisionsmodus."""
 
 from __future__ import annotations
 
@@ -25,7 +25,7 @@ class CamperSwitchDescription(SwitchEntityDescription):
 
 SWITCHES: tuple[CamperSwitchDescription, ...] = (
     # Beide starten bewusst ausgeschaltet: eine Verhaltenserweiterung soll
-    # niemanden ueberraschen, der die Integration gerade erst einrichtet.
+    # niemanden überraschen, der die Integration gerade erst einrichtet.
     CamperSwitchDescription(
         key="voice",
         translation_key="voice",
@@ -64,7 +64,7 @@ class CamperSwitch(CamperEntity, SwitchEntity, RestoreEntity):
 
     async def async_added_to_hass(self) -> None:
         await super().async_added_to_hass()
-        # Nur fuer den Uebergang - siehe async_restore_value im Rechenkern.
+        # Nur für den Übergang - siehe async_restore_value im Rechenkern.
         if (last := await self.async_get_last_state()) is not None:
             self.coordinator.async_restore_value(
                 self.entity_description.value_key, last.state == STATE_ON

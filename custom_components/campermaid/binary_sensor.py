@@ -1,4 +1,4 @@
-"""Binaersensor: steht das Fahrzeug eben?"""
+"""Binärsensor: steht das Fahrzeug eben?"""
 
 from __future__ import annotations
 
@@ -29,8 +29,8 @@ class CamperLevelBinarySensor(CamperEntity, BinarySensorEntity):
 
     @property
     def available(self) -> bool:
-        # Ohne Messwerte lieber nicht verfuegbar sein, als faelschlich "eben"
-        # zu melden. Ein stiller Sensor faellt auf, ein falsches Ja nicht.
+        # Ohne Messwerte lieber nicht verfügbar sein, als fälschlich "eben"
+        # zu melden. Ein stiller Sensor fällt auf, ein falsches Ja nicht.
         return self.coordinator.available
 
     @property

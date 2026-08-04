@@ -124,7 +124,7 @@ class CamperPhaseSensor(CamperEntity, SensorEntity):
     def extra_state_attributes(self) -> dict[str, object]:
         """Alles, was die Karte zum Zeichnen braucht - an einer Stelle.
 
-        Die Karte muss dadurch nur diese eine Entitaet finden und kann nicht in
+        Die Karte muss dadurch nur diese eine Entität finden und kann nicht in
         den Zustand geraten, Messwert und Schwelle aus unterschiedlichen
         Quellen zu mischen.
         """
@@ -165,7 +165,7 @@ class CamperCalibrationSensor(CamperEntity, SensorEntity, RestoreEntity):
     """Wann zuletzt kalibriert wurde.
 
     Ohne Wert zeigt Home Assistant von selbst "Unbekannt" an - ein Datumsfeld
-    mit einem Ersatzdatum wuerde dagegen eine Kalibrierung behaupten, die nie
+    mit einem Ersatzdatum würde dagegen eine Kalibrierung behaupten, die nie
     stattgefunden hat.
     """
 

@@ -1,33 +1,33 @@
 CamperMaid
 Copyright (c) 2026 rcdev. Alle Rechte vorbehalten.
 
-Dieses Repository enthaelt Bestandteile unter unterschiedlichen Bedingungen.
+Dieses Repository enthält Bestandteile unter unterschiedlichen Bedingungen.
 Siehe LICENSES.md.
 
 -------------------------------------------------------------------------------
 1  GELTUNGSBEREICH
 -------------------------------------------------------------------------------
 
-Diese Bedingungen gelten fuer die eigenen Werke von rcdev in diesem
+Diese Bedingungen gelten für die eigenen Werke von rcdev in diesem
 Repository:
 
     custom_components/campermaid/   Home-Assistant-Integration und Karte
-    esphome/                        Geraetekonfiguration und Bedienoberflaeche
+    esphome/                        Gerätekonfiguration und Bedienoberfläche
     tools/, docs/                   Skripte und Dokumentation
 
-Sie gelten nicht fuer Bestandteile von ESPHome, die beim Bauen in die Firmware
-gelangen (GPLv3, siehe LICENSES.md), und nicht fuer die Marken im Ordner brand/
+Sie gelten nicht für Bestandteile von ESPHome, die beim Bauen in die Firmware
+gelangen (GPLv3, siehe LICENSES.md), und nicht für die Marken im Ordner brand/
 (siehe brand/LICENSE).
 
 -------------------------------------------------------------------------------
 2  ERLAUBT
 -------------------------------------------------------------------------------
 
-2.1  Nutzung zum eigenen Gebrauch, einschliesslich auf selbst gebauter
-     Hardware, sowie das Vervielfaeltigen und Veraendern zu diesem Zweck.
+2.1  Nutzung zum eigenen Gebrauch, einschließlich auf selbst gebauter
+     Hardware, sowie das Vervielfältigen und Verändern zu diesem Zweck.
 
-2.2  Unentgeltliche Weitergabe im Original oder veraendert, sofern dieser
-     Lizenztext beiliegt und Veraenderungen als solche gekennzeichnet sind.
+2.2  Unentgeltliche Weitergabe im Original oder verändert, sofern dieser
+     Lizenztext beiliegt und Veränderungen als solche gekennzeichnet sind.
 
 -------------------------------------------------------------------------------
 3  NICHT ERLAUBT
@@ -35,20 +35,20 @@ gelangen (GPLv3, siehe LICENSES.md), und nicht fuer die Marken im Ordner brand/
 
 Ohne vorherige schriftliche Zustimmung von rcdev:
 
-3.1  der Verkauf dieser Software oder von Geraeten, auf denen sie ausgeliefert
+3.1  der Verkauf dieser Software oder von Geräten, auf denen sie ausgeliefert
      wird, sowie jede andere entgeltliche Verwertung;
 
 3.2  die Verwendung im Rahmen einer entgeltlichen Dienstleistung;
 
 3.3  die Verwendung der Bezeichnung "CamperMaid" oder der Marken aus brand/
-     fuer eigene Erzeugnisse.
+     für eigene Erzeugnisse.
 
 -------------------------------------------------------------------------------
-4  GEWAEHRLEISTUNG UND HAFTUNG
+4  GEWÄHRLEISTUNG UND HAFTUNG
 -------------------------------------------------------------------------------
 
-4.1  Die Software wird ohne Gewaehr bereitgestellt. Eine Haftung fuer Schaeden
-     aus ihrer Verwendung ist ausgeschlossen, soweit gesetzlich zulaessig.
+4.1  Die Software wird ohne Gewähr bereitgestellt. Eine Haftung für Schäden
+     aus ihrer Verwendung ist ausgeschlossen, soweit gesetzlich zulässig.
 
 4.2  CamperMaid ist keine Sicherheitseinrichtung. Angezeigte Werte ersetzen
-     weder eigene Pruefung noch Sorgfalt beim Abstellen eines Fahrzeugs.
+     weder eigene Prüfung noch Sorgfalt beim Abstellen eines Fahrzeugs.

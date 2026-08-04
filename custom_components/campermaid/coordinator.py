@@ -1,7 +1,7 @@
 """Rechenkern der CamperMaid.
 
 Hier liegt die einzige Wahrheit: Schwellen, Phase und Korrekturwerte. Karte,
-Ansagen und alle Entitaeten lesen ausschliesslich von hier. Frueher rechnete
+Ansagen und alle Entitäten lesen ausschließlich von hier. Früher rechnete
 jede Kachel und jede Automation ihre Toleranz selbst - und wich dadurch
 voneinander ab.
 """
@@ -66,8 +66,8 @@ from .const import (
 
 _LOGGER = logging.getLogger(__name__)
 
-# Einstellbare Werte und ihre Voreinstellungen. Alles hier drin gehoert einer
-# Entitaet und ist damit auf der Geraeteseite sichtbar, in Automationen
+# Einstellbare Werte und ihre Voreinstellungen. Alles hier drin gehört einer
+# Entität und ist damit auf der Geräteseite sichtbar, in Automationen
 # verwendbar und aufs Dashboard legbar. Was nur im Einrichtungsdialog steht,
 # findet niemand wieder - deshalb liegen auch Ausrichtart und Ansageziel hier.
 VALUE_DEFAULTS: dict[str, float | bool | str | None] = {
@@ -80,10 +80,10 @@ VALUE_DEFAULTS: dict[str, float | bool | str | None] = {
     CONF_VEHICLE_TYPE: DEFAULT_VEHICLE_TYPE,
     CONF_NOTIFY_SERVICE: None,
     "voice": False,  # Sprachansage - neue Verhaltenserweiterungen starten aus
-    "precise": False,  # Praezisionsmodus
+    "precise": False,  # Präzisionsmodus
 }
 
-# Diese Werte sind Zahlen, alle uebrigen nicht.
+# Diese Werte sind Zahlen, alle übrigen nicht.
 NUMERIC_VALUES = (
     CONF_WHEELBASE,
     CONF_TRACK,
@@ -104,7 +104,7 @@ def _as_float(state) -> float | None:
 
 
 class CamperCoordinator:
-    """Haelt Messwerte und Einstellungen und leitet daraus alles Weitere ab."""
+    """Hält Messwerte und Einstellungen und leitet daraus alles Weitere ab."""
 
     def __init__(self, hass: HomeAssistant, entry_id: str, config: dict) -> None:
         self.hass = hass
@@ -119,20 +119,20 @@ class CamperCoordinator:
         self.values: dict[str, float | bool | str | None] = dict(VALUE_DEFAULTS)
         self._apply_config(config)
 
-        # Wird in async_start gefuellt, sobald die Entitaetsregistrierung
+        # Wird in async_start gefüllt, sobald die Entitätsregistrierung
         # befragt werden kann.
         self._device_sources: dict[str, str] = {}
         self._unsub = None
 
     def _apply_config(self, config: dict) -> None:
-        """Einstellbare Werte aus dem Config-Eintrag uebernehmen."""
+        """Einstellbare Werte aus dem Config-Eintrag übernehmen."""
         for key in VALUE_DEFAULTS:
             if key not in config:
                 continue
             value = config[key]
             if value is None:
-                # Nur das Ansageziel darf ausdruecklich leer sein - bei einer
-                # Zahl waere None ein Datenfehler und keine Absicht.
+                # Nur das Ansageziel darf ausdrücklich leer sein - bei einer
+                # Zahl wäre None ein Datenfehler und keine Absicht.
                 if key == CONF_NOTIFY_SERVICE:
                     self.values[key] = None
                 continue
@@ -142,7 +142,7 @@ class CamperCoordinator:
 
     @callback
     def async_start(self) -> None:
-        """Auf die Quell-Entitaeten horchen."""
+        """Auf die Quell-Entitäten horchen."""
         self._device_sources = self._find_device_sources()
 
         tracked = [self._config[CONF_PITCH_SENSOR], self._config[CONF_ROLL_SENSOR]]
@@ -156,11 +156,11 @@ class CamperCoordinator:
         self._read_sources()
 
     def _find_device_sources(self) -> dict[str, str]:
-        """Die Werte suchen, die das Geraet selbst fuehrt.
+        """Die Werte suchen, die das Gerät selbst führt.
 
-        Gesucht wird ausschliesslich auf dem Geraet, zu dem der Neigungssensor
-        gehoert. Ueber alle Geraete zu suchen waere gefaehrlich: bei zwei
-        Fahrzeugen im selben Home Assistant koennte sonst der Radstand des
+        Gesucht wird ausschließlich auf dem Gerät, zu dem der Neigungssensor
+        gehört. Über alle Geräte zu suchen wäre gefährlich: bei zwei
+        Fahrzeugen im selben Home Assistant könnte sonst der Radstand des
         einen mit der Neigung des anderen zusammentreffen.
 
         Findet sich nichts - etwa weil jemand einen fremden Neigungssensor
@@ -183,13 +183,13 @@ class CamperCoordinator:
                 found[key] = entry.entity_id
 
         if found:
-            _LOGGER.debug("Werte vom Geraet uebernommen: %s", sorted(found))
+            _LOGGER.debug("Werte vom Gerät übernommen: %s", sorted(found))
         return found
 
     @property
     def device_sources(self) -> dict[str, str]:
-        """Welche Werte das Geraet fuehrt - die Plattformen fragen hier nach,
-        damit sie dafuer keine zweite Entitaet anlegen."""
+        """Welche Werte das Gerät führt - die Plattformen fragen hier nach,
+        damit sie dafür keine zweite Entität anlegen."""
         return self._device_sources
 
     @callback
@@ -213,12 +213,12 @@ class CamperCoordinator:
             state = states.get(motion)
             self.in_motion = state is not None and state.state == "on"
         else:
-            # Ohne Bewegungssensor gilt immer "koennte gerade rangiert werden".
+            # Ohne Bewegungssensor gilt immer "könnte gerade rangiert werden".
             self.in_motion = True
 
     @callback
     def async_notify(self) -> None:
-        """Alle Entitaeten auffordern, sich neu zu lesen."""
+        """Alle Entitäten auffordern, sich neu zu lesen."""
         async_dispatcher_send(self.hass, SIGNAL_UPDATE.format(self.entry_id))
 
     # -- Einstellbare Werte -------------------------------------------------
@@ -235,10 +235,10 @@ class CamperCoordinator:
     def _async_persist(self, key: str, value: float | bool | str | None) -> None:
         """Den Wert in den Config-Eintrag schreiben.
 
-        Frueher merkten sich die Entitaeten ihren letzten Zustand selbst. Damit
+        Früher merkten sich die Entitäten ihren letzten Zustand selbst. Damit
         gab es zwei Speicher: was im Einrichtungsdialog stand, und was die
-        Entitaet zuletzt hatte - und beim Neustart gewann die Entitaet. Wer
-        seinen Radstand im Dialog korrigierte, sah die Aenderung nach jedem
+        Entität zuletzt hatte - und beim Neustart gewann die Entität. Wer
+        seinen Radstand im Dialog korrigierte, sah die Änderung nach jedem
         Neustart wieder verschwinden. Jetzt gibt es nur noch den Config-Eintrag.
         """
         entry = self.hass.config_entries.async_get_entry(self.entry_id)
@@ -252,10 +252,10 @@ class CamperCoordinator:
 
     @callback
     def async_restore_value(self, key: str, value: float | bool | str | None) -> None:
-        """Einen wiederhergestellten Entitaetszustand uebernehmen - einmalig.
+        """Einen wiederhergestellten Entitätszustand übernehmen - einmalig.
 
-        Nur fuer den Uebergang: Wer vor dieser Version einen Regler verstellt
-        hatte, haette den Wert sonst verloren, weil die Einrichtungsdaten nichts
+        Nur für den Übergang: Wer vor dieser Version einen Regler verstellt
+        hatte, hätte den Wert sonst verloren, weil die Einrichtungsdaten nichts
         davon wissen. Sobald der Wert einmal in den Optionen steht, gewinnt
         immer der Config-Eintrag und der alte Zustand wird ignoriert.
         """
@@ -266,7 +266,7 @@ class CamperCoordinator:
 
     @callback
     def async_apply_config(self, config: dict) -> None:
-        """Geaenderte Einstellungen im laufenden Betrieb uebernehmen."""
+        """Geänderte Einstellungen im laufenden Betrieb übernehmen."""
         self._config = config
         self._apply_config(config)
         self.async_notify()
@@ -276,11 +276,11 @@ class CamperCoordinator:
         return self._config
 
     def get_value(self, key: str) -> float | bool | str | None:
-        """Der geltende Wert - vom Geraet, wenn es ihn fuehrt.
+        """Der geltende Wert - vom Gerät, wenn es ihn führt.
 
-        Das Geraet hat Vorrang, weil es die Betriebsart ohne Home Assistant
-        bedienen muss und dort die einzige Quelle ist. Zwei Speicher fuer
-        dieselbe Zahl fuehren unweigerlich dazu, dass sie auseinanderlaufen -
+        Das Gerät hat Vorrang, weil es die Betriebsart ohne Home Assistant
+        bedienen muss und dort die einzige Quelle ist. Zwei Speicher für
+        dieselbe Zahl führen unweigerlich dazu, dass sie auseinanderlaufen -
         und der Nutzer sieht nicht, welcher gilt.
         """
         if (source := self._device_sources.get(key)) is not None:
@@ -295,7 +295,7 @@ class CamperCoordinator:
                     return DEVICE_VEHICLE_MAP.get(state.state, DEFAULT_VEHICLE_TYPE)
                 if (number := _as_float(state)) is not None:
                     return number
-            # Geraet gerade nicht erreichbar: lieber der zuletzt bekannte
+            # Gerät gerade nicht erreichbar: lieber der zuletzt bekannte
             # eigene Wert als gar keiner - die Anzeige soll nicht ausfallen,
             # nur weil das Fahrzeug kurz offline ist.
         return self.values.get(key, VALUE_DEFAULTS.get(key, 0))
@@ -305,7 +305,7 @@ class CamperCoordinator:
         self.last_calibration = moment
         self.async_notify()
 
-    # -- Abgeleitete Groessen ----------------------------------------------
+    # -- Abgeleitete Größen ----------------------------------------------
 
     @property
     def available(self) -> bool:
@@ -333,12 +333,12 @@ class CamperCoordinator:
         return bool(self.get_value("voice"))
 
     def _tolerance(self, dimension_mm: float) -> float:
-        """Toleranz in Grad fuer eine Achse.
+        """Toleranz in Grad für eine Achse.
 
-        Im Realitaetsmodus wird die cm-Angabe ueber das jeweilige Fahrzeugmass
-        umgerechnet - dadurch ist laengs und quer gleich streng bewertet. Eine
-        einzelne Gradzahl fuer beide Achsen waere das nicht: bei 3500 mm
-        Radstand und 1800 mm Spurweite bedeuten 0,4 Grad laengs 2,4 cm, quer
+        Im Realitätsmodus wird die cm-Angabe über das jeweilige Fahrzeugmaß
+        umgerechnet - dadurch ist längs und quer gleich streng bewertet. Eine
+        einzelne Gradzahl für beide Achsen wäre das nicht: bei 3500 mm
+        Radstand und 1800 mm Spurweite bedeuten 0,4 Grad längs 2,4 cm, quer
         aber nur 1,3 cm.
         """
         if self.precise:
@@ -356,7 +356,7 @@ class CamperCoordinator:
 
     @property
     def correction_pitch_cm(self) -> float | None:
-        """Wie hoch die Front bzw. das Heck muesste, in cm."""
+        """Wie hoch die Front bzw. das Heck müsste, in cm."""
         if self.pitch is None:
             return None
         return self.wheelbase * math.tan(math.radians(abs(self.pitch))) / 10.0
@@ -369,7 +369,7 @@ class CamperCoordinator:
 
     @property
     def phase(self) -> str:
-        """Grobe Lage als ein Wort - Grundlage fuer Ansagen und Karte."""
+        """Grobe Lage als ein Wort - Grundlage für Ansagen und Karte."""
         pitch, roll = self.pitch, self.roll
         if pitch is None or roll is None:
             return PHASE_UNKNOWN
@@ -385,7 +385,7 @@ class CamperCoordinator:
             return PHASE_CLOSE
 
         # Achsen relativ zur je eigenen Schwelle vergleichen, nicht in
-        # absoluten Grad - sonst gewaenne bei ungleichen Schwellen immer quer.
+        # absoluten Grad - sonst gewänne bei ungleichen Schwellen immer quer.
         if abs(roll) / tol_r >= abs(pitch) / tol_p:
             return PHASE_LEFT if roll > 0 else PHASE_RIGHT
         return PHASE_REAR if pitch > 0 else PHASE_FRONT
@@ -395,16 +395,16 @@ class CamperCoordinator:
         return self.phase == PHASE_LEVEL
 
     def wedge_steps_for(self, centimetres: float | None) -> int | None:
-        """cm in Keilstufen umrechnen, sofern eine Stufenhoehe hinterlegt ist."""
+        """cm in Keilstufen umrechnen, sofern eine Stufenhöhe hinterlegt ist."""
         if centimetres is None or self.wedge_step <= 0:
             return None
         return max(round(centimetres / self.wedge_step), 1)
 
     def residual_cm(self, centimetres: float | None) -> float | None:
-        """Was nach dem Auflegen der gerundeten Stufen uebrig bleibt.
+        """Was nach dem Auflegen der gerundeten Stufen übrig bleibt.
 
-        Positiv heisst zu niedrig geblieben, negativ ueberfahren. Ohne diesen
-        Wert steht man vor der Frage, ob die naechste Stufe noch lohnt, und
+        Positiv heißt zu niedrig geblieben, negativ überfahren. Ohne diesen
+        Wert steht man vor der Frage, ob die nächste Stufe noch lohnt, und
         rechnet sie im Kopf aus.
         """
         steps = self.wedge_steps_for(centimetres)
@@ -412,7 +412,7 @@ class CamperCoordinator:
             return None
         return round(centimetres - steps * self.wedge_step, 1)
 
-    # -- Hubhoehe je Rad ----------------------------------------------------
+    # -- Hubhöhe je Rad ----------------------------------------------------
 
     @property
     def level_method(self) -> str:
@@ -434,16 +434,16 @@ class CamperCoordinator:
     def wheel_lifts_cm(self) -> dict[str, float] | None:
         """Wie hoch jedes einzelne Rad muss, damit das Fahrzeug eben steht.
 
-        Bezugspunkt ist das hoechste Rad: es bleibt stehen, alle anderen
+        Bezugspunkt ist das höchste Rad: es bleibt stehen, alle anderen
         steigen. Anders herum ginge es nicht - absenken kann weder ein Keil
-        noch eine Stuetze.
+        noch eine Stütze.
 
-        Die Vorzeichen folgen der Phasenlogik weiter oben: pitch > 0 heisst
-        Heck zu tief, roll > 0 heisst linke Seite zu tief.
+        Die Vorzeichen folgen der Phasenlogik weiter oben: pitch > 0 heißt
+        Heck zu tief, roll > 0 heißt linke Seite zu tief.
 
-        Gegenprobe: steht nur eine Achse schief, ergibt sich fuer deren beide
-        Raeder genau correction_pitch_cm - die Einzelradrechnung ist also
-        dieselbe Physik, nur feiner aufgeloest.
+        Gegenprobe: steht nur eine Achse schief, ergibt sich für deren beide
+        Räder genau correction_pitch_cm - die Einzelradrechnung ist also
+        dieselbe Physik, nur feiner aufgelöst.
         """
         if self.pitch is None or self.roll is None:
             return None
@@ -473,17 +473,17 @@ class CamperCoordinator:
         return self.vehicle_type == VEHICLE_CARAVAN
 
     def _caravan_plan(self) -> list[dict] | None:
-        """Wohnwagen: zwei Raeder auf einer Achse plus Stuetzrad.
+        """Wohnwagen: zwei Räder auf einer Achse plus Stützrad.
 
-        Bewusst nicht ueber wheel_lifts_cm: Dort ist das hoechste Rad der
+        Bewusst nicht über wheel_lifts_cm: Dort ist das höchste Rad der
         Bezug, weil ein Keil nur anheben kann. Beim Wohnwagen stimmt das nur
-        quer. Laengs sitzt das Stuetzrad, und das kurbelt in beide Richtungen
-        - dort waere "nur anheben" eine kuenstliche Einschraenkung, die den
-        Nutzer unnoetig auf Keile schicken wuerde.
+        quer. Längs sitzt das Stützrad, und das kurbelt in beide Richtungen
+        - dort wäre "nur anheben" eine künstliche Einschränkung, die den
+        Nutzer unnötig auf Keile schicken würde.
 
-        Die Reihenfolge ist Absicht: erst quer, dann laengs. Das Auffahren auf
-        den Keil kippt den Wagen laengs mit, eine vorher berechnete
-        Stuetzradhoehe waere danach falsch.
+        Die Reihenfolge ist Absicht: erst quer, dann längs. Das Auffahren auf
+        den Keil kippt den Wagen längs mit, eine vorher berechnete
+        Stützradhöhe wäre danach falsch.
         """
         if self.pitch is None or self.roll is None:
             return None
@@ -492,7 +492,7 @@ class CamperCoordinator:
 
         plan: list[dict] = []
 
-        # Quer: das tiefere Rad auf den Keil. roll > 0 = rechts hoeher.
+        # Quer: das tiefere Rad auf den Keil. roll > 0 = rechts höher.
         across_cm = round(self.track * math.tan(math.radians(abs(self.roll))) / 10.0, 1)
         if across_cm >= WHEEL_LIFT_IGNORE_CM:
             plan.append(
@@ -504,14 +504,14 @@ class CamperCoordinator:
                 }
             )
 
-        # Laengs: Stuetzrad. pitch > 0 = Front hoeher, also senken.
+        # Längs: Stützrad. pitch > 0 = Front höher, also senken.
         along_cm = round(self.wheelbase * math.tan(math.radians(abs(self.pitch))) / 10.0, 1)
         if along_cm >= WHEEL_LIFT_IGNORE_CM:
             plan.append(
                 {
                     "wheel": POINT_JOCKEY,
                     "cm": along_cm,
-                    # Gekurbelt wird stufenlos - eine Keilstufe waere hier
+                    # Gekurbelt wird stufenlos - eine Keilstufe wäre hier
                     # eine Angabe, die niemand umsetzen kann.
                     "steps": None,
                     "direction": DIRECTION_DOWN if self.pitch > 0 else DIRECTION_UP,
@@ -521,10 +521,10 @@ class CamperCoordinator:
 
     @property
     def wheel_plan(self) -> list[dict[str, float | int | None]] | None:
-        """Die Raeder, die wirklich hoch muessen - das hoechste zuerst.
+        """Die Räder, die wirklich hoch müssen - das höchste zuerst.
 
-        Raeder unterhalb der Erwaehnungsschwelle fallen raus. Steht das
-        Fahrzeug eben, bleibt die Liste leer; das ist ein gueltiges Ergebnis
+        Räder unterhalb der Erwähnungsschwelle fallen raus. Steht das
+        Fahrzeug eben, bleibt die Liste leer; das ist ein gültiges Ergebnis
         und nicht dasselbe wie None (keine Messwerte).
         """
         if self.is_caravan:
@@ -546,8 +546,8 @@ class CamperCoordinator:
                     "residual_cm": self.residual_cm(centimetres),
                     # Beim Wohnmobil geht es nur nach oben - ein Keil senkt
                     # nichts ab. Das Feld gibt es trotzdem, damit Karte und
-                    # Geraeteseite fuer beide Fahrzeugarten dieselbe Form
-                    # lesen koennen.
+                    # Geräteseite für beide Fahrzeugarten dieselbe Form
+                    # lesen können.
                     "direction": DIRECTION_UP,
                 }
             )

@@ -1,10 +1,10 @@
 """Auswahlfelder: Ausrichtart und Ansageziel.
 
-Beides stand frueher nur im Einrichtungsdialog. Das war schwer zu finden und
-liess sich weder in einer Automation noch auf dem Dashboard verwenden - obwohl
-es gewoehnliche Bedieneinstellungen sind und keine Anschlussdaten. Als
-Entitaeten stehen sie jetzt dort, wo Toleranz, Radstand und Keilstufe auch
-schon stehen: auf der Geraeteseite.
+Beides stand früher nur im Einrichtungsdialog. Das war schwer zu finden und
+ließ sich weder in einer Automation noch auf dem Dashboard verwenden - obwohl
+es gewöhnliche Bedieneinstellungen sind und keine Anschlussdaten. Als
+Entitäten stehen sie jetzt dort, wo Toleranz, Radstand und Keilstufe auch
+schon stehen: auf der Geräteseite.
 """
 
 from __future__ import annotations
@@ -19,8 +19,8 @@ from .const import CONF_LEVEL_METHOD, CONF_NOTIFY_SERVICE, DOMAIN, METHODS
 from .coordinator import CamperCoordinator
 from .entity import CamperEntity
 
-# Ohne diesen Eintrag liesse sich das Ansageziel nur wechseln, nicht
-# abschalten - und wer keine Ansagen will, haette keine Wahl.
+# Ohne diesen Eintrag ließe sich das Ansageziel nur wechseln, nicht
+# abschalten - und wer keine Ansagen will, hätte keine Wahl.
 OPTION_OFF = "aus"
 
 
@@ -30,8 +30,8 @@ async def async_setup_entry(
     coordinator: CamperCoordinator = hass.data[DOMAIN][entry.entry_id]["coordinator"]
 
     entities: list[SelectEntity] = [CamperNotifySelect(coordinator, entry)]
-    # Die Ausrichtart fuehrt das Geraet, sobald die mitgelieferte Firmware
-    # laeuft - dann waere ein zweites Auswahlfeld hier nur verwirrend.
+    # Die Ausrichtart führt das Gerät, sobald die mitgelieferte Firmware
+    # läuft - dann wäre ein zweites Auswahlfeld hier nur verwirrend.
     if CONF_LEVEL_METHOD not in coordinator.device_sources:
         entities.append(CamperMethodSelect(coordinator, entry))
     async_add_entities(entities)
@@ -65,7 +65,7 @@ class CamperNotifySelect(CamperEntity, SelectEntity, RestoreEntity):
     """Wohin die Sprachansagen gehen.
 
     Die Liste wird bei jedem Aufruf frisch aus den vorhandenen
-    notify-Diensten gebildet. Ein fest eingebrannte Liste wuerde veralten,
+    notify-Diensten gebildet. Ein fest eingebrannte Liste würde veralten,
     sobald ein Handy dazukommt oder verschwindet.
     """
 
@@ -92,8 +92,8 @@ class CamperNotifySelect(CamperEntity, SelectEntity, RestoreEntity):
         services = sorted(self.hass.services.async_services().get("notify", {}))
         current = self.current_option
         # Ein eingestelltes Ziel, das es gerade nicht gibt (Handy offline,
-        # Integration neu geladen), bleibt trotzdem sichtbar. Sonst faellt die
-        # Auswahl still auf einen anderen Eintrag zurueck.
+        # Integration neu geladen), bleibt trotzdem sichtbar. Sonst fällt die
+        # Auswahl still auf einen anderen Eintrag zurück.
         if current != OPTION_OFF and current not in services:
             services.append(current)
         return [OPTION_OFF, *services]
