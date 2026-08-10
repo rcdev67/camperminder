@@ -32,6 +32,10 @@ from .const import (
     PHASE_REAR,
     PHASE_RIGHT,
     POINT_JOCKEY,
+    SIDE_FRONT,
+    SIDE_LEFT,
+    SIDE_REAR,
+    SIDE_RIGHT,
     WHEEL_FRONT_LEFT,
     WHEEL_FRONT_RIGHT,
     WHEEL_REAR_LEFT,
@@ -54,6 +58,14 @@ WHEEL_NAMES = {
     WHEEL_REAR_LEFT: "Hinten links",
     WHEEL_REAR_RIGHT: "Hinten rechts",
     POINT_JOCKEY: "Stützrad",
+    # Steht nur eine Achse schief, zieht der Rechenkern die beiden Räder
+    # derselben Seite zu EINER Anweisung zusammen und liefert statt zweier
+    # Radpositionen eine Seite. Die Namen müssen hier stehen, sonst spräche die
+    # Ansage die rohe Kennung aus.
+    SIDE_LEFT: "Linke Seite",
+    SIDE_RIGHT: "Rechte Seite",
+    SIDE_FRONT: "Vorne",
+    SIDE_REAR: "Hinten",
 }
 
 # Beim Wohnwagen sitzen beide Räder auf einer Achse - "hinten links" wäre
@@ -225,8 +237,11 @@ class CamperAnnouncer:
         if not plan:
             return None
 
+        # .get und kein direkter Zugriff: Ein unbekannter Schlüssel wäre hier
+        # ein KeyError mitten in einer Ansage - also genau dann, wenn niemand
+        # am Rechner sitzt. Lieber die rohe Kennung vorlesen als abbrechen.
         teile = [
-            f"{WHEEL_NAMES[item['wheel']]} {item['cm']:.0f} Zentimeter"
+            f"{WHEEL_NAMES.get(item['wheel'], item['wheel'])} {item['cm']:.0f} Zentimeter"
             for item in plan
         ]
         if len(teile) == 1:

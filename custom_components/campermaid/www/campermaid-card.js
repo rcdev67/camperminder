@@ -102,6 +102,16 @@ const CARAVAN_WHEEL_NAMES = {
   stuetzrad: "Stützrad",
 };
 
+/* Steht nur eine Achse schief, zieht der Rechenkern die beiden Räder derselben
+ * Seite zu EINER Anweisung zusammen und liefert statt zweier Radpositionen eine
+ * Seite. Ohne diese Namen stünde die rohe Kennung auf der Karte. */
+const SIDE_NAMES = {
+  links: "Linke Seite",
+  rechts: "Rechte Seite",
+  vorne: "Vorne",
+  hinten: "Hinten",
+};
+
 const clamp = (value, limit) => Math.max(-limit, Math.min(limit, value));
 
 class CamperMaidCard extends HTMLElement {
@@ -520,7 +530,11 @@ class CamperMaidCard extends HTMLElement {
   _caravanRows(a) {
     if (!Array.isArray(a.wheel_plan)) return [];
     return a.wheel_plan.map((item) => {
-      const name = CARAVAN_WHEEL_NAMES[item.wheel] || WHEEL_NAMES[item.wheel] || item.wheel;
+      const name =
+        CARAVAN_WHEEL_NAMES[item.wheel] ||
+        WHEEL_NAMES[item.wheel] ||
+        SIDE_NAMES[item.wheel] ||
+        item.wheel;
       const wie = item.steps ? `Keilstufe ${item.steps}` : `${item.cm.toFixed(1)} cm`;
       return `<li><b>${name}</b> ${item.direction} – ${wie}</li>`;
     });
@@ -532,7 +546,7 @@ class CamperMaidCard extends HTMLElement {
     if (!Array.isArray(a.wheel_plan)) return [];
     return a.wheel_plan.map(
       (item) =>
-        `<li><b>${WHEEL_NAMES[item.wheel] || item.wheel}</b> ${item.cm.toFixed(1)} cm</li>`
+        `<li><b>${WHEEL_NAMES[item.wheel] || SIDE_NAMES[item.wheel] || item.wheel}</b> ${item.cm.toFixed(1)} cm</li>`
     );
   }
 

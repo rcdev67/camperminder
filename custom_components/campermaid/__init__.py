@@ -51,6 +51,10 @@ CARD_REGISTERED = f"{DOMAIN}_card_registered"
 
 LOVELACE_DOMAIN = "lovelace"
 
+# Die Karte liest ihre Version über import.meta.url - das gibt es nur im Modul.
+# Jeder andere Typ macht daraus einen Syntaxfehler beim Einlesen.
+RESOURCE_TYPE_MODULE = "module"
+
 
 async def _async_register_resource(hass: HomeAssistant, card_url: str) -> None:
     """Die Karte in die Ressourcenliste der Dashboards eintragen.
@@ -81,15 +85,44 @@ async def _async_register_resource(hass: HomeAssistant, card_url: str) -> None:
         url = str(item.get("url", ""))
         if not url.startswith(CARD_URL):
             continue
+
         # Vorhandener Eintrag - nach einem Update zeigt er auf die alte
         # Version. Aktualisieren statt einen zweiten danebenzusetzen; das
         # gilt auch für von Hand angelegte Einträge.
+        #
+        # Der TYP wird dabei mitgezogen, und das ist kein Beiwerk: Die Karte
+        # liest ihre Version über import.meta.url und MUSS deshalb als Modul
+        # geladen werden. Steht der Eintrag auf "JavaScript" statt
+        # "JavaScript-Modul", ist import.meta ein Syntaxfehler - die Datei wird
+        # gar nicht erst ausgeführt, das Custom Element entsteht nie, und
+        # Lovelace meldet nur "Custom element doesn't exist".
+        #
+        # Das passiert leichter, als es klingt: Wer den Eintrag nach der
+        # Fehlermeldung weiter unten von Hand anlegt, hat im Auswahlfeld beide
+        # Möglichkeiten. Vorher wurde nur die URL berichtigt, ein falscher Typ
+        # blieb für immer stehen - und mit richtiger URL sah der Eintrag
+        # obendrein unverdächtig aus.
+        aenderung: dict[str, str] = {}
         if url != card_url:
-            await resources.async_update_item(item["id"], {"url": card_url})
-            _LOGGER.info("Lovelace-Ressource auf %s aktualisiert", card_url)
+            aenderung["url"] = card_url
+        if item.get("res_type") != RESOURCE_TYPE_MODULE:
+            aenderung["res_type"] = RESOURCE_TYPE_MODULE
+        if aenderung:
+            # Beide Felder zusammen schicken - so kann kein Teil-Datensatz
+            # entstehen, falls das Schema den jeweils anderen erwartet.
+            await resources.async_update_item(
+                item["id"], {"url": card_url, "res_type": RESOURCE_TYPE_MODULE}
+            )
+            _LOGGER.info(
+                "Lovelace-Ressource berichtigt: %s (Typ %s)",
+                card_url,
+                RESOURCE_TYPE_MODULE,
+            )
         return
 
-    await resources.async_create_item({"res_type": "module", "url": card_url})
+    await resources.async_create_item(
+        {"res_type": RESOURCE_TYPE_MODULE, "url": card_url}
+    )
     _LOGGER.info("Lovelace-Ressource %s angelegt", card_url)
 
 
