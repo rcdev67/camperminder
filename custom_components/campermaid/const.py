@@ -77,6 +77,21 @@ WHEELS: Final = (
     WHEEL_REAR_RIGHT,
 )
 
+# --- Seiten -----------------------------------------------------------------
+# Steht nur EINE Achse schief, brauchen beide Räder derselben Seite exakt
+# dasselbe Maß. Der Plan trägt dann nicht zwei Radpositionen, sondern eine
+# Seite: "Vorne links 4 cm" und "Hinten links 4 cm" sind zwei Zeilen für einen
+# Handgriff, und beide nennen eine Längsrichtung, die gar nicht korrigiert wird.
+#
+# Die Kennungen sind bewusst die Bestandteile der Radnamen - "vorne_links"
+# zerfällt in "vorne" und "links". Dadurch findet der Zusammenzug sie ohne
+# eigene Zuordnungstabelle.
+SIDE_LEFT: Final = "links"
+SIDE_RIGHT: Final = "rechts"
+SIDE_FRONT: Final = "vorne"
+SIDE_REAR: Final = "hinten"
+SIDES: Final = (SIDE_LEFT, SIDE_RIGHT, SIDE_FRONT, SIDE_REAR)
+
 # Unterhalb dieser Hubhöhe wird ein Rad nicht erwähnt. Ein halber Zentimeter
 # ist weder mit einem Keil noch mit einer Stütze sinnvoll einstellbar und
 # stünde nur als Rauschen in der Liste.

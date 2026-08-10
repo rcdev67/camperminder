@@ -42,11 +42,19 @@
 # ============================================================================
 
 substitutions:
-  # Version DIESES Produkts. Sie zählt eigenständig - die Integration in
-  # custom_components/campermaid hat ihre eigene, und CamperMaid Gas wird
-  # später eine dritte haben. Früher liefen Firmware und Integration im
-  # Gleichschritt; mit mehreren Geräten geht das nicht mehr auf, weil sonst
-  # eine Änderung an der Gaswaage jedem Nivelliergerät ein Update aufzwingt.
+  # Firmware und Integration tragen IMMER dieselbe Nummer. Sie steht in dieser
+  # Datei und in custom_components/campermaid/manifest.json;
+  # tools/build_release.ps1 vergleicht beide und bricht bei Abweichung ab.
+  #
+  # Der Grund ist der Nutzer: Zwei verschiedene Nummern für EIN Gerät lassen
+  # sich niemandem erklären - wer in HACS die eine und auf der Geräteseite die
+  # andere sieht, weiß nicht mehr, welchen Stand er hat. Dazu kommt, dass eine
+  # Änderung auf der einen Seite fast immer eine auf der anderen nach sich
+  # zieht; die beiden gehören zusammen.
+  #
+  # Eigenständig zählen die PRODUKTE, nicht die Bestandteile eines Produkts:
+  # CamperMaid Gas bekommt später eine eigene Nummer, damit eine Änderung an
+  # der Gaswaage nicht jedem Nivelliergerät ein Update aufzwingt.
   #
   # Sie muss zeichengleich im Update-Manifest stehen: Die Prüfung im Gerät
   # vergleicht genau diese Zeichenkette. Weicht sie ab, meldet das Gerät
@@ -54,7 +62,7 @@ substitutions:
   # Ein Bindestrich macht die Nummer zur Vorabfassung: "2.0.4-rc1" statt
   # "2.0.4". Daran erkennen die Werkzeuge, dass dieser Stand NICHT
   # veröffentlicht werden soll - Einzelheiten in docs/firmware_update.md.
-  firmware_version: "2.0.4-rc1"
+  firmware_version: "2.0.4"
 
   # I2C-Pins (0,42"-OLED-Board): SDA=GPIO5, SCL=GPIO6
   i2c_sda_pin: GPIO5
@@ -69,8 +77,17 @@ substitutions:
   roll_sign: "1"
   # Achs-ZUORDNUNG: auf welcher Beschleunigungsachse liegt welche Neigung?
   # Nur "x" oder "y" (z ist immer die Schwerkraft-Achse).
-  #   Standard-Einbau (Platinenkante parallel zur Fahrtrichtung): y / x
-  #   Sensor um 90 Grad gedreht verbaut:                          x / y
+  #
+  # Die vier Werte oben und hier gelten für den Serienaufbau: MPU6050 flach auf
+  # die Lochrasterplatine gelötet, Gehäuse mit dem Pfeil nach vorn, Deckel oben.
+  # Am fertigen Prototyp geprüft - Front anheben gibt positiven Pitch, rechte
+  # Seite anheben positiven Roll.
+  #
+  # Frühere Fassungen dieses Kommentars nannten "y / x" den Standard-Einbau.
+  # Das war falsch beschriftet, nicht falsch eingestellt: Die Werte stimmten,
+  # die Erklärung daneben nicht. Wer den Sensor um 90 Grad gedreht aufbaut,
+  # tauscht auf "y / x" - Verfahren in docs/kalibrierung.md.
+  #
   # Wird an ALLEN drei Stellen benutzt (Pitch, Roll, Kalibrier-Button) - genau
   # deshalb als Substitution: eine falsch mitgezogene Stelle war hier schon
   # einmal die Ursache dafür, dass Anzeige und gespeicherter Offset
@@ -115,6 +132,17 @@ globals:
     type: float
     initial_value: "0.0"
     restore_value: true
+
+  # Vorzeichen von Quer- und Hochachse, abgeleitet aus der Einbaulage.
+  #
+  # BEWUSST OHNE restore_value: Der Wert hat genau eine Quelle, und das ist der
+  # Select "Einbaulage". Der stellt beim Start seinen gespeicherten Zustand
+  # wieder her und loest dabei on_value aus, das diesen Wert setzt. Ein zweiter
+  # gespeicherter Wert koennte davon abweichen - und dann rechnete das Geraet
+  # anders, als die Oberflaeche anzeigt.
+  - id: z_flip
+    type: float
+    initial_value: "1.0"
 
 # --- Fahrzeugmaße ---------------------------------------------------------
 # Gehören ins Gerät, nicht ins Handy: sie beschreiben das Fahrzeug, nicht den
@@ -222,6 +250,41 @@ select:
     restore_value: true
     optimistic: true
 
+  # --- Einbaulage des Gehäuses --------------------------------------------
+  # Anders als Achszuordnung und Vorzeichen KEINE Substitution, sondern zur
+  # Laufzeit umstellbar. Der Grund ist der Unterschied, wer die Antwort kennt:
+  # Zuordnung und Vorzeichen hängen an der Bestückung und stehen mit dem Gerät
+  # fest. Wie herum das Gehäuse geklebt wird, entscheidet der Nutzer erst im
+  # Fahrzeug - und dafür soll er nicht flashen müssen.
+  #
+  # "Deckel unten" heißt: unter ein Regalbrett oder eine Decke geklebt, Pfeil
+  # weiterhin nach vorn. Das ist eine Drehung um die LÄNGSachse, und die kehrt
+  # Quer- und Hochachse um. Die Längsachse ist die Drehachse und bleibt, wie
+  # sie ist - deshalb wirkt z_flip nur auf Roll und nicht auf Pitch.
+  - platform: template
+    name: "Einbaulage"
+    id: mounting_orientation
+    icon: mdi:rotate-3d-variant
+    entity_category: config
+    options:
+      - "Deckel oben"
+      - "Deckel unten"
+    initial_option: "Deckel oben"
+    restore_value: true
+    optimistic: true
+    on_value:
+      then:
+        - lambda: |-
+            const float neu = (x == "Deckel unten") ? -1.0f : 1.0f;
+            // Nur bei echter Änderung warnen. Beim Start stellt der Select
+            // seinen gespeicherten Wert wieder her und löst on_value aus -
+            // eine Warnung bei jedem Neustart wäre ein Fehlalarm, und
+            // Fehlalarme liest nach der dritten Woche niemand mehr.
+            if (neu != id(z_flip)) {
+              id(z_flip) = neu;
+              ESP_LOGW("level", "Einbaulage jetzt '%s' - Nullpunkt neu kalibrieren!", x.c_str());
+            }
+
 # --- Schriften fürs OLED (lädt sich beim Kompilieren automatisch) --------
 font:
   # Zwei Größen, weil das Feld nur 72 x 40 Pixel hat: Die Adresse muss lesbar
@@ -325,9 +388,17 @@ sensor:
         return NAN;
       }
       // Quer-Neigung liegt auf accel_${axis_roll} (siehe axis_roll oben)
+      //
+      // z_flip kommt aus dem Select "Einbaulage" und ist -1, wenn das Gehäuse
+      // kopfüber klebt. OHNE diese Korrektur liefert atan2f in Ruhe nicht 0,
+      // sondern 180 Grad. Das fällt niemandem auf, weil die Kalibrierung die
+      // 180 brav als Offset wegspeichert und die Anzeige danach richtig
+      // aussieht - sie sitzt dann aber genau auf dem Sprung, an dem atan2f
+      // zwischen +180 und -180 umklappt, und kippt bei der kleinsten Bewegung
+      // zwischen zwei Extremwerten hin und her.
       const float raw = atan2f(
-        -id(accel_${axis_roll}).state,
-        id(accel_z).state
+        -id(accel_${axis_roll}).state * id(z_flip),
+        id(accel_z).state * id(z_flip)
       ) * (180.0f / 3.14159265358979323846f);
       return (raw - id(roll_offset)) * ${roll_sign};
     filters:
@@ -477,9 +548,13 @@ button:
               id(accel_${axis_pitch}).state,
               sqrtf(powf(id(accel_${axis_roll}).state, 2) + powf(id(accel_z).state, 2))
             ) * (180.0f / 3.14159265358979323846f);
+            // z_flip MUSS hier genauso stehen wie im Roll-Sensor oben, sonst
+            // rechnet der gespeicherte Offset in einer anderen Lage als die
+            // Anzeige - derselbe Fehler, den die Substitutionen für die
+            // Achszuordnung verhindern sollen.
             id(roll_offset) = atan2f(
-              -id(accel_${axis_roll}).state,
-              id(accel_z).state
+              -id(accel_${axis_roll}).state * id(z_flip),
+              id(accel_z).state * id(z_flip)
             ) * (180.0f / 3.14159265358979323846f);
             ESP_LOGI("level", "Kalibrierung gespeichert: pitch_offset=%.2f, roll_offset=%.2f",
                      id(pitch_offset), id(roll_offset));

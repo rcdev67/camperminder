@@ -54,6 +54,7 @@ from .const import (
     PHASE_RIGHT,
     PHASE_UNKNOWN,
     POINT_JOCKEY,
+    SIDES,
     SIGNAL_UPDATE,
     VEHICLE_CARAVAN,
     VEHICLE_TYPES,
@@ -65,6 +66,45 @@ from .const import (
 )
 
 _LOGGER = logging.getLogger(__name__)
+
+
+def _merge_side(
+    plan: list[dict[str, float | int | None]],
+) -> list[dict[str, float | int | None]]:
+    """Zwei Räder derselben Seite mit gleichem Maß zu einer Anweisung machen.
+
+    Steht das Fahrzeug nur quer schief, brauchen beide linken Räder exakt
+    dasselbe. Die Rechnung liefert dafür zwei Einträge, und die lasen sich als
+    "Vorne links 4 cm" und "Hinten links 4 cm" - zwei Handgriffe, wo einer
+    gemeint ist, und beide nennen eine Längsrichtung, die gar nicht korrigiert
+    wird. Wer nach Anweisung arbeitet, sucht dann nach einem Unterschied
+    zwischen den beiden Zeilen, den es nicht gibt.
+
+    Nur bei GENAU zwei Einträgen: Sobald beide Achsen schief stehen, entstehen
+    drei mit verschiedenen Maßen, und dann ist jede Ecke wirklich einzeln
+    gemeint. Ein zufälliges Zusammenfallen kann es dabei nicht geben - die
+    beiden gleich großen Einträge lägen über Kreuz und teilten sich keine Seite.
+    """
+    if len(plan) != 2 or plan[0]["cm"] != plan[1]["cm"]:
+        return plan
+
+    erste = str(plan[0]["wheel"]).split("_")
+    zweite = str(plan[1]["wheel"]).split("_")
+    if len(erste) != 2 or len(zweite) != 2:
+        return plan
+
+    if erste[0] == zweite[0]:
+        seite = erste[0]
+    elif erste[1] == zweite[1]:
+        seite = erste[1]
+    else:
+        return plan
+    if seite not in SIDES:
+        return plan
+
+    zusammen = dict(plan[0])
+    zusammen["wheel"] = seite
+    return [zusammen]
 
 # Einstellbare Werte und ihre Voreinstellungen. Alles hier drin gehört einer
 # Entität und ist damit auf der Geräteseite sichtbar, in Automationen
@@ -450,8 +490,25 @@ class CamperCoordinator:
         if abs(self.pitch) > IMPLAUSIBLE_DEG or abs(self.roll) > IMPLAUSIBLE_DEG:
             return None
 
-        half_long = self.wheelbase * math.tan(math.radians(self.pitch)) / 20.0
-        half_lat = self.track * math.tan(math.radians(self.roll)) / 20.0
+        # Eine Achse, die innerhalb ihrer Toleranz steht, ist FERTIG - ihr
+        # Restwinkel darf die Anweisung nicht mehr formen.
+        #
+        # Ohne das nützt der Zusammenzug in _merge_side nichts. Von Hand kippt
+        # niemand exakt auf einer Achse: Schon 0,3 Grad Rest längs - ein Drittel
+        # der Toleranz - erzeugen aus einer reinen Querneigung wieder drei
+        # verschiedene Eckmaße, und die Anweisung nennt eine Längsrichtung, die
+        # nach den eigenen Maßstäben des Nutzers gar nicht korrigiert werden
+        # muss.
+        #
+        # Bezugsgröße ist dieselbe Toleranz, die auch über "steht eben"
+        # entscheidet. Damit kann die Anweisung nichts verlangen, was die
+        # Phasenanzeige bereits als erledigt ausweist - vorher konnte sie genau
+        # das.
+        pitch = 0.0 if abs(self.pitch) <= self.tolerance_pitch else self.pitch
+        roll = 0.0 if abs(self.roll) <= self.tolerance_roll else self.roll
+
+        half_long = self.wheelbase * math.tan(math.radians(pitch)) / 20.0
+        half_lat = self.track * math.tan(math.radians(roll)) / 20.0
 
         ground = {
             WHEEL_FRONT_LEFT: +half_long - half_lat,
@@ -552,4 +609,4 @@ class CamperCoordinator:
                 }
             )
         plan.sort(key=lambda item: item["cm"], reverse=True)
-        return plan
+        return _merge_side(plan)

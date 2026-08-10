@@ -23,14 +23,20 @@ in jedem ausgelieferten Gerät und auf jedem Aufkleber.
 
 ## Versionen
 
-Jedes Produkt zählt eigenständig. `firmware_version` in
-[`level/hardware.yaml`](level/hardware.yaml) gilt nur für Level; die
-Integration in `custom_components/campermaid` hat ihre eigene Nummer, und Gas
-wird später eine dritte haben.
+Firmware und Integration tragen **immer dieselbe Nummer**. `firmware_version`
+in [`level/hardware.yaml`](level/hardware.yaml) und `version` in
+`custom_components/campermaid/manifest.json` müssen zeichengleich sein —
+`tools/build_release.ps1` vergleicht beide und bricht bei Abweichung ab.
 
-Früher liefen Firmware und Integration im Gleichschritt. Mit mehreren Geräten
-geht das nicht auf — eine Änderung an der Gaswaage würde sonst jedem
-Nivelliergerät ein Update aufzwingen.
+Der Grund ist der Nutzer: Zwei verschiedene Nummern für **ein** Gerät lassen
+sich niemandem erklären. Wer in HACS die eine und auf der Geräteseite die
+andere sieht, weiß nicht mehr, welchen Stand er hat. Dazu kommt, dass eine
+Änderung auf der einen Seite fast immer eine auf der anderen nach sich zieht —
+die beiden gehören zusammen.
+
+Eigenständig zählen die **Produkte**, nicht die Bestandteile eines Produkts:
+CamperMaid Gas bekommt später eine eigene Nummer, damit eine Änderung an der
+Gaswaage nicht jedem Nivelliergerät ein Update aufzwingt.
 
 ## Veröffentlichen
 

@@ -1,14 +1,42 @@
 # Kalibrierung
 
-Drei Dinge, in dieser Reihenfolge: **Achszuordnung** (welche Achse ist längs?),
-**Vorzeichen** (welche Richtung ist positiv?), dann der **Nullpunkt**.
+Vier Dinge, in dieser Reihenfolge: **Einbaulage** (wie herum klebt das
+Gehäuse?), **Achszuordnung** (welche Achse ist längs?), **Vorzeichen** (welche
+Richtung ist positiv?), dann der **Nullpunkt**.
 
-Die ersten beiden Schritte sind einmalig je Einbaulage und erfordern einen
-neuen Flash. Der Nullpunkt wird per Knopfdruck gesetzt.
+Einbaulage und Nullpunkt werden im Betrieb gesetzt. Achszuordnung und
+Vorzeichen hängen an der Bestückung des Geräts, stehen damit einmalig fest und
+erfordern einen neuen Flash.
 
 ---
 
-## 1. Achszuordnung prüfen (bei anderem Einbau)
+## 1. Einbaulage angeben
+
+Die Einstellung **„Einbaulage"** steht an zwei Orten und meint dieselbe: in Home
+Assistant als Helfer, und auf der Geräteseite unter *Einstellungen → Gerät*.
+Zwei Stellungen:
+
+| Stellung | Bedeutung |
+|----------|-----------|
+| **Deckel oben** | Gehäuse steht auf seiner Unterseite — der Normalfall |
+| **Deckel unten** | Gehäuse klebt unter einem Regalbrett oder einer Decke |
+
+Der Pfeil auf der Seitenwand zeigt in beiden Fällen nach vorn. Die Umstellung
+wirkt sofort, ein Flash ist nicht nötig.
+
+> **Warum das nicht optional ist:** Kopfüber montiert liefert die Roll-Rechnung
+> in Ruhelage nicht 0, sondern 180 Grad. Wer das übersieht, merkt zunächst
+> nichts — die Kalibrierung speichert die 180 als Nullpunkt weg und die Anzeige
+> sieht danach korrekt aus. Sie steht dann aber genau auf dem Punkt, an dem der
+> Winkel zwischen +180 und −180 umspringt, und kippt bei minimaler Bewegung
+> zwischen zwei Extremwerten. Das sieht nach einem defekten Sensor aus und ist
+> keiner.
+
+**Nach dem Umstellen neu kalibrieren** (Schritt 4) — der alte Nullpunkt gilt
+für die alte Lage. Das Gerät schreibt beim Umschalten einen entsprechenden
+Hinweis ins Log.
+
+## 2. Achszuordnung prüfen (bei anderem Einbau)
 
 Der MPU6050 misst auf drei Achsen. Welche davon die Längsneigung trägt, hängt
 davon ab, **wie herum das Board eingebaut ist** — das lässt sich nicht durch ein
@@ -32,9 +60,9 @@ Erlaubt sind nur `x` und `y` — `z` ist immer die Schwerkraftachse.
 > Kalibrier-Button). Deshalb steht sie in den Substitutions und nicht im Code:
 > würde eine der drei Stellen abweichen, liefen Anzeige und gespeicherter Offset
 > auseinander — ein Fehler, der erst auf dem Stellplatz auffällt. Der Selbsttest
-> in Schritt 3 schlägt genau dann an.
+> in Schritt 4 schlägt genau dann an.
 
-## 2. Vorzeichen prüfen
+## 3. Vorzeichen prüfen
 
 Die Konvention ist:
 
@@ -55,9 +83,10 @@ substitutions:
   roll_sign: "-1"    # falls links/rechts vertauscht
 ```
 
-Nach jeder Änderung an Zuordnung oder Vorzeichen **erneut kalibrieren**.
+Nach jeder Änderung an Einbaulage, Zuordnung oder Vorzeichen **erneut
+kalibrieren**.
 
-## 3. Nullpunkt setzen — mit Selbsttest
+## 4. Nullpunkt setzen — mit Selbsttest
 
 1. Fahrzeug so exakt wie möglich waagerecht stellen (Wasserwaage längs **und**
    quer). Alternativ eine bekannt ebene Fläche nutzen.
@@ -70,13 +99,13 @@ Nach jeder Änderung an Zuordnung oder Vorzeichen **erneut kalibrieren**.
    - ✔ `Zuletzt kalibriert` zeigt **heute, HH:MM Uhr**, keine Meldung → fertig.
    - ✘ Meldung **„Kalibrierung hat nicht gegriffen"** → entweder wurde während
      des Drückens bewegt (einfach wiederholen), oder die Achszuordnung aus
-     Schritt 1 passt nicht.
+     Schritt 2 passt nicht.
 5. Danach noch ~1 Minute Strom lassen — die Offsets werden erst nach dem
    `flash_write_interval` dauerhaft gespeichert und überleben dann Neustarts.
 
 ---
 
-## 4. Fahrzeugmaße eintragen
+## 5. Fahrzeugmaße eintragen
 
 In den HA-Helfern:
 

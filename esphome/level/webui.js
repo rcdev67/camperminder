@@ -38,6 +38,15 @@
     stuetzrad: "Stützrad"
   };
 
+  /* Wenn zwei Räder derselben Seite dasselbe Maß brauchen, ist das EINE
+   * Anweisung und nicht zwei. Dann steht hier der Name der Seite. */
+  var SIDE_NAMES = {
+    links: "Linke Seite",
+    rechts: "Rechte Seite",
+    vorne: "Vorne",
+    hinten: "Hinten"
+  };
+
   var VEHICLE_CARAVAN = "Wohnwagen";
 
   /* Die Fahrzeugmaße liegen im Gerät, nicht im Browser: sie beschreiben das
@@ -50,7 +59,7 @@
    * schlimmer als eine plausible Zahl. */
   var cfg = {
     wheelbase: 3500, track: 1800, tolerance_cm: 5, wedge_step: 0,
-    method: "keile", vehicle: "wohnmobil"
+    method: "keile", vehicle: "wohnmobil", mounting: "oben"
   };
 
   /* Objekt-Kennungen der Firmware. Die Schreibwege gehen über diese Namen,
@@ -62,10 +71,12 @@
     tolerance_cm: "toleranz",
     wedge_step: "keilstufe",
     method: "ausrichtart",
-    vehicle: "fahrzeugart"
+    vehicle: "fahrzeugart",
+    mounting: "einbaulage"
   };
 
   var METHOD_LIFT = "Hydraulik oder Luftkissen";
+  var MOUNT_UNDER = "Deckel unten";
 
   var state = { pitch: null, roll: null, motion: false, seen: {}, ready: false };
 
@@ -96,6 +107,15 @@
   function setMethod(option) {
     cfg.method = option === METHOD_LIFT ? "hebesystem" : "keile";
     write("select", IDS.method, "option=" + encodeURIComponent(option));
+  }
+
+  /* Einbaulage kehrt das Vorzeichen von Quer- und Hochachse um. Der gespeicherte
+   * Nullpunkt gilt danach nicht mehr - deshalb steht der Hinweis auf neu
+   * Kalibrieren unter der Auswahl und nicht nur im Log des Geräts, das ohne
+   * Home Assistant niemand liest. */
+  function setMounting(option) {
+    cfg.mounting = option === MOUNT_UNDER ? "unten" : "oben";
+    write("select", IDS.mounting, "option=" + encodeURIComponent(option));
   }
 
   function setVehicle(option) {
@@ -179,8 +199,22 @@
   function wheelLifts() {
     if (isCaravan()) return caravanPlan();
     if (!available()) return null;
-    var halfLong = cfg.wheelbase * Math.tan(state.pitch * Math.PI / 180) / 20;
-    var halfLat = cfg.track * Math.tan(state.roll * Math.PI / 180) / 20;
+    /* Eine Achse, die innerhalb ihrer Toleranz steht, ist FERTIG - ihr
+     * Restwinkel darf die Anweisung nicht mehr formen.
+     *
+     * Ohne das nützt der Zusammenzug weiter unten nichts. Von Hand kippt
+     * niemand exakt auf einer Achse: Schon 0,3 Grad Rest längs - ein Drittel
+     * der Toleranz - erzeugen aus einer reinen Querneigung wieder drei
+     * verschiedene Eckmaße, und die Anweisung nennt eine Längsrichtung, die
+     * nach den eigenen Maßstäben des Nutzers gar nicht korrigiert werden muss.
+     *
+     * Bezugsgröße ist dieselbe Toleranz, die auch über "steht eben" entscheidet.
+     * Damit kann die Anweisung nichts verlangen, was die Anzeige darüber
+     * bereits als erledigt ausweist - vorher konnte sie genau das. */
+    var pitch = Math.abs(state.pitch) <= tolerance(cfg.wheelbase) ? 0 : state.pitch;
+    var roll = Math.abs(state.roll) <= tolerance(cfg.track) ? 0 : state.roll;
+    var halfLong = cfg.wheelbase * Math.tan(pitch * Math.PI / 180) / 20;
+    var halfLat = cfg.track * Math.tan(roll * Math.PI / 180) / 20;
     // pitch > 0 = Front höher, roll > 0 = rechts höher.
     var ground = {
       vorne_links: +halfLong - halfLat,
@@ -198,7 +232,32 @@
       }
     }
     out.sort(function (a, b) { return b.cm - a.cm; });
-    return out;
+    return mergeSide(out);
+  }
+
+  /* Zwei Räder mit demselben Maß, die eine Seite teilen, zu einer Anweisung
+   * zusammenziehen.
+   *
+   * Steht das Fahrzeug nur quer schief, brauchen beide linken Räder exakt
+   * dasselbe. Die Rechnung liefert dafür zwei Einträge, und die lasen sich als
+   * "Vorne links 4,0 cm" und "Hinten links 4,0 cm" - zwei Handgriffe, wo einer
+   * gemeint ist, und beide nennen eine Längsrichtung, die gar nicht korrigiert
+   * wird. Wer nach Anweisung arbeitet, sucht dann nach einem Unterschied
+   * zwischen den beiden Zeilen, den es nicht gibt.
+   *
+   * Nur bei GENAU zwei Einträgen: Sobald beide Achsen schief stehen, entstehen
+   * drei mit verschiedenen Maßen, und dann ist jede Ecke wirklich einzeln
+   * gemeint. Ein zufälliges Zusammenfallen kann es dabei nicht geben - die
+   * beiden gleich großen Einträge lägen dann über Kreuz und teilten sich keine
+   * Seite. */
+  function mergeSide(list) {
+    if (list.length !== 2 || list[0].cm !== list[1].cm) return list;
+    var a = list[0].wheel.split("_");
+    var b = list[1].wheel.split("_");
+    if (a.length !== 2 || b.length !== 2) return list;
+    var seite = a[0] === b[0] ? a[0] : (a[1] === b[1] ? a[1] : null);
+    if (!seite || !SIDE_NAMES[seite]) return list;
+    return [{ wheel: seite, cm: list[0].cm, steps: list[0].steps }];
   }
 
   // -- Aufbau ---------------------------------------------------------------
@@ -494,7 +553,9 @@
         (state.motion ? " · in Bewegung" : "") + "</div>";
       var lifts = level ? [] : (wheelLifts() || []);
       var names = isCaravan() ? CARAVAN_WHEEL_NAMES : WHEEL_NAMES;
-      var label = function (i) { return names[i.wheel] || WHEEL_NAMES[i.wheel] || i.wheel; };
+      var label = function (i) {
+        return names[i.wheel] || WHEEL_NAMES[i.wheel] || SIDE_NAMES[i.wheel] || i.wheel;
+      };
 
       if (lifts.length) {
         html += "<ul>";
@@ -513,7 +574,9 @@
           lifts.forEach(function (i) {
             html += "<li><b>" + label(i) + "</b> " + i.cm.toFixed(1) + " cm</li>";
           });
-          html += '</ul><div class="muted">Alle Stützen auf einmal, höchste zuerst. Das nicht genannte Rad bleibt stehen.</div>';
+          // "Räder" im Plural: Bei einer zusammengezogenen Seitenanweisung
+          // bleiben zwei stehen, nicht eines.
+          html += '</ul><div class="muted">Alle Stützen auf einmal, höchste zuerst. Nicht genannte Räder bleiben stehen.</div>';
         } else {
           var first = lifts[0];
           html += "<li><b>" + label(first) + "</b> " +
@@ -569,6 +632,7 @@
   var settingInputs = {};
   var methodSelect = null;
   var vehicleSelect = null;
+  var mountingSelect = null;
   var settingsNote = null;
 
   function settings() {
@@ -613,7 +677,35 @@
 
     settingsNote = el('<div class="muted" style="margin-top:8px"></div>');
     box.appendChild(settingsNote);
-    return box;
+
+    /* Eigener Bereich, weil die Einbaulage das GERÄT beschreibt und nicht das
+     * Fahrzeug. Sie wird einmal beim Ankleben gesetzt und danach nie wieder -
+     * zwischen Radstand und Spurweite stünde sie an der falschen Stelle.
+     *
+     * Sie MUSS hier stehen: Achszuordnung und Vorzeichen sind Substitutions und
+     * brauchen einen Flash, die Einbaulage entscheidet der Nutzer im Fahrzeug.
+     * Ohne diese Auswahl gäbe es sie nur in Home Assistant, und wer das Gerät
+     * ohne Zentrale betreibt, käme an eine Einstellung nicht heran, die über
+     * richtig und falsch herum entscheidet. */
+    var geraet = el('<div class="plan"><h2>Gerät</h2></div>');
+    var erow = el('<div class="set"><span>Einbaulage</span></div>');
+    mountingSelect = el('<select><option>Deckel oben</option><option>' +
+      MOUNT_UNDER + "</option></select>");
+    mountingSelect.value = cfg.mounting === "unten" ? MOUNT_UNDER : "Deckel oben";
+    mountingSelect.onchange = function () { setMounting(mountingSelect.value); };
+    erow.appendChild(mountingSelect);
+    geraet.appendChild(erow);
+    geraet.appendChild(el('<div class="muted" style="margin-top:8px">' +
+      "„Deckel unten“ heißt: unter ein Regalbrett oder eine Decke geklebt, " +
+      "der Pfeil zeigt weiterhin nach vorn. Nach dem Umstellen neu kalibrieren." +
+      "</div>"));
+
+    /* Zwei Kästen, ein Rückgabewert: appendChild fügt bei einem Fragment alle
+     * Kinder ein, der Aufrufer bleibt unverändert. */
+    var beide = document.createDocumentFragment();
+    beide.appendChild(box);
+    beide.appendChild(geraet);
+    return beide;
   }
 
   /* Werte nachziehen, ohne die Felder anzufassen, in denen gerade getippt
@@ -630,6 +722,9 @@
     }
     if (vehicleSelect && vehicleSelect !== focused) {
       vehicleSelect.value = isCaravan() ? VEHICLE_CARAVAN : "Wohnmobil";
+    }
+    if (mountingSelect && mountingSelect !== focused) {
+      mountingSelect.value = cfg.mounting === "unten" ? MOUNT_UNDER : "Deckel oben";
     }
     if (settingsNote) {
       settingsNote.textContent = writeError ? writeError
@@ -999,6 +1094,7 @@
       else if (id.indexOf(IDS.tolerance_cm) >= 0) cfg.tolerance_cm = num(data.value);
       else if (id.indexOf(IDS.wedge_step) >= 0) cfg.wedge_step = num(data.value);
       else if (id.indexOf(IDS.method) >= 0) cfg.method = data.state === METHOD_LIFT ? "hebesystem" : "keile";
+      else if (id.indexOf(IDS.mounting) >= 0) cfg.mounting = data.state === MOUNT_UNDER ? "unten" : "oben";
       else if (id.indexOf(IDS.vehicle) >= 0) {
         var kind = data.state === VEHICLE_CARAVAN ? "wohnwagen" : "wohnmobil";
         if (kind !== cfg.vehicle) { cfg.vehicle = kind; render(); return; }
