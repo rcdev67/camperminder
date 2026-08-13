@@ -27,3 +27,19 @@ tools/github_token.txt
 
 # Interne Notizen - gehören nicht ins öffentliche Repository.
 INTERN.md
+
+# Gehäuse und Mechanik - bleiben ausdrücklich außerhalb.
+#
+# Die Firmware steht in Teilen unter GPLv3 und ist damit offen; das ist
+# entschieden und nicht zu ändern. Was sich schützen lässt, sind die Marke und
+# die Mechanik. Deshalb liegt hier weder eine erzeugte STL noch der Quelltext,
+# aus dem sie entsteht - und der Quelltext ist der wertvollere Teil, weil er
+# parametrisch ist und die Überlegungen mitliefert. Eine STL zurückzuhalten,
+# während der Quelltext daneben liegt, wäre wirkungslos.
+enclosure/
+*.scad
+*.stl
+*.3mf
+*.step
+*.f3d
+*.FCStd
