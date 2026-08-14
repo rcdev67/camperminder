@@ -1,4 +1,4 @@
-"""Rechenkern der CamperMaid.
+"""Rechenkern der CamperMinder.
 
 Hier liegt die einzige Wahrheit: Schwellen, Phase und Korrekturwerte. Karte,
 Ansagen und alle Entitäten lesen ausschließlich von hier. Früher rechnete

@@ -1,10 +1,10 @@
-"""Konstanten der CamperMaid."""
+"""Konstanten der CamperMinder."""
 
 from __future__ import annotations
 
 from typing import Final
 
-DOMAIN: Final = "campermaid"
+DOMAIN: Final = "camperminder"
 
 # --- Konfigurationsschlüssel (Config Entry) --------------------------------
 CONF_PITCH_SENSOR: Final = "pitch_sensor"
@@ -213,10 +213,10 @@ ANNOUNCE_CM_STEP: Final = 5
 
 SIGNAL_UPDATE: Final = f"{DOMAIN}_update_{{}}"
 
-STATIC_URL: Final = "/campermaid_static"
+STATIC_URL: Final = "/camperminder_static"
 
 # Ohne Versionsangabe - die hängt __init__.py aus der manifest.json an. Diese
 # URL lässt sich im Browser direkt aufrufen und ist damit die schnellste
 # Antwort auf die Frage, ob die Integration eingerichtet ist: liefert sie 404,
 # lief async_setup_entry nie.
-CARD_URL: Final = f"{STATIC_URL}/campermaid-card.js"
+CARD_URL: Final = f"{STATIC_URL}/camperminder-card.js"

@@ -22,7 +22,7 @@ $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path)
 $here = Join-Path $root 'esphome\level'
 
-$repoUrl = 'https://github.com/rcdev67/campermaid'
+$repoUrl = 'https://github.com/rcdev67/camperminder'
 
 # --- Version aus der einen Quelle lesen ------------------------------------
 $hardware = Join-Path $here 'hardware.yaml'
@@ -40,21 +40,21 @@ Write-Host "Version aus der Firmware-Quelle: $version"
 #   1. HACS bietet "2.0.3" an und installiert es, die Integration meldet aber
 #      weiterhin ihre alte Nummer. Was installiert ist, lässt sich dann nicht
 #      mehr ablesen.
-#   2. Schlimmer: Die Lovelace-Karte wird als "campermaid-card.js?v=<Nummer aus
+#   2. Schlimmer: Die Lovelace-Karte wird als "camperminder-card.js?v=<Nummer aus
 #      manifest.json>" eingebunden. Bleibt die Nummer stehen, bleibt die
 #      Adresse gleich - und der Browser liefert weiter die Karte aus seinem
 #      Zwischenspeicher. Die neuen Dateien liegen dann zwar auf der Platte,
 #      sind aber unsichtbar.
 #
 # Deshalb hier eine harte Prüfung statt einer stillen Abweichung.
-$manifest = Join-Path $root 'custom_components\campermaid\manifest.json'
+$manifest = Join-Path $root 'custom_components\camperminder\manifest.json'
 if (-not (Test-Path $manifest)) { throw "Nicht gefunden: $manifest" }
 $integrationsVersion = (Get-Content $manifest -Raw | ConvertFrom-Json).version
 if ($integrationsVersion -cne $version) {
   throw @"
 Versionen weichen ab:
-    esphome/level/hardware.yaml          firmware_version = $version
-    custom_components/campermaid/...json version          = $integrationsVersion
+    esphome/level/hardware.yaml            firmware_version = $version
+    custom_components/camperminder/...json version          = $integrationsVersion
 Ein Release hat eine Nummer. Beide angleichen, dann erneut bauen.
 "@
 }
@@ -68,7 +68,7 @@ Write-Host "Integration traegt dieselbe Nummer: $integrationsVersion"
 $candidates = Get-ChildItem (Join-Path $root 'esphome') -Recurse -Filter 'firmware.ota.bin' -ErrorAction SilentlyContinue |
               Sort-Object LastWriteTime -Descending
 if (-not $candidates) {
-  throw "firmware.ota.bin nicht gefunden. Erst bauen:  esphome compile campermaid-level.yaml"
+  throw "firmware.ota.bin nicht gefunden. Erst bauen:  esphome compile camperminder-level.yaml"
 }
 $bin = $candidates[0]
 Write-Host ("Firmware: {0}  ({1:N0} Bytes, {2})" -f $bin.FullName, $bin.Length, $bin.LastWriteTime)
@@ -87,7 +87,7 @@ if (-not (Test-Path $factory)) { throw "firmware.factory.bin nicht gefunden nebe
 # eingeht: die Gerätedatei, das Paket und die Bedienoberfläche. Letztere steckt
 # über js_include mit im Abbild - eine Änderung daran ist von außen nicht zu
 # sehen, fällt also ohne diese Prüfung erst beim Anwender auf.
-$quellen = @('campermaid-level.yaml', 'hardware.yaml', 'webui.js') |
+$quellen = @('camperminder-level.yaml', 'hardware.yaml', 'webui.js') |
            ForEach-Object { Join-Path $here $_ } |
            Where-Object   { Test-Path $_ } |
            ForEach-Object { Get-Item $_ }
@@ -115,7 +115,7 @@ Write-Host "MD5: $md5"
 # ihn unverändert. Relative Angaben scheitern, weil GitHub den Download auf
 # einen anderen Rechner umleitet.
 $manifest = [ordered]@{
-  name    = 'CamperMaid Level'
+  name    = 'CamperMinder Level'
   version = $version
   builds  = @(
     [ordered]@{
@@ -123,7 +123,7 @@ $manifest = [ordered]@{
       ota        = [ordered]@{
         md5         = $md5
         path        = "$repoUrl/releases/latest/download/level-firmware.ota.bin"
-        summary     = "CamperMaid $version"
+        summary     = "CamperMinder $version"
         release_url = "$repoUrl/releases/latest"
       }
     }

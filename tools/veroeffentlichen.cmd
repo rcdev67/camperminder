@@ -29,7 +29,7 @@ echo ============================================================
 echo  1/3  Firmware bauen
 echo ============================================================
 pushd "%ROOT%\esphome\level"
-"%ESPHOME%" compile campermaid-level.yaml
+"%ESPHOME%" compile camperminder-level.yaml
 set BUILD=%ERRORLEVEL%
 popd
 if not "%BUILD%"=="0" ( echo. & echo Build fehlgeschlagen. & pause & exit /b %BUILD% )

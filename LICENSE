@@ -1,4 +1,4 @@
-CamperMaid
+CamperMinder
 Copyright (c) 2026 rcdev. Alle Rechte vorbehalten.
 
 Dieses Repository enthält Bestandteile unter unterschiedlichen Bedingungen.
@@ -11,9 +11,9 @@ Siehe LICENSES.md.
 Diese Bedingungen gelten für die eigenen Werke von rcdev in diesem
 Repository:
 
-    custom_components/campermaid/   Home-Assistant-Integration und Karte
-    esphome/                        Gerätekonfiguration und Bedienoberfläche
-    tools/, docs/                   Skripte und Dokumentation
+    custom_components/camperminder/   Home-Assistant-Integration und Karte
+    esphome/                          Gerätekonfiguration und Bedienoberfläche
+    tools/, docs/                     Skripte und Dokumentation
 
 Sie gelten nicht für Bestandteile von ESPHome, die beim Bauen in die Firmware
 gelangen (GPLv3, siehe LICENSES.md), und nicht für die Marken im Ordner brand/
@@ -40,7 +40,7 @@ Ohne vorherige schriftliche Zustimmung von rcdev:
 
 3.2  die Verwendung im Rahmen einer entgeltlichen Dienstleistung;
 
-3.3  die Verwendung der Bezeichnung "CamperMaid" oder der Marken aus brand/
+3.3  die Verwendung der Bezeichnung "CamperMinder" oder der Marken aus brand/
      für eigene Erzeugnisse.
 
 -------------------------------------------------------------------------------
@@ -50,5 +50,5 @@ Ohne vorherige schriftliche Zustimmung von rcdev:
 4.1  Die Software wird ohne Gewähr bereitgestellt. Eine Haftung für Schäden
      aus ihrer Verwendung ist ausgeschlossen, soweit gesetzlich zulässig.
 
-4.2  CamperMaid ist keine Sicherheitseinrichtung. Angezeigte Werte ersetzen
+4.2  CamperMinder ist keine Sicherheitseinrichtung. Angezeigte Werte ersetzen
      weder eigene Prüfung noch Sorgfalt beim Abstellen eines Fahrzeugs.

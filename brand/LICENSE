@@ -1,4 +1,4 @@
-Marken und Gestaltung "CamperMaid"
+Marken und Gestaltung "CamperMinder"
 Copyright (c) 2026 rcdev. Alle Rechte vorbehalten.
 
 Dieser Ordner enthält Wortmarke, Bildmarke und deren Quelldateien.
@@ -13,6 +13,6 @@ Projekt, etwa in einem Beitrag darüber.
 
 Grund für die Trennung: Die Firmware steht in Teilen unter GPLv3 und darf
 nachgebaut werden. Die Marke darf das nicht. Lizenzen für Software gewähren
-keine Markenrechte - wer nachbaut, darf das Ergebnis nicht CamperMaid nennen.
+keine Markenrechte - wer nachbaut, darf das Ergebnis nicht CamperMinder nennen.
 Genau diese Trennung ist der einzige wirksame Schutz dieses Projekts, deshalb
 liegt sie hier ausdrücklich schriftlich vor.

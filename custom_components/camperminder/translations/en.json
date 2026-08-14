@@ -2,7 +2,7 @@
   "config": {
     "step": {
       "user": {
-        "title": "CamperMaid",
+        "title": "CamperMinder",
         "description": "The sensors of your levelling device are already filled in if the bundled firmware is running - please check them once. Then add your vehicle's dimensions. Everything can be changed later via \"Configure\".",
         "data": {
           "pitch_sensor": "Pitch (front to back)",
@@ -31,7 +31,7 @@
   "options": {
     "step": {
       "init": {
-        "title": "CamperMaid",
+        "title": "CamperMinder",
         "description": "Change sensors, vehicle dimensions and announcement target.",
         "data": {
           "pitch_sensor": "Pitch (front to back)",

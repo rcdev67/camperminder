@@ -1,7 +1,7 @@
 <!--
   Quelle fuer icon.png und icon@2x.png dieser Integration.
 
-  Identisch mit brand/campermaid-mark.svg, nur senkrecht zentriert: Die Marke
+  Identisch mit brand/camperminder-mark.svg, nur senkrecht zentriert: Die Marke
   sitzt in ihrer eigenen Zeichenflaeche unten, weil die Raeder ueber den
   Fahrzeugkoerper hinausragen. Fuer ein quadratisches Icon muss sie mittig
   stehen, sonst wirkt sie in der Kachel abgesackt.
@@ -13,7 +13,7 @@
   Motiv ist nun einmal breiter als hoch.
 
   Einfarbig mit ausgesparten Radnaben - siehe Begruendung in
-  brand/campermaid-mark.svg. Nicht in zwei Farben aendern: Das Icon liegt mit
+  brand/camperminder-mark.svg. Nicht in zwei Farben aendern: Das Icon liegt mit
   Transparenz vor und erscheint auf hellem wie auf dunklem Grund.
 -->
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="8 8 84 84" width="100%" height="100%">

@@ -28,8 +28,8 @@ class CamperEntity(Entity):
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, entry.entry_id)},
             name=entry.title,
-            manufacturer="CamperMaid",
-            model="CamperMaid",
+            manufacturer="CamperMinder",
+            model="CamperMinder",
             entry_type=DeviceEntryType.SERVICE,
         )
 

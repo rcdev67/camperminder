@@ -1,5 +1,5 @@
 /*
- * CamperMaid - Lovelace-Karte
+ * CamperMinder - Lovelace-Karte
  *
  * Wird von der Integration selbst ausgeliefert und registriert. Kein card-mod,
  * keine Base64-Grafiken im CSS: als echtes Custom Element dürfen wir normales
@@ -10,12 +10,12 @@
  * nicht aus verschiedenen Quellen mischen.
  */
 
-const STATIC = "/campermaid_static";
+const STATIC = "/camperminder_static";
 
 /*
  * Version für die Fußzeile - aus der eigenen Skriptadresse gelesen.
  *
- * Die Integration registriert die Karte als ".../campermaid-card.js?v=<Version
+ * Die Integration registriert die Karte als ".../camperminder-card.js?v=<Version
  * aus manifest.json>". Diese Angabe hier abzuschreiben hieße, eine zweite
  * Wahrheit zu pflegen, die früher oder später von der ersten abweicht. Also
  * fragen wir die Adresse, unter der wir selbst geladen wurden.
@@ -83,7 +83,7 @@ const TEXTS = {
   hintLift: "Alle Stützen auf einmal, höchste zuerst. Das nicht genannte Rad bleibt stehen.",
   hintCaravan: "Erst das Rad auf den Keil, dann das Stützrad – das Auffahren kippt den Wagen längs mit.",
   notFound:
-    "Keine CamperMaid gefunden. Ist die Integration eingerichtet?",
+    "Keine CamperMinder gefunden. Ist die Integration eingerichtet?",
 };
 
 const WHEEL_NAMES = {
@@ -161,7 +161,7 @@ function deflect(value, tolerance, atTolerance, full) {
   return value < 0 ? -out : out;
 }
 
-class CamperMaidCard extends HTMLElement {
+class CamperMinderCard extends HTMLElement {
   constructor() {
     super();
     this.attachShadow({ mode: "open" });
@@ -380,8 +380,8 @@ class CamperMaidCard extends HTMLElement {
 
         <div class="foot">
           <span>© 2026 rcdev</span>
-          <a href="https://github.com/rcdev67/campermaid" target="_blank"
-             rel="noopener noreferrer">CamperMaid${VERSION ? " " + VERSION : ""}</a>
+          <a href="https://github.com/rcdev67/camperminder" target="_blank"
+             rel="noopener noreferrer">CamperMinder${VERSION ? " " + VERSION : ""}</a>
         </div>
       </ha-card>
     `;
@@ -730,21 +730,21 @@ class CamperMaidCard extends HTMLElement {
  * Element längst existiert. Passiert, sobald jemand die Datei zusätzlich von
  * Hand als Lovelace-Ressource einträgt.
  */
-const TAG = "campermaid-card";
+const TAG = "camperminder-card";
 
 if (!customElements.get(TAG)) {
-  customElements.define(TAG, CamperMaidCard);
+  customElements.define(TAG, CamperMinderCard);
 }
 
 window.customCards = window.customCards || [];
 if (!window.customCards.some((card) => card.type === TAG)) {
   window.customCards.push({
     type: TAG,
-    name: "CamperMaid",
+    name: "CamperMinder",
     description:
       "Wasserwaagen, Draufsicht und Klartext-Anweisung für die Wohnmobil-Nivellierung.",
     preview: false,
   });
 }
 
-console.info("%c CAMPERMAID-CARD %c geladen ", "background:#2fb6c9;color:#fff", "");
+console.info("%c CAMPERMINDER-CARD %c geladen ", "background:#2fb6c9;color:#fff", "");
