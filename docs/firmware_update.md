@@ -64,6 +64,26 @@ und müssen bei einer neuen Version **nicht** angefasst werden.
 Schritt 2 bis 4 nimmt `tools/veroeffentlichen.cmd` ab, samt Reihenfolge beim
 Hochladen.
 
+### Zugang zu GitHub
+
+Das Skript braucht ein Token mit Schreibrecht und sucht es an drei Stellen, in
+dieser Reihenfolge:
+
+1. Umgebungsvariable `CAMPERMAID_GH_TOKEN`
+2. `tools/github_token.txt` (durch `.gitignore` ausgeschlossen)
+3. **den Git Credential Manager** — also dasselbe Token, mit dem `git push`
+   ohnehin arbeitet
+
+Der dritte Weg braucht keine Pflege und ist deshalb der vorgesehene: Der
+Credential Manager erneuert sein Token selbst. Von Hand angelegte Tokens laufen
+ab — fein granulierte nach Voreinstellung schon nach 30 Tagen —, und das merkt
+man immer erst mitten im Veröffentlichen. Wer keines von Hand pflegen will,
+lässt `github_token.txt` leer; eine leere Datei zählt als nicht vorhanden.
+
+Das Skript prüft das Token **vor** dem Anlegen des Releases mit einem
+Lesezugriff und sagt im Klartext, was fehlt, statt mitten im Ablauf mit einem
+nackten `(401) Nicht autorisiert` abzubrechen.
+
 Ohne Release passiert nichts — weder in HACS noch an den Geräten. HACS folgt
 seit dem ersten Tag ausschließlich Releases, nicht dem Branch.
 
