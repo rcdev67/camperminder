@@ -13,7 +13,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.restore_state import RestoreEntity
 
-from .const import DOMAIN
+from .const import CONF_PRECISE, DOMAIN
 from .coordinator import CamperCoordinator
 from .entity import CamperEntity
 
@@ -33,9 +33,9 @@ SWITCHES: tuple[CamperSwitchDescription, ...] = (
         icon="mdi:bullhorn",
     ),
     CamperSwitchDescription(
-        key="precise",
+        key=CONF_PRECISE,
         translation_key="precise",
-        value_key="precise",
+        value_key=CONF_PRECISE,
         icon="mdi:target",
     ),
 )
@@ -45,8 +45,15 @@ async def async_setup_entry(
     hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback
 ) -> None:
     coordinator: CamperCoordinator = hass.data[DOMAIN][entry.entry_id]["coordinator"]
+    # Wie bei den Reglern: Was das Gerät selbst führt, bekommt hier keinen
+    # zweiten Schalter. Sonst gäbe es den Präzisionsmodus doppelt, und wer
+    # den einen umlegt, sähe den anderen unverändert stehen. Die Karte
+    # bedient in diesem Fall den Schalter des Geräts - siehe precise_entity
+    # in den Attributen des Phasen-Sensors.
     async_add_entities(
-        CamperSwitch(coordinator, entry, description) for description in SWITCHES
+        CamperSwitch(coordinator, entry, description)
+        for description in SWITCHES
+        if description.value_key not in coordinator.device_sources
     )
 
 

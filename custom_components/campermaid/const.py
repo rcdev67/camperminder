@@ -20,6 +20,7 @@ CONF_TOLERANCE_CM: Final = "tolerance_cm"
 CONF_WEDGE_STEP: Final = "wedge_step"
 CONF_TOLERANCE_DEG: Final = "tolerance_deg"
 CONF_LEVEL_METHOD: Final = "level_method"
+CONF_PRECISE: Final = "precise"
 
 # --- Art des Ausrichtens ----------------------------------------------------
 # Der Unterschied ist grundsätzlich, nicht kosmetisch:
@@ -109,10 +110,20 @@ DEVICE_VALUE_ENTITIES: Final = {
     CONF_WHEELBASE: ("number", "Radstand"),
     CONF_TRACK: ("number", "Spurweite"),
     CONF_TOLERANCE_CM: ("number", "Toleranz"),
+    CONF_TOLERANCE_DEG: ("number", "Toleranz genau"),
     CONF_WEDGE_STEP: ("number", "Keilstufe"),
     CONF_LEVEL_METHOD: ("select", "Ausrichtart"),
     CONF_VEHICLE_TYPE: ("select", "Fahrzeugart"),
+    # Der Präzisionsmodus steht im Gerät, weil er ohne Home Assistant sonst
+    # unerreichbar wäre - dieselbe Begründung wie bei der Einbaulage. Gesucht
+    # wird über den Namen aus der Firmware, nicht über die Kennung: Aus dem
+    # Umlaut macht ESPHome zwei Unterstriche, der Name bleibt lesbar.
+    CONF_PRECISE: ("switch", "Präzisionsmodus"),
 }
+
+# Welche dieser Werte Schalter sind - ihr Zustand ist "on"/"off" und keine
+# Zahl, die sich in eine Gleitkommazahl wandeln ließe.
+DEVICE_SWITCH_VALUES: Final = (CONF_PRECISE,)
 
 # Wie die Firmware ihre Ausrichtart benennt - sie spricht Klartext, wir
 # intern Schlüssel.
@@ -173,6 +184,19 @@ CALIBRATION_MAX_RESIDUAL_DEG: Final = 0.15
 
 # Kleinste zulässige Schwelle, damit nie durch null geteilt wird.
 MIN_TOLERANCE_DEG: Final = 0.05
+
+# --- Ruhige Anzeige ---------------------------------------------------------
+# Einmal "eben" bleibt "eben", bis die Neigung deutlich darüber hinausgeht.
+#
+# Ohne diese Hysterese entscheidet sich an EINEM Punkt, ob das Fahrzeug steht
+# oder noch 5 cm fehlen - und genau auf diesem Punkt rauscht der Messwert. Bei
+# 5 cm Toleranz stand deshalb abwechselnd "EBEN - STOP" und "noch 5,2 cm",
+# mehrmals in der Sekunde. Der Anwender sieht ein zappelndes System, obwohl
+# sich nichts bewegt, und weiß nicht mehr, welcher der beiden Sätze gilt.
+#
+# 1,25 ist bewusst deutlich: Der Rückweg muss größer sein als das Rauschen,
+# sonst verschiebt die Hysterese das Flattern nur um ein paar Zehntel.
+LEVEL_RELEASE: Final = 1.25
 
 # Ansage-Entfernungen werden auf dieses Raster gerundet.
 ANNOUNCE_CM_STEP: Final = 5

@@ -59,6 +59,7 @@
    * schlimmer als eine plausible Zahl. */
   var cfg = {
     wheelbase: 3500, track: 1800, tolerance_cm: 5, wedge_step: 0,
+    tolerance_deg: 0.4, precise: false,
     method: "keile", vehicle: "wohnmobil", mounting: "oben"
   };
 
@@ -69,10 +70,18 @@
     wheelbase: "radstand",
     track: "spurweite",
     tolerance_cm: "toleranz",
+    tolerance_deg: "toleranz_genau",
     wedge_step: "keilstufe",
     method: "ausrichtart",
     vehicle: "fahrzeugart",
-    mounting: "einbaulage"
+    mounting: "einbaulage",
+    /* Der Anfang fehlt mit Absicht. Die Firmware nennt den Schalter
+     * „Präzisionsmodus"; ESPHome bildet die Kennung daraus Byte für Byte und
+     * ersetzt alles außerhalb von a-z0-9_- durch einen Unterstrich - aus dem
+     * „ä" werden zwei. Die Kennung lautet deshalb "pr__zisionsmodus". Der Rest
+     * des Wortes ist eindeutig und überlebt jede Schreibweise, die ein
+     * Umlaut sonst noch annehmen könnte. */
+    precise: "zisionsmodus"
   };
 
   var METHOD_LIFT = "Hydraulik oder Luftkissen";
@@ -118,6 +127,23 @@
     write("select", IDS.mounting, "option=" + encodeURIComponent(option));
   }
 
+  /* Schalter gehen nicht über /set, sondern über /turn_on bzw. /turn_off -
+   * eigener Weg, gleiche Prüfung. Danach neu aufbauen: Der Modus entscheidet,
+   * ob unter „Fahrzeug" die Zentimeter- oder die Gradtoleranz steht, und das
+   * ist ein Bedienelement und kein Messwert. */
+  function setPrecise(on) {
+    cfg.precise = on;
+    var base = pathFor("switch", IDS.precise);
+    if (!base) {
+      writeError = "Das Gerät kennt keinen Präzisionsmodus. " +
+        "Läuft die passende Firmware?";
+      syncSettings();
+      return;
+    }
+    post(base + (on ? "/turn_on" : "/turn_off"), check(base));
+    render();
+  }
+
   function setVehicle(option) {
     cfg.vehicle = option === VEHICLE_CARAVAN ? "wohnwagen" : "wohnmobil";
     write("select", IDS.vehicle, "option=" + encodeURIComponent(option));
@@ -149,7 +175,23 @@
   var IMPLAUSIBLE_DEG = 45;
   var WHEEL_LIFT_IGNORE_CM = 1;
 
+  /* Einmal "eben" bleibt "eben", bis die Neigung deutlich darüber hinausgeht.
+   * Muss mit LEVEL_RELEASE in custom_components/campermaid/const.py
+   * übereinstimmen - sonst sagen Gerät und Karte Verschiedenes. */
+  var LEVEL_RELEASE = 1.25;
+
+  /* Im Präzisionsmodus eine feste Gradzahl für beide Achsen, sonst die
+   * Zentimeterangabe über das jeweilige Fahrzeugmaß umgerechnet.
+   *
+   * Der Unterschied ist kein Feinschliff: In Zentimetern sind längs und quer
+   * gleich streng bewertet, in Grad nicht - bei 3500 mm Radstand und 1800 mm
+   * Spurweite bedeuten 0,4° längs 2,4 cm, quer aber nur 1,3 cm. Zentimeter
+   * sind das Maß der Wirklichkeit, Grad das Maß des Sensors.
+   *
+   * MUSS mit _tolerance() in coordinator.py und der Rechnung im Binärsensor
+   * "Camper steht gerade" übereinstimmen. */
   function tolerance(dimensionMm) {
+    if (cfg.precise) return Math.max(cfg.tolerance_deg, MIN_TOLERANCE_DEG);
     var deg = Math.atan((cfg.tolerance_cm * 10) / dimensionMm) * 180 / Math.PI;
     return Math.max(deg, MIN_TOLERANCE_DEG);
   }
@@ -158,6 +200,107 @@
     return state.pitch !== null && state.roll !== null &&
       Math.abs(state.pitch) <= IMPLAUSIBLE_DEG && Math.abs(state.roll) <= IMPLAUSIBLE_DEG;
   }
+
+  /* Ob eine Achse eben steht - EINE Antwort für Text, Blase, Fahrzeugneigung
+   * und Anweisung.
+   *
+   * Ohne Hysterese entscheidet sich das an einem einzigen Punkt, und genau auf
+   * diesem Punkt rauscht der Messwert: Bei 5 cm Toleranz stand deshalb
+   * abwechselnd "EBEN - STOP" und "noch 5,2 cm", mehrmals in der Sekunde. Der
+   * Rückweg ist bewusst deutlich größer als das Rauschen, sonst verschiebt die
+   * Hysterese das Flattern nur um ein paar Zehntel. */
+  var hold = { pitch: false, roll: false };
+
+  function axisLevel(key, value, tol) {
+    if (value === null || !available()) {
+      hold[key] = false;
+      return false;
+    }
+    var deviation = Math.abs(value);
+    if (hold[key]) {
+      if (deviation > tol * LEVEL_RELEASE) hold[key] = false;
+    } else if (deviation <= tol) {
+      hold[key] = true;
+    }
+    return hold[key];
+  }
+
+  function levelPitch() { return axisLevel("pitch", state.pitch, tolerance(cfg.wheelbase)); }
+  function levelRoll() { return axisLevel("roll", state.roll, tolerance(cfg.track)); }
+
+  /* Der Maßstab der Anzeige ist die TOLERANZ, nicht das Grad.
+   *
+   * Vorher wanderte die Blase mit festen 16 px je Grad, und die grüne Mitte
+   * der Skala war ein fester Streifen - beide wussten nichts von der
+   * eingestellten Toleranz. Bei 5 cm Toleranz stand die Blase deshalb weit
+   * neben der Mitte, während der Text daneben "EBEN - STOP" meldete. Zwei
+   * Aussagen über einen Zustand, und die auffälligere war die falsche.
+   *
+   * Jetzt gilt: Toleranzgrenze = Rand der grünen Zone. Das stimmt für beide
+   * Achsen zugleich, obwohl 5 cm längs (0,82°) und quer (1,59°) verschiedene
+   * Winkel sind. Wer es genauer will, stellt die Toleranz kleiner - dann wird
+   * derselbe Maßstab schärfer, ohne dass es eine zweite Darstellung braucht.
+   *
+   * Zahlen zur Skala: .track steht 6 % vom Rand, seine grüne Mitte liegt bei
+   * 45-55 % - das sind ±4,4 % der Kachelbreite. Wer den Verlauf im CSS ändert,
+   * muss BAR_TOLERANCE mitziehen. Das Zielfeld der Draufsicht ist 56 px groß,
+   * also ±28 px.
+   *
+   * Jenseits der Toleranz staucht sich der Maßstab: bei doppelter Toleranz ist
+   * ein Drittel des Restwegs verbraucht, bei fünffacher zwei Drittel, den Rand
+   * erreicht die Blase nie ganz. So bleibt auch eine grobe Schieflage im Bild
+   * und zeigt weiter Veränderung, statt am Anschlag zu kleben. */
+  var BAR_FULL = 40, BAR_TOLERANCE = 4.4;
+  var TOP_TOLERANCE = 28, TOP_FULL_X = 64, TOP_FULL_Y = 118;
+  var OUTSIDE_K = 2;
+
+  function deflect(value, tol, atTolerance, full) {
+    if (!(tol > 0)) return 0;
+    var units = Math.abs(value) / tol;
+    var out = units <= 1
+      ? units * atTolerance
+      : atTolerance + (full - atTolerance) * ((units - 1) / (units - 1 + OUTSIDE_K));
+    return value < 0 ? -out : out;
+  }
+
+  /* Eine Zahl, die stehen bleibt.
+   *
+   * Der Messwert rauscht um wenige Hundertstelgrad; über den Radstand
+   * gerechnet werden daraus Zehntel Zentimeter. Nackt angezeigt wechselt die
+   * Zahl mehrmals je Sekunde zwischen zwei Werten, obwohl das Fahrzeug still
+   * steht - eine zappelnde Zahl liest niemand, sie beunruhigt nur.
+   *
+   * Die Anzeige rastet deshalb auf ein Raster und verlässt es erst, wenn der
+   * Messwert um 0,75 Rasterschritte weiterwandert. Keine Glättung über die
+   * Zeit: Der angezeigte Wert weicht nie weiter ab als diese 0,75 Schritte,
+   * und einer echten Änderung hinkt er nicht hinterher. */
+  var shown = {};
+  // Im Präzisionsmodus fein: Wer ihn einschaltet, will die letzten Zehntel
+  // sehen und nicht eine Anzeige, die sie wegräumt.
+  var STEP_CM = 0.5, STEP_CM_FEIN = 0.1;
+  var STEP_DEG = 0.1, STEP_DEG_FEIN = 0.05;
+
+  function steady(key, value, step) {
+    if (value === null || value === undefined || isNaN(value)) return null;
+    var last = shown[key];
+    if (last === undefined || Math.abs(value - last) >= step * 0.75) {
+      shown[key] = Math.round(value / step) * step;
+    }
+    return shown[key];
+  }
+
+  function steadyCm(key, value) {
+    return steady(key, value, cfg.precise ? STEP_CM_FEIN : STEP_CM);
+  }
+  function steadyDeg(key, value) {
+    var v = steady(key, value, cfg.precise ? STEP_DEG_FEIN : STEP_DEG);
+    return v === null ? 0 : v;
+  }
+  function places() { return cfg.precise ? 2 : 1; }
+
+  /* Innerhalb der Toleranz zeigt die Anzeige die Mitte - im Präzisionsmodus
+   * nicht, dort ist die Feinlage genau das Gesuchte. */
+  function centred(level) { return level && !cfg.precise; }
 
   function isCaravan() { return cfg.vehicle === "wohnwagen"; }
 
@@ -174,7 +317,13 @@
     if (!available()) return null;
     var out = [];
 
-    var across = Math.round(cfg.track * Math.tan(Math.abs(state.roll) * Math.PI / 180) / 10 * 10) / 10;
+    /* Eine Achse innerhalb der Toleranz ist fertig und kommt nicht in die
+     * Anweisung - dieselbe Regel wie beim Wohnmobil in wheelLifts(). Ohne sie
+     * stünde "Stützrad hoch, 3 cm" unter einer Anzeige, die für dieselbe Achse
+     * gerade "EBEN - STOP" meldet. */
+    var across = levelRoll()
+      ? 0
+      : Math.round(cfg.track * Math.tan(Math.abs(state.roll) * Math.PI / 180) / 10 * 10) / 10;
     if (across >= WHEEL_LIFT_IGNORE_CM) {
       out.push({
         wheel: state.roll > 0 ? "hinten_links" : "hinten_rechts",
@@ -184,7 +333,9 @@
       });
     }
 
-    var along = Math.round(cfg.wheelbase * Math.tan(Math.abs(state.pitch) * Math.PI / 180) / 10 * 10) / 10;
+    var along = levelPitch()
+      ? 0
+      : Math.round(cfg.wheelbase * Math.tan(Math.abs(state.pitch) * Math.PI / 180) / 10 * 10) / 10;
     if (along >= WHEEL_LIFT_IGNORE_CM) {
       out.push({
         wheel: "stuetzrad",
@@ -211,8 +362,8 @@
      * Bezugsgröße ist dieselbe Toleranz, die auch über "steht eben" entscheidet.
      * Damit kann die Anweisung nichts verlangen, was die Anzeige darüber
      * bereits als erledigt ausweist - vorher konnte sie genau das. */
-    var pitch = Math.abs(state.pitch) <= tolerance(cfg.wheelbase) ? 0 : state.pitch;
-    var roll = Math.abs(state.roll) <= tolerance(cfg.track) ? 0 : state.roll;
+    var pitch = levelPitch() ? 0 : state.pitch;
+    var roll = levelRoll() ? 0 : state.roll;
     var halfLong = cfg.wheelbase * Math.tan(pitch * Math.PI / 180) / 20;
     var halfLat = cfg.track * Math.tan(roll * Math.PI / 180) / 20;
     // pitch > 0 = Front höher, roll > 0 = rechts höher.
@@ -373,8 +524,11 @@
     '.top .cap{position:absolute;left:0;right:0;top:10px;text-align:center;font-size:.78rem;' +
     'letter-spacing:.2em;opacity:.6}' +
     '.top svg{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);height:272px}' +
+    /* Zielfeld, kein Kreis: Die Toleranz gilt je Achse. Der erlaubte Bereich
+       ist damit ein Rechteck - bei einem Kreis läge die Blase mit beiden
+       Achsen knapp innerhalb der Toleranz trotzdem außerhalb der Markierung. */
     '.ring{position:absolute;left:50%;top:50%;width:56px;height:56px;margin:-28px 0 0 -28px;' +
-    'border-radius:50%;border:2px dashed rgba(127,127,127,.5)}' +
+    'border-radius:14px;border:2px dashed rgba(127,127,127,.5)}' +
     '.top .bub{width:42px;height:42px;margin:-21px 0 0 -21px;top:auto;transition:all .3s}' +
     '.view{position:relative;height:210px;border-radius:16px;background:#1b2029;border:1px solid rgba(255,255,255,.08);overflow:hidden}' +
     '.view .cap{position:absolute;left:50%;top:10px;transform:translateX(-50%);padding:5px 14px;border-radius:999px;' +
@@ -493,15 +647,19 @@
     syncSettings();
   }
 
-  function colorFor(value, tol) {
+  function colorFor(value, tol, level) {
     if (!available()) return COLORS.off;
-    if (Math.abs(value) <= tol) return COLORS.ok;
+    if (level) return COLORS.ok;
     return Math.abs(value) > 2 * tol ? COLORS.bad : COLORS.warn;
   }
 
-  function bar(label, value, tol, text) {
-    var color = colorFor(value, tol);
-    var left = Math.max(-150, Math.min(150, value * 16));
+  /* Steht die Achse innerhalb der Toleranz, zeigt die Anzeige die Mitte -
+   * Blase mittig, Fahrzeug waagerecht. Denn genau das ist die Aussage: Hier
+   * ist nichts mehr zu tun. Eine Blase, die dabei sichtbar neben der Mitte
+   * steht, widerspricht dem Text daneben. */
+  function bar(label, value, tol, level, text) {
+    var color = colorFor(value, tol, level);
+    var out = centred(level) ? 0 : deflect(value, tol, BAR_TOLERANCE, BAR_FULL);
     var b = el(
       '<div class="bar"><div class="lab">' + label + '</div>' +
       '<div class="val"></div><div class="track"></div><div class="bub"></div></div>'
@@ -510,7 +668,7 @@
     v.textContent = text;
     v.style.color = color;
     var bub = b.querySelector(".bub");
-    bub.style.left = "calc(50% + " + Math.round(left) + "px)";
+    bub.style.left = "calc(50% + " + out.toFixed(2) + "%)";
     bub.style.background = "radial-gradient(circle at 34% 30%,#fff," + color + " 62%)";
     bub.style.boxShadow = "0 3px 8px rgba(0,0,0,.45),0 0 12px " + color;
     return b;
@@ -533,29 +691,41 @@
     var tolR = tolerance(cfg.track);
     var pitch = ok ? state.pitch : 0;
     var roll = ok ? state.roll : 0;
-    var level = ok && Math.abs(pitch) <= tolP && Math.abs(roll) <= tolR;
+    // Über axisLevel und nicht über den nackten Vergleich: nur so tragen
+    // Text, Blase und Fahrzeugneigung dieselbe, ruhige Antwort.
+    var levP = ok && levelPitch();
+    var levR = ok && levelRoll();
+    var level = levP && levR;
+    // Angezeigte Winkel gerastet - siehe steady(). Der Rechenweg oben bleibt
+    // am ungerasteten Messwert, gerastet wird nur, was zu lesen ist.
+    var degP = ok ? steadyDeg("pitch_deg", pitch) : 0;
+    var degR = ok ? steadyDeg("roll_deg", roll) : 0;
 
     var textR = !ok ? "⚠️ Kein Sensorwert"
-      : Math.abs(roll) <= tolR ? "✅ EBEN – STOP"
+      : levR ? "✅ EBEN – STOP"
         : (roll > 0 ? "LINKE Seite hoch" : "RECHTE Seite hoch");
     var textP = !ok ? "⚠️ Kein Sensorwert"
-      : Math.abs(pitch) <= tolP ? "✅ EBEN – STOP"
+      : levP ? "✅ EBEN – STOP"
         : (pitch > 0 ? "HECK hoch" : "FRONT hoch");
 
-    target.appendChild(bar("QUER", roll, tolR, textR));
-    target.appendChild(bar("LÄNGS", pitch, tolP, textP));
+    target.appendChild(bar("QUER", roll, tolR, levR, textR));
+    target.appendChild(bar("LÄNGS", pitch, tolP, levP, textP));
 
     var plan = el('<div class="plan"></div>');
     var head = level ? "✅ EBEN – STOP" : ok ? "Ausrichten" : "⚠️ Kein Sensorwert";
     var html = "<h2>" + head + "</h2>";
     if (ok) {
-      html += '<div class="muted">Längs ' + pitch.toFixed(1) + "° · Quer " + roll.toFixed(1) + "°" +
+      html += '<div class="muted">Längs ' + degP.toFixed(places()) + "° · Quer " +
+        degR.toFixed(places()) + "°" +
         (state.motion ? " · in Bewegung" : "") + "</div>";
       var lifts = level ? [] : (wheelLifts() || []);
       var names = isCaravan() ? CARAVAN_WHEEL_NAMES : WHEEL_NAMES;
       var label = function (i) {
         return names[i.wheel] || WHEEL_NAMES[i.wheel] || SIDE_NAMES[i.wheel] || i.wheel;
       };
+      // Auch die Zentimeter der Anweisung gerastet: ein Maß, das beim Lesen
+      // zwischen 4,3 und 5,2 wechselt, ist keine Anweisung, sondern eine Frage.
+      var planCm = function (i) { return steadyCm("plan_" + i.wheel, i.cm).toFixed(1); };
 
       if (lifts.length) {
         html += "<ul>";
@@ -564,7 +734,7 @@
           // Richtung, weil das Stützrad auch runter kann.
           lifts.forEach(function (i) {
             html += "<li><b>" + label(i) + "</b> " + i.direction + ", " +
-              (i.steps ? "Keilstufe " + i.steps : i.cm.toFixed(1) + " cm") + "</li>";
+              (i.steps ? "Keilstufe " + i.steps : planCm(i) + " cm") + "</li>";
           });
           html += "</ul>";
           html += '<div class="muted">' + (lifts.length > 1
@@ -572,7 +742,7 @@
             : "Danach neu messen.") + "</div>";
         } else if (cfg.method === "hebesystem") {
           lifts.forEach(function (i) {
-            html += "<li><b>" + label(i) + "</b> " + i.cm.toFixed(1) + " cm</li>";
+            html += "<li><b>" + label(i) + "</b> " + planCm(i) + " cm</li>";
           });
           // "Räder" im Plural: Bei einer zusammengezogenen Seitenanweisung
           // bleiben zwei stehen, nicht eines.
@@ -580,7 +750,7 @@
         } else {
           var first = lifts[0];
           html += "<li><b>" + label(first) + "</b> " +
-            (first.steps ? "Keilstufe " + first.steps : first.cm.toFixed(1) + " cm") + "</li></ul>" +
+            (first.steps ? "Keilstufe " + first.steps : planCm(first) + " cm") + "</li></ul>" +
             '<div class="muted">Eine Anweisung nach der anderen – nach dem Auffahren neu messen.</div>';
         }
       }
@@ -592,29 +762,39 @@
 
     // --- Draufsicht: beide Achsen in einer Blase ---------------------------
     var overall = !ok ? COLORS.off
-      : (Math.abs(pitch) <= tolP && Math.abs(roll) <= tolR) ? COLORS.ok
+      : level ? COLORS.ok
         : (Math.abs(pitch) > 2 * tolP || Math.abs(roll) > 2 * tolR) ? COLORS.bad : COLORS.warn;
     var top = el('<div class="top"><div class="cap">▲ VORNE</div></div>');
     top.appendChild(el(isCaravan() ? CARAVAN_TOP : CAMPER_TOP));
     top.appendChild(el('<div class="ring"></div>'));
     var bubTop = el('<div class="bub"></div>');
-    var lim = function (v, max) { return Math.max(-max, Math.min(max, v)); };
     bubTop.style.position = "absolute";
     bubTop.style.borderRadius = "50%";
-    bubTop.style.left = "calc(50% + " + Math.round(lim(-roll * 13, 64)) + "px)";
-    bubTop.style.top = "calc(50% + " + Math.round(lim(pitch * 13, 118)) + "px)";
+    // Jede Achse an ihrer eigenen Toleranz: innerhalb steht die Blase im
+    // Zielfeld, außerhalb daneben - obwohl 5 cm längs und quer verschiedene
+    // Winkel sind.
+    bubTop.style.left = "calc(50% + " +
+      (centred(levR) ? 0 : deflect(-roll, tolR, TOP_TOLERANCE, TOP_FULL_X)).toFixed(1) + "px)";
+    bubTop.style.top = "calc(50% + " +
+      (centred(levP) ? 0 : deflect(pitch, tolP, TOP_TOLERANCE, TOP_FULL_Y)).toFixed(1) + "px)";
     bubTop.style.background = "radial-gradient(circle at 34% 30%,#fff," + overall + " 62%)";
     bubTop.style.boxShadow = "0 4px 12px rgba(0,0,0,.45),0 0 16px " + overall;
     top.appendChild(bubTop);
     target.appendChild(top);
 
-    var clamp = function (v) { return Math.max(-30, Math.min(30, v)); };
+    /* Anders als die Blasen bleiben diese beiden am echten Winkel: Sie zeigen
+     * das Fahrzeug, nicht eine Skala. Nur innerhalb der Toleranz stehen sie
+     * waagerecht - sonst kippelte das Bild um Zehntelgrad weiter, während
+     * daneben "EBEN - STOP" steht. */
+    var tilt = function (value, lev) {
+      return !ok || centred(lev) ? 0 : Math.max(-30, Math.min(30, value));
+    };
     target.appendChild(view(isCaravan() ? CARAVAN_SIDE : CAMPER_SIDE,
-      "SEITE · längs — " + (ok ? pitch.toFixed(1) + "°" : "⚠️"),
-      colorFor(pitch, tolP), ok ? clamp(pitch) : 0));
+      "SEITE · längs — " + (ok ? degP.toFixed(places()) + "°" : "⚠️"),
+      colorFor(pitch, tolP, levP), tilt(degP, levP)));
     target.appendChild(view(isCaravan() ? CARAVAN_REAR : CAMPER_REAR,
-      "HECK · quer — " + (ok ? roll.toFixed(1) + "°" : "⚠️"),
-      colorFor(roll, tolR), ok ? clamp(-roll) : 0));
+      "HECK · quer — " + (ok ? degR.toFixed(places()) + "°" : "⚠️"),
+      colorFor(roll, tolR, levR), tilt(-degR, levR)));
 
     var cal = el('<button class="act">Neigung kalibrieren</button>');
     cal.onclick = function () {
@@ -633,6 +813,7 @@
   var methodSelect = null;
   var vehicleSelect = null;
   var mountingSelect = null;
+  var preciseBox = null;
   var settingsNote = null;
 
   function settings() {
@@ -640,10 +821,15 @@
     var box = el('<div class="plan"><h2>Fahrzeug</h2></div>');
     // Beim Wohnwagen misst dieselbe Zahl etwas anderes - deshalb die
     // Beschriftung mitführen statt sie fest hinzuschreiben.
+    //
+    // Und nur die Toleranz, die gerade gilt: Beide nebeneinander wären zwei
+    // Felder für eine Frage, von denen eines wirkungslos ist - der Nutzer
+    // stellt dann das falsche ein und wundert sich, dass nichts passiert.
     var rows = [
       ["wheelbase", isCaravan() ? "Achse → Stützrad (mm)" : "Radstand (mm)"],
       ["track", "Spurweite (mm)"],
-      ["tolerance_cm", "Toleranz (cm)"],
+      cfg.precise ? ["tolerance_deg", "Toleranz genau (°)"]
+        : ["tolerance_cm", "Toleranz (cm)"],
       ["wedge_step", "Keilstufe (cm, 0 = aus)"]
     ];
     rows.forEach(function (r) {
@@ -658,6 +844,22 @@
       row.appendChild(input);
       box.appendChild(row);
     });
+
+    /* Steht direkt unter der Toleranz, weil er ändert, was sie bedeutet.
+     *
+     * Der Kasten braucht eine eigene Breite: .set input ist 130 px breit,
+     * das ergäbe ein Ankreuzfeld in der Größe eines Eingabefelds. */
+    var prow = el('<div class="set"><span>Präzisionsmodus</span></div>');
+    preciseBox = el('<input type="checkbox" style="width:26px;height:26px;padding:0">');
+    preciseBox.checked = cfg.precise;
+    preciseBox.onchange = function () { setPrecise(preciseBox.checked); };
+    prow.appendChild(preciseBox);
+    box.appendChild(prow);
+    box.appendChild(el('<div class="muted" style="margin-bottom:6px">' +
+      "Aus: die Toleranz gilt in Zentimetern, und innerhalb davon steht alles " +
+      "in der Mitte – dort ist nichts mehr zu tun. Ein: feste Gradtoleranz für " +
+      "beide Achsen, die Blase bleibt an ihrer echten Stelle, Winkel mit zwei " +
+      "Nachkommastellen.</div>"));
 
     var vrow = el('<div class="set"><span>Fahrzeugart</span></div>');
     vehicleSelect = el('<select><option>Wohnmobil</option><option>' + VEHICLE_CARAVAN + "</option></select>");
@@ -726,6 +928,7 @@
     if (mountingSelect && mountingSelect !== focused) {
       mountingSelect.value = cfg.mounting === "unten" ? MOUNT_UNDER : "Deckel oben";
     }
+    if (preciseBox && preciseBox !== focused) preciseBox.checked = cfg.precise;
     if (settingsNote) {
       settingsNote.textContent = writeError ? writeError
         : state.ready ? "Diese Werte stehen im Gerät. Jedes Handy sieht dieselben."
@@ -1027,20 +1230,36 @@
     return null;
   }
 
-  /* Die tatsächliche Objektkennung aus dem Ereignisstrom holen, statt sie
+  /* Die tatsächliche Entität aus dem Ereignisstrom holen, statt ihre Kennung
    * fest hinzuschreiben.
    *
    * ESPHome bildet sie aus dem Namen ("WLAN Name" -> "wlan_name"), aber die
    * Regel hat sich zwischen Fassungen schon geändert, und ein falscher Name
    * scheitert stumm mit 404. Das Gerät meldet seine Kennungen ohnehin - also
-   * fragen wir es, statt zu raten. Der Rückfallwert greift nur, solange noch
-   * nichts empfangen wurde. */
-  function objectId(domain, needle, fallback) {
+   * fragen wir es, statt zu raten.
+   *
+   * Ein exakter Treffer geht vor. Das ist keine Feinheit: "toleranz" steckt
+   * auch in "toleranz_genau", und ein Schreibzugriff, der im falschen Feld
+   * landet, verstellt stillschweigend eine andere Einstellung. Gibt es keinen
+   * exakten Treffer, gewinnt der KÜRZESTE Teiltreffer - das ist der Name, der
+   * am wenigsten über die gesuchte Kennung hinaus enthält. */
+  function findEntity(domain, needle) {
+    var exact = null, best = null;
     for (var id in state.seen) {
       var parts = splitId(id);
-      if (parts[0] === domain && parts[1].indexOf(needle) >= 0) return parts[1];
+      if (parts[0] !== domain) continue;
+      if (parts[1] === needle) { exact = { id: id, obj: parts[1] }; break; }
+      if (parts[1].indexOf(needle) >= 0 && (!best || parts[1].length < best.obj.length)) {
+        best = { id: id, obj: parts[1] };
+      }
     }
-    return fallback;
+    return exact || best;
+  }
+
+  function objectId(domain, needle, fallback) {
+    var hit = findEntity(domain, needle);
+    // Der Rückfallwert greift nur, solange noch nichts empfangen wurde.
+    return hit ? hit.obj : fallback;
   }
 
   /* Den REST-Pfad einer Entität, wie das Gerät ihn selbst angibt.
@@ -1049,13 +1268,10 @@
    * wird gar nicht erst geschrieben, statt auf gut Glück eine Adresse zu
    * bauen und den 404 zu verschlucken. */
   function pathFor(domain, needle) {
-    for (var id in state.seen) {
-      var parts = splitId(id);
-      if (parts[0] !== domain || parts[1].indexOf(needle) < 0) continue;
-      var nid = state.seen[id].name_id;
-      return nid ? "/" + nid : "/" + parts[0] + "/" + parts[1];
-    }
-    return null;
+    var hit = findEntity(domain, needle);
+    if (!hit) return null;
+    var nid = state.seen[hit.id].name_id;
+    return nid ? "/" + nid : "/" + domain + "/" + hit.obj;
   }
 
   // -- Gerät ---------------------------------------------------------------
@@ -1091,8 +1307,18 @@
       else if (id.indexOf("in_bewegung") >= 0) state.motion = data.value === true || data.state === "ON";
       else if (id.indexOf(IDS.wheelbase) >= 0) { cfg.wheelbase = num(data.value); state.ready = true; }
       else if (id.indexOf(IDS.track) >= 0) cfg.track = num(data.value);
+      // Die Gradtoleranz MUSS vor der Zentimetertoleranz stehen: "toleranz"
+      // steckt auch in "toleranz_genau", die umgekehrte Reihenfolge schriebe
+      // den Gradwert in die Zentimeterangabe.
+      else if (id.indexOf(IDS.tolerance_deg) >= 0) cfg.tolerance_deg = num(data.value);
       else if (id.indexOf(IDS.tolerance_cm) >= 0) cfg.tolerance_cm = num(data.value);
       else if (id.indexOf(IDS.wedge_step) >= 0) cfg.wedge_step = num(data.value);
+      else if (id.indexOf(IDS.precise) >= 0) {
+        // Wie bei der Fahrzeugart: Der Modus formt die Bedienelemente, da
+        // reicht das Nachziehen der Messwerte nicht.
+        var genau = data.value === true || data.state === "ON";
+        if (genau !== cfg.precise) { cfg.precise = genau; render(); return; }
+      }
       else if (id.indexOf(IDS.method) >= 0) cfg.method = data.state === METHOD_LIFT ? "hebesystem" : "keile";
       else if (id.indexOf(IDS.mounting) >= 0) cfg.mounting = data.state === MOUNT_UNDER ? "unten" : "oben";
       else if (id.indexOf(IDS.vehicle) >= 0) {

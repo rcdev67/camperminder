@@ -114,11 +114,60 @@ const SIDE_NAMES = {
 
 const clamp = (value, limit) => Math.max(-limit, Math.min(limit, value));
 
+/*
+ * Der Maßstab der Anzeige ist die TOLERANZ, nicht das Grad.
+ * ---------------------------------------------------------------------------
+ * Vorher wanderte die Blase mit festen 16 px je Grad, und die grüne Mitte der
+ * Skala war ein fester Streifen. Beides wusste nichts von der eingestellten
+ * Toleranz - bei 5 cm Toleranz stand die Blase deshalb weit neben der Mitte,
+ * während der Text daneben "EBEN - STOP" meldete. Zwei Aussagen, ein Zustand,
+ * und die auffälligere von beiden war die falsche.
+ *
+ * Jetzt gilt: Toleranzgrenze = Rand der grünen Zone. Innerhalb der Toleranz
+ * steht die Blase in der Mitte, und zwar in jeder Ansicht und auf beiden
+ * Achsen - obwohl längs und quer bei gleicher Zentimeterangabe verschiedene
+ * Gradzahlen bedeuten (5 cm sind 0,82° längs und 1,59° quer).
+ *
+ * Genauigkeit geht dabei nicht verloren, sie wandert: Wer die Neigung auf
+ * Hundertstelgrad sehen will, schaltet den Präzisionsmodus ein. Dann ist die
+ * Toleranz eine feste, viel engere Gradzahl - derselbe Maßstab, nur schärfer,
+ * und die Blase zeigt wieder jede Regung.
+ */
+
+/* Vollausschlag der Wasserwaage in Prozent der Kachelbreite. Die Skala (.track)
+ * steht 6 % vom Rand, ihre grüne Mitte liegt bei 45-55 % - das sind ±4,4 % der
+ * Kachel um die Mitte. Beide Zahlen MÜSSEN zum Verlauf im CSS passen. */
+const BAR_FULL = 40;
+const BAR_TOLERANCE = 4.4;
+
+/* Draufsicht in px: das Zielfeld (.ring) ist 56 px groß, also ±28 px. */
+const TOP_TOLERANCE = 28;
+const TOP_FULL_X = 64;
+const TOP_FULL_Y = 118;
+
+/* Jenseits der Toleranz staucht sich der Maßstab: bei doppelter Toleranz ist
+ * ein Drittel des Restwegs verbraucht, bei fünffacher zwei Drittel, und den
+ * Rand erreicht die Blase nie ganz. So bleibt auch eine grobe Schieflage im
+ * Bild und zeigt weiter Veränderung, statt am Anschlag zu kleben. */
+const OUTSIDE_K = 2;
+
+function deflect(value, tolerance, atTolerance, full) {
+  if (!(tolerance > 0)) return 0;
+  const units = Math.abs(value) / tolerance;
+  const out =
+    units <= 1
+      ? units * atTolerance
+      : atTolerance + (full - atTolerance) * ((units - 1) / (units - 1 + OUTSIDE_K));
+  return value < 0 ? -out : out;
+}
+
 class CamperMaidCard extends HTMLElement {
   constructor() {
     super();
     this.attachShadow({ mode: "open" });
     this._built = false;
+    // Zuletzt angezeigte Zahlen - siehe _steady.
+    this._shown = {};
   }
 
   setConfig(config) {
@@ -216,9 +265,13 @@ class CamperMaidCard extends HTMLElement {
         }
         .top img { position: absolute; left: 50%; top: 50%;
           transform: translate(-50%, -50%); height: 290px; }
+        /* Zielfeld, kein Kreis: Die Toleranz gilt je Achse, längs und quer
+           getrennt. Der erlaubte Bereich ist deshalb ein Rechteck und keine
+           Scheibe - bei einem Kreis läge die Blase mit beiden Achsen knapp
+           innerhalb der Toleranz trotzdem außerhalb der Markierung. */
         .ring {
           position: absolute; left: 50%; top: 50%; width: 56px; height: 56px;
-          margin: -28px 0 0 -28px; border-radius: 50%;
+          margin: -28px 0 0 -28px; border-radius: 14px;
           border: 2px dashed rgba(127,127,127,.5);
         }
         .top .bubble { width: 42px; height: 42px; margin: -21px 0 0 -21px;
@@ -351,6 +404,30 @@ class CamperMaidCard extends HTMLElement {
     }
   }
 
+  /* Eine Zahl, die stehen bleibt.
+   *
+   * Der Messwert rauscht um wenige Hundertstelgrad, und über den Radstand
+   * gerechnet werden daraus schnell ein paar Zehntel Zentimeter. Nackt
+   * angezeigt wechselt die Zahl dadurch mehrmals je Sekunde zwischen zwei
+   * Werten, obwohl das Fahrzeug still steht - und eine zappelnde Zahl liest
+   * niemand, sie beunruhigt nur.
+   *
+   * Deshalb rastet die Anzeige auf ein Raster und verlässt es erst, wenn der
+   * Messwert deutlich weiterwandert (0,75 Rasterschritte). Das ist keine
+   * Glättung über die Zeit: Der angezeigte Wert weicht nie mehr als diese
+   * 0,75 Schritte vom Messwert ab, und er hinkt einer echten Änderung nicht
+   * hinterher. Im Präzisionsmodus ist das Raster entsprechend fein.
+   */
+  _steady(key, value, step) {
+    const number = Number(value);
+    if (value === null || value === undefined || Number.isNaN(number)) return null;
+    const last = this._shown[key];
+    if (last === undefined || Math.abs(number - last) >= step * 0.75) {
+      this._shown[key] = Math.round(number / step) * step;
+    }
+    return this._shown[key];
+  }
+
   _render(source, hass) {
     const a = source.attributes || {};
     const root = this.shadowRoot;
@@ -363,35 +440,65 @@ class CamperMaidCard extends HTMLElement {
     const roll = available ? Number(a.roll) : 0;
     const tolP = Number(a.tolerance_pitch) || 0.82;
     const tolR = Number(a.tolerance_roll) || 1.59;
+    const precise = a.precise === true;
 
-    const colorFor = (value, tol) => {
+    /* Rastermaß der Zahlen. Im Realitätsmodus grob genug, dass nichts mehr
+       flackert - ein halber Zentimeter ist ohnehin die Grenze dessen, was mit
+       Keil oder Stütze eingestellt werden kann. Im Präzisionsmodus fein. */
+    const stepCm = precise ? 0.1 : 0.5;
+    const stepDeg = precise ? 0.05 : 0.1;
+    const cm = (key, value) => this._steady(key, value, stepCm);
+    const deg = (key, value) => this._steady(key, value, stepDeg) ?? 0;
+
+    /* Ob eine Achse eben steht, entscheidet der Rechenkern - dort trägt die
+       Antwort eine Hysterese und ist damit die einzige, die nicht flattert.
+       Der Rückfall auf den nackten Vergleich greift nur bei einer älteren
+       Integration; dann ist die Karte unruhiger, aber nicht falsch. */
+    const levelPitch = available &&
+      (a.level_pitch === undefined ? Math.abs(pitch) <= tolP : a.level_pitch === true);
+    const levelRoll = available &&
+      (a.level_roll === undefined ? Math.abs(roll) <= tolR : a.level_roll === true);
+
+    /* Steht die Achse innerhalb der Toleranz, zeigt die Anzeige die Mitte -
+       Blase mittig, Fahrzeug waagerecht. Denn genau das ist die Aussage: Hier
+       ist nichts mehr zu tun. Eine Blase, die dabei sichtbar neben der Mitte
+       steht, widerspricht dem Text daneben.
+
+       Im Präzisionsmodus bleibt die Feinlage stehen: Wer ihn einschaltet, will
+       die letzten Zehntel sehen und nicht eine Anzeige, die sie wegräumt. */
+    const centred = (level) => level && !precise;
+
+    const colorFor = (value, tol, level) => {
       if (!available) return COLORS.off;
-      if (Math.abs(value) <= tol) return COLORS.ok;
+      if (level) return COLORS.ok;
       return Math.abs(value) > 2 * tol ? COLORS.bad : COLORS.warn;
     };
 
-    const colRoll = colorFor(roll, tolR);
-    const colPitch = colorFor(pitch, tolP);
+    const colRoll = colorFor(roll, tolR, levelRoll);
+    const colPitch = colorFor(pitch, tolP, levelPitch);
 
     // --- Wasserwaagen ---
-    const setBar = (valueId, bubbleId, value, tol, color, text) => {
+    const setBar = (valueId, bubbleId, value, tol, level, color, text) => {
       const val = root.getElementById(valueId);
       const bub = root.getElementById(bubbleId);
       val.textContent = text;
       val.style.color = color;
-      bub.style.left = `calc(50% + ${Math.round(clamp(value * 16, 150))}px)`;
+      const out = centred(level)
+        ? 0
+        : deflect(value, tol, BAR_TOLERANCE, BAR_FULL);
+      bub.style.left = `calc(50% + ${out.toFixed(2)}%)`;
       bub.style.background =
         `radial-gradient(circle at 34% 30%, #fff, ${color} 62%)`;
       bub.style.boxShadow = `0 3px 8px rgba(0,0,0,.45), 0 0 12px ${color}`;
     };
 
-    const cmRoll = a.correction_roll_cm;
-    const cmPitch = a.correction_pitch_cm;
+    const cmRoll = cm("roll_cm", a.correction_roll_cm);
+    const cmPitch = cm("pitch_cm", a.correction_pitch_cm);
 
     let textRoll;
     if (!available) textRoll = `⚠️ ${TEXTS.noSensor}`;
     else if (implausible) textRoll = TEXTS.implausible;
-    else if (Math.abs(roll) <= tolR) textRoll = `✅ ${TEXTS.level}`;
+    else if (levelRoll) textRoll = `✅ ${TEXTS.level}`;
     else {
       const side = roll > 0 ? TEXTS.raiseLeft : TEXTS.raiseRight;
       textRoll = `${side} – ${this._distance(a, cmRoll, a.wedge_steps_roll)}`;
@@ -400,46 +507,64 @@ class CamperMaidCard extends HTMLElement {
     let textPitch;
     if (!available) textPitch = `⚠️ ${TEXTS.noSensor}`;
     else if (implausible) textPitch = TEXTS.implausible;
-    else if (Math.abs(pitch) <= tolP) textPitch = `✅ ${TEXTS.level}`;
+    else if (levelPitch) textPitch = `✅ ${TEXTS.level}`;
     else {
       const side = pitch > 0 ? TEXTS.raiseRear : TEXTS.raiseFront;
       textPitch = `${side} – ${this._distance(a, cmPitch, a.wedge_steps_pitch)}`;
     }
 
-    setBar("valRoll", "bubRoll", roll, tolR, colRoll, textRoll);
-    setBar("valPitch", "bubPitch", pitch, tolP, colPitch, textPitch);
+    setBar("valRoll", "bubRoll", roll, tolR, levelRoll, colRoll, textRoll);
+    setBar("valPitch", "bubPitch", pitch, tolP, levelPitch, colPitch, textPitch);
 
     // --- Draufsicht ---
     const bubTop = root.getElementById("bubTop");
     const overall = !available
       ? COLORS.off
-      : Math.abs(pitch) <= tolP && Math.abs(roll) <= tolR
+      : levelPitch && levelRoll
         ? COLORS.ok
         : Math.abs(pitch) > 2 * tolP || Math.abs(roll) > 2 * tolR
           ? COLORS.bad
           : COLORS.warn;
-    bubTop.style.left = `calc(50% + ${Math.round(clamp(-roll * 13, 64))}px)`;
-    bubTop.style.top = `calc(50% + ${Math.round(clamp(pitch * 13, 120))}px)`;
+    // Jede Achse an ihrer eigenen Toleranz gemessen: Innerhalb steht die Blase
+    // im Zielfeld, außerhalb daneben - obwohl 5 cm längs und quer
+    // verschiedene Winkel sind.
+    const topX = centred(levelRoll)
+      ? 0
+      : deflect(-roll, tolR, TOP_TOLERANCE, TOP_FULL_X);
+    const topY = centred(levelPitch)
+      ? 0
+      : deflect(pitch, tolP, TOP_TOLERANCE, TOP_FULL_Y);
+    bubTop.style.left = `calc(50% + ${topX.toFixed(1)}px)`;
+    bubTop.style.top = `calc(50% + ${topY.toFixed(1)}px)`;
     bubTop.style.background =
       `radial-gradient(circle at 34% 30%, #fff, ${overall} 62%)`;
     bubTop.style.boxShadow = `0 4px 12px rgba(0,0,0,.45), 0 0 16px ${overall}`;
 
     // --- Seiten- und Heckansicht, 1:1 geneigt ---
-    const degrees = (value) => (available ? clamp(value, 30) : 0);
+    //
+    // Anders als die Blasen bleiben diese beiden am echten Winkel: Sie zeigen
+    // das Fahrzeug, nicht eine Skala. Nur innerhalb der Toleranz stehen sie
+    // waagerecht - sonst kippelte das Bild um Zehntelgrad weiter, während
+    // daneben "EBEN - STOP" steht.
+    const degSide = deg("pitch_deg", pitch);
+    const degRear = deg("roll_deg", roll);
+    const tilt = (value, level) =>
+      !available || centred(level) ? 0 : clamp(value, 30);
     const side = root.getElementById("imgSide");
     const rear = root.getElementById("imgRear");
     side.style.transform =
-      `translateX(-50%) rotate(${degrees(pitch).toFixed(1)}deg)`;
+      `translateX(-50%) rotate(${tilt(degSide, levelPitch).toFixed(1)}deg)`;
     rear.style.transform =
-      `translateX(-50%) rotate(${degrees(-roll).toFixed(1)}deg)`;
+      `translateX(-50%) rotate(${tilt(-degRear, levelRoll).toFixed(1)}deg)`;
 
+    const places = precise ? 2 : 1;
     const capSide = root.getElementById("capSide");
     const capRear = root.getElementById("capRear");
     capSide.textContent = available
-      ? `${TEXTS.side} — ${pitch.toFixed(1)}°`
+      ? `${TEXTS.side} — ${degSide.toFixed(places)}°`
       : `${TEXTS.side} — ⚠️`;
     capRear.textContent = available
-      ? `${TEXTS.rear} — ${roll.toFixed(1)}°`
+      ? `${TEXTS.rear} — ${degRear.toFixed(places)}°`
       : `${TEXTS.rear} — ⚠️`;
     capSide.style.background = CHIP[colPitch];
     capRear.style.background = CHIP[colRoll];
@@ -448,14 +573,18 @@ class CamperMaidCard extends HTMLElement {
     this._renderPlan(root.getElementById("plan"), source, a, {
       available,
       implausible,
-      pitch,
-      roll,
-      tolP,
-      tolR,
+      pitch: degSide,
+      roll: degRear,
+      places,
+      levelPitch,
+      levelRoll,
+      cmPitch,
+      cmRoll,
+      cm,
     });
 
     if (this._config.show_controls) {
-      this._renderControls(root.getElementById("controls"), hass);
+      this._renderControls(root.getElementById("controls"), hass, a);
     }
   }
 
@@ -487,14 +616,14 @@ class CamperMaidCard extends HTMLElement {
     const rows = level
       ? []
       : caravan
-        ? this._caravanRows(a)
+        ? this._caravanRows(a, ctx)
         : a.level_method === "hebesystem"
-          ? this._liftRows(a)
+          ? this._liftRows(a, ctx)
           : this._wedgeRows(a, ctx);
 
     node.innerHTML = `
       <h2>${heading}</h2>
-      <div class="muted">Längs ${ctx.pitch.toFixed(1)}° · Quer ${ctx.roll.toFixed(1)}°</div>
+      <div class="muted">Längs ${ctx.pitch.toFixed(ctx.places)}° · Quer ${ctx.roll.toFixed(ctx.places)}°</div>
       ${rows.length ? `<ul>${rows.join("")}</ul>` : ""}
       ${rows.length ? `<div class="muted hint">${
         caravan
@@ -509,16 +638,16 @@ class CamperMaidCard extends HTMLElement {
      nicht hilfreich, sondern verwirrend. */
   _wedgeRows(a, ctx) {
     const rows = [];
-    if (Math.abs(ctx.pitch) > ctx.tolP) {
+    if (!ctx.levelPitch) {
       const what = ctx.pitch > 0 ? "Heck" : "Front";
       rows.push(
-        `<li><b>${what}</b> ${this._distance(a, a.correction_pitch_cm, a.wedge_steps_pitch)}</li>`
+        `<li><b>${what}</b> ${this._distance(a, ctx.cmPitch, a.wedge_steps_pitch)}</li>`
       );
     }
-    if (Math.abs(ctx.roll) > ctx.tolR) {
+    if (!ctx.levelRoll) {
       const what = ctx.roll > 0 ? "Linke Seite" : "Rechte Seite";
       rows.push(
-        `<li><b>${what}</b> ${this._distance(a, a.correction_roll_cm, a.wedge_steps_roll)}</li>`
+        `<li><b>${what}</b> ${this._distance(a, ctx.cmRoll, a.wedge_steps_roll)}</li>`
       );
     }
     return rows;
@@ -527,7 +656,7 @@ class CamperMaidCard extends HTMLElement {
   /* Wohnwagen: quer der Keil unter das tiefere Rad, längs das Stützrad.
      Mit Richtung, weil das Stützrad auch nach unten kann - und in der
      Reihenfolge aus dem Rechenkern, die nicht vertauscht werden darf. */
-  _caravanRows(a) {
+  _caravanRows(a, ctx) {
     if (!Array.isArray(a.wheel_plan)) return [];
     return a.wheel_plan.map((item) => {
       const name =
@@ -535,24 +664,36 @@ class CamperMaidCard extends HTMLElement {
         WHEEL_NAMES[item.wheel] ||
         SIDE_NAMES[item.wheel] ||
         item.wheel;
-      const wie = item.steps ? `Keilstufe ${item.steps}` : `${item.cm.toFixed(1)} cm`;
+      const wie = item.steps
+        ? `Keilstufe ${item.steps}`
+        : `${ctx.cm(`plan_${item.wheel}`, item.cm).toFixed(1)} cm`;
       return `<li><b>${name}</b> ${item.direction} – ${wie}</li>`;
     });
   }
 
   /* Hebesystem: alle Ecken auf einmal, höchste zuerst. Stufenlos, deshalb in
      Zentimetern statt in Stufen - und ohne Rundung, die es hier nicht braucht. */
-  _liftRows(a) {
+  _liftRows(a, ctx) {
     if (!Array.isArray(a.wheel_plan)) return [];
     return a.wheel_plan.map(
       (item) =>
-        `<li><b>${WHEEL_NAMES[item.wheel] || SIDE_NAMES[item.wheel] || item.wheel}</b> ${item.cm.toFixed(1)} cm</li>`
+        `<li><b>${WHEEL_NAMES[item.wheel] || SIDE_NAMES[item.wheel] || item.wheel}</b> ${ctx
+          .cm(`plan_${item.wheel}`, item.cm)
+          .toFixed(1)} cm</li>`
     );
   }
 
-  _renderControls(node, hass) {
+  _renderControls(node, hass, a) {
     const voice = this._findRole(hass, "voice");
-    const precise = this._findRole(hass, "precise");
+    /* Den Präzisionsmodus führt das Gerät, sobald es ihn kennt - dann legt die
+       Integration keinen eigenen Schalter an, und die Rollensuche findet
+       nichts. Der Umweg über die Entity-ID aus den Attributen ist hier also
+       kein Notnagel, sondern der Regelfall bei aktueller Firmware. */
+    const precise =
+      this._findRole(hass, "precise") ||
+      (a.precise_entity && hass.states[a.precise_entity]
+        ? { entityId: a.precise_entity, state: hass.states[a.precise_entity] }
+        : null);
     if (!voice && !precise) {
       node.innerHTML = "";
       return;
