@@ -19,6 +19,7 @@ from homeassistant.helpers.dispatcher import async_dispatcher_send
 from homeassistant.helpers.event import async_track_state_change_event
 
 from .const import (
+    CONF_LEVEL_HOLD,
     CONF_LEVEL_METHOD,
     CONF_MOTION_SENSOR,
     CONF_NOTIFY_SERVICE,
@@ -119,6 +120,7 @@ VALUE_DEFAULTS: dict[str, float | bool | str | None] = {
     CONF_TOLERANCE_CM: DEFAULT_TOLERANCE_CM,
     CONF_WEDGE_STEP: DEFAULT_WEDGE_STEP,
     CONF_TOLERANCE_DEG: DEFAULT_TOLERANCE_DEG,
+    CONF_LEVEL_HOLD: LEVEL_RELEASE * 100.0,
     CONF_LEVEL_METHOD: DEFAULT_LEVEL_METHOD,
     CONF_VEHICLE_TYPE: DEFAULT_VEHICLE_TYPE,
     CONF_NOTIFY_SERVICE: None,
@@ -133,6 +135,7 @@ NUMERIC_VALUES = (
     CONF_TOLERANCE_CM,
     CONF_WEDGE_STEP,
     CONF_TOLERANCE_DEG,
+    CONF_LEVEL_HOLD,
 )
 
 
@@ -432,11 +435,26 @@ class CamperCoordinator:
 
         deviation = abs(value)
         if self._level_hold[key]:
-            if deviation > tolerance * LEVEL_RELEASE:
+            if deviation > tolerance * self.level_release:
                 self._level_hold[key] = False
         elif deviation <= tolerance:
             self._level_hold[key] = True
         return self._level_hold[key]
+
+    @property
+    def level_release(self) -> float:
+        """Wie weit die Neigung über die Toleranz darf, bevor "eben" fällt.
+
+        Kommt als Prozentangabe vom Gerät, weil "125 %" sich als "ein Viertel
+        über der Toleranz" liest und "1,25" erst übersetzt werden muss. Unter
+        100 % wäre es keine Hysterese mehr, sondern eine Anzeige, die "eben"
+        schon vor der Toleranz zurücknimmt - deshalb die Untergrenze.
+        """
+        try:
+            faktor = float(self.get_value(CONF_LEVEL_HOLD)) / 100.0
+        except (TypeError, ValueError):
+            return LEVEL_RELEASE
+        return faktor if faktor >= 1.0 else LEVEL_RELEASE
 
     @property
     def level_pitch(self) -> bool:

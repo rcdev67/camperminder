@@ -21,6 +21,7 @@ CONF_WEDGE_STEP: Final = "wedge_step"
 CONF_TOLERANCE_DEG: Final = "tolerance_deg"
 CONF_LEVEL_METHOD: Final = "level_method"
 CONF_PRECISE: Final = "precise"
+CONF_LEVEL_HOLD: Final = "level_hold_percent"
 
 # --- Art des Ausrichtens ----------------------------------------------------
 # Der Unterschied ist grundsätzlich, nicht kosmetisch:
@@ -119,6 +120,11 @@ DEVICE_VALUE_ENTITIES: Final = {
     # wird über den Namen aus der Firmware, nicht über die Kennung: Aus dem
     # Umlaut macht ESPHome zwei Unterstriche, der Name bleibt lesbar.
     CONF_PRECISE: ("switch", "Präzisionsmodus"),
+    # Der Haltebereich in Prozent. Bewusst OHNE eigenen Regler in dieser
+    # Integration: Er beschreibt, wie sich die Anzeige anfühlt, und die
+    # Anzeige steht in beiden Betriebsarten. Führt kein Gerät den Wert - etwa
+    # bei einem fremden Neigungssensor -, gilt LEVEL_RELEASE.
+    CONF_LEVEL_HOLD: ("number", "Haltebereich"),
 }
 
 # Welche dieser Werte Schalter sind - ihr Zustand ist "on"/"off" und keine
@@ -196,6 +202,10 @@ MIN_TOLERANCE_DEG: Final = 0.05
 #
 # 1,25 ist bewusst deutlich: Der Rückweg muss größer sein als das Rauschen,
 # sonst verschiebt die Hysterese das Flattern nur um ein paar Zehntel.
+#
+# Nur der Rückfallwert: Führt das Gerät den "Haltebereich", gilt dessen
+# Prozentangabe. Wie ruhig eine Anzeige sein soll, ist Geschmack und gehört
+# deshalb nicht in eine Konstante - siehe CONF_LEVEL_HOLD.
 LEVEL_RELEASE: Final = 1.25
 
 # Ansage-Entfernungen werden auf dieses Raster gerundet.
