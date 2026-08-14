@@ -9,11 +9,27 @@
 #  es ein Zeitfenster, in dem Geräte ein Manifest sehen, dessen Firmware noch
 #  fehlt - und einen Update-Versuch ins Leere starten.
 #
-#  ZUGANG: ein GitHub-Token mit Schreibrecht auf Inhalte. Entweder in der
-#  Umgebungsvariablen CAMPERMAID_GH_TOKEN oder in tools/github_token.txt
-#  (durch .gitignore ausgeschlossen). Token erzeugen unter
-#  github.com/settings/tokens - fein granuliert, nur dieses Repository,
-#  Berechtigung "Contents: Read and write".
+#  ZUGANG: ein GitHub-Token mit Schreibrecht auf Inhalte. Drei Quellen, in
+#  dieser Reihenfolge:
+#
+#    1. Umgebungsvariable CAMPERMAID_GH_TOKEN
+#    2. tools/github_token.txt  (durch .gitignore ausgeschlossen)
+#    3. der Git Credential Manager - also das Token, mit dem `git push`
+#       ohnehin schon arbeitet
+#
+#  Der dritte Weg ist der bequeme und braucht KEINE Pflege: Der Credential
+#  Manager erneuert sein Token selbst. Von Hand angelegte Tokens laufen
+#  dagegen ab - fein granulierte nach Voreinstellung schon nach 30 Tagen -,
+#  und das merkt man immer erst mitten im Veröffentlichen.
+#
+#  Die ersten beiden bleiben, weil sie ausdrücklich sind: Wer ein bestimmtes
+#  Token benutzen will (anderes Konto, engere Rechte, Bauknecht ohne
+#  angemeldetes Git), setzt es und gewinnt damit gegen den Credential Manager.
+#  Eine LEERE Datei zählt als nicht vorhanden - so wird man ein totes Token
+#  los, ohne die Datei anfassen zu müssen.
+#
+#  Token von Hand erzeugen unter github.com/settings/tokens - fein granuliert,
+#  nur dieses Repository, Berechtigung "Contents: Read and write".
 # ============================================================================
 
 $ErrorActionPreference = 'Stop'
@@ -85,13 +101,93 @@ if ($unpush) {
 }
 
 # --- Token -----------------------------------------------------------------
+
+<#
+.SYNOPSIS
+  Das Token holen, mit dem Git bereits gegen github.com arbeitet.
+
+.DESCRIPTION
+  "git credential fill" fragt den eingerichteten Credential Manager. Der gibt
+  ein OAuth-Token zurück und erneuert es bei Bedarf selbst - genau das, was
+  einen sonst alle 30 Tage zwingt, von Hand ein neues anzulegen.
+
+  Zwei Vorkehrungen gegen ein hängendes Skript: GIT_TERMINAL_PROMPT=0 und
+  credential.interactive=false. Ohne sie könnte der Credential Manager auf
+  einen Anmeldedialog warten - bei einem Skript, das per Doppelklick läuft,
+  wäre das ein Fenster, das niemand erwartet.
+
+  Die Anfrage geht über eine Datei und die Umleitung von cmd.exe, NICHT über
+  die PowerShell-Pipeline und auch nicht über einen eigenen Datenstrom auf
+  StandardInput. Beides wurde ausprobiert, beides scheitert unter Windows
+  PowerShell 5.1 mit "fatal: refusing to work with credential missing protocol
+  field" - Git bekommt die Zeilen schlicht nicht zu sehen, obwohl die
+  geschriebenen Bytes nachweislich stimmen (32 Byte, reines LF, kein BOM).
+  Die Umleitung umgeht die Verrohrung vollständig.
+
+  In der Datei steht nur die FRAGE ("welches Token gilt für github.com?"),
+  niemals die Antwort - das Token kommt über die Ausgabe zurück und bleibt in
+  einer Variablen. Auf der Platte landet es nicht.
+#>
+function Hole-GitToken {
+  $alt = $env:GIT_TERMINAL_PROMPT
+  $env:GIT_TERMINAL_PROMPT = '0'
+  $frage = Join-Path ([IO.Path]::GetTempPath()) ("campermaid-cred-" + [guid]::NewGuid().ToString('N') + ".txt")
+  try {
+    # Zeilenenden ausdrücklich als LF: Git erwartet das Format so, ein CR
+    # landete sonst im Wert des letzten Feldes.
+    [IO.File]::WriteAllText(
+      $frage,
+      "protocol=https`nhost=github.com`n`n",
+      (New-Object System.Text.UTF8Encoding($false)))
+
+    $ausgabe = cmd /c "git -c credential.interactive=false credential fill < ""$frage"" 2>NUL"
+    foreach ($zeile in @($ausgabe)) {
+      if ($zeile -match '^password=(.+)$') { return $matches[1].Trim() }
+    }
+    return $null
+  } catch {
+    return $null
+  } finally {
+    if (Test-Path $frage) { Remove-Item $frage -Force -ErrorAction SilentlyContinue }
+    $env:GIT_TERMINAL_PROMPT = $alt
+  }
+}
+
+$quelle = $null
 $token = $env:CAMPERMAID_GH_TOKEN
+if ($token) { $quelle = 'Umgebungsvariable CAMPERMAID_GH_TOKEN' }
+
 if (-not $token) {
   $tf = Join-Path $here 'github_token.txt'
-  if (Test-Path $tf) { $token = (Get-Content $tf -Raw).Trim() }
+  # Eine leere Datei zählt als nicht vorhanden - siehe Kopf.
+  #
+  # Erst prüfen, dann trimmen: "Get-Content -Raw" liefert bei einer leeren
+  # Datei $null, und $null.Trim() wirft "Es ist nicht möglich, eine Methode
+  # für einen Ausdruck aufzurufen, der den Wert NULL hat". Das Leeren der
+  # Datei ist aber gerade der vorgesehene Weg, ein totes Token loszuwerden -
+  # er darf nicht mit einem Fehler enden.
+  if (Test-Path $tf) {
+    $ausDatei = Get-Content $tf -Raw
+    if ($ausDatei) { $ausDatei = $ausDatei.Trim() }
+    if ($ausDatei) { $token = $ausDatei; $quelle = 'tools\github_token.txt' }
+  }
 }
+
 if (-not $token) {
-  throw "Kein Token. Entweder CAMPERMAID_GH_TOKEN setzen oder tools\github_token.txt anlegen."
+  $token = Hole-GitToken
+  if ($token) { $quelle = 'Git Credential Manager (dasselbe wie bei git push)' }
+}
+
+if (-not $token) {
+  throw @"
+Kein Token gefunden. Drei Wege, einer genügt:
+
+  1. Am bequemsten: einmal 'git push' zum Laufen bringen, dann benutzt dieses
+     Skript dasselbe Token - es erneuert sich von selbst.
+  2. tools\github_token.txt anlegen (fein granuliert, nur dieses Repository,
+     Berechtigung "Contents: Read and write").
+  3. Umgebungsvariable CAMPERMAID_GH_TOKEN setzen.
+"@
 }
 
 $kopf = @{
@@ -119,6 +215,44 @@ function Sende-Json {
 
 Write-Host "Repository: $owner/$repo"
 Write-Host "Version:    $version   (Tag $tag)"
+Write-Host "Token:      $quelle"
+
+# --- Token sofort prüfen, nicht erst beim Anlegen --------------------------
+# Ein ungültiges Token fiel bisher erst beim Erzeugen des Entwurfs auf: mitten
+# im Ablauf, nach dem Bauen und nach der Rückfrage, und mit einem nackten
+# "(401) Nicht autorisiert" samt PowerShell-Stapel. Ein Lesezugriff vorweg
+# kostet nichts und sagt im Klartext, was fehlt.
+try {
+  Invoke-RestMethod -Uri $api -Headers $kopf -Method Get | Out-Null
+} catch {
+  $code = if ($_.Exception.Response) { [int]$_.Exception.Response.StatusCode } else { 0 }
+  if ($code -eq 401) {
+    throw @"
+GitHub weist das Token ab (401, "Bad credentials").
+Quelle: $quelle
+
+Das Token ist abgelaufen oder widerrufen - um Berechtigungen geht es hier noch
+gar nicht, GitHub kennt es schlicht nicht. Von Hand angelegte Tokens laufen
+ab, fein granulierte nach Voreinstellung schon nach 30 Tagen.
+
+Der Ausweg ohne Pflege: tools\github_token.txt leeren oder löschen und
+CAMPERMAID_GH_TOKEN nicht setzen. Dann nimmt dieses Skript das Token des Git
+Credential Managers - dasselbe, mit dem 'git push' arbeitet, und das erneuert
+sich von selbst.
+"@
+  }
+  if ($code -eq 403 -or $code -eq 404) {
+    throw @"
+GitHub antwortet mit $code auf $api.
+Quelle: $quelle
+
+Das Token ist gültig, darf dieses Repository aber nicht schreiben (404 statt
+403 kommt, wenn es das Repository nicht einmal sehen darf). Nötig ist
+"Contents: Read and write" für rcdev67/campermaid.
+"@
+  }
+  throw
+}
 if ($istVorab) {
   Write-Host "Art:        VORABFASSUNG - bleibt fuer Geraete und HACS unsichtbar." -ForegroundColor Yellow
 } else {
