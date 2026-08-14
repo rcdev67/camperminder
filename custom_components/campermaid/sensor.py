@@ -18,7 +18,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.restore_state import RestoreEntity
 from homeassistant.util import dt as dt_util
 
-from .const import DOMAIN, PHASES
+from .const import CONF_PRECISE, DOMAIN, PHASES
 from .coordinator import CamperCoordinator
 from .entity import CamperEntity
 
@@ -135,6 +135,14 @@ class CamperPhaseSensor(CamperEntity, SensorEntity):
             "roll": coordinator.roll,
             "tolerance_pitch": round(coordinator.tolerance_pitch, 3),
             "tolerance_roll": round(coordinator.tolerance_roll, 3),
+            # Die Ebenheit je Achse gehört mit übertragen und wird NICHT auf
+            # der Karte nachgerechnet: Sie trägt eine Hysterese, also ein
+            # Gedächtnis. Zwei Stellen mit eigenem Gedächtnis driften
+            # auseinander, sobald eine von beiden einen Messwert verpasst -
+            # und dann zeigt die Karte "eben", während der Zustandssensor
+            # etwas anderes sagt.
+            "level_pitch": coordinator.level_pitch,
+            "level_roll": coordinator.level_roll,
             "correction_pitch_cm": (
                 None
                 if coordinator.correction_pitch_cm is None
@@ -157,6 +165,11 @@ class CamperPhaseSensor(CamperEntity, SensorEntity):
             "wheel_plan": coordinator.wheel_plan,
             "in_motion": coordinator.in_motion,
             "precise": coordinator.precise,
+            # Führt das Gerät den Präzisionsmodus selbst, gibt es dafür keinen
+            # eigenen Schalter in dieser Integration - dann muss die Karte den
+            # des Geräts bedienen und braucht dessen Entity-ID. Steht hier
+            # None, findet sie ihren eigenen über die Rollenkennung.
+            "precise_entity": coordinator.device_sources.get(CONF_PRECISE),
             "sensors_available": coordinator.available,
         }
 

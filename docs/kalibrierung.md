@@ -125,8 +125,48 @@ eben, Stopp" sagt. Auf ±5 cm genau reicht völlig, geschätzte Fantasiewerte
 nicht.
 
 > Wer stattdessen mit einer festen Gradtoleranz arbeiten will, schaltet den
-> **Präzisionsmodus** ein; dann gilt `CamperMaid Toleranz` für beide
-> Achsen und die Fahrzeugmaße wirken nur noch auf die cm-Angabe.
+> **Präzisionsmodus** ein; dann gilt `Toleranz genau` für beide Achsen und die
+> Fahrzeugmaße wirken nur noch auf die cm-Angabe. Beides — Schalter und
+> Gradtoleranz — liegt im Gerät und ist auch ohne Home Assistant erreichbar.
+
+## Die Toleranz ist auch der Maßstab der Anzeige
+
+Nicht nur die Grenze zwischen „eben" und „nicht eben", sondern der Maßstab
+selbst: **Toleranzgrenze = Rand der grünen Zone.** Steht das Fahrzeug innerhalb
+der Toleranz, steht die Blase in der Mitte, die Wasserwaagen stehen mittig und
+die Seitenansichten waagerecht — in jeder Ansicht und auf beiden Achsen.
+
+Das ist der Grund, warum die Anzeige mit 5 cm Toleranz gröber aussieht als mit
+1 cm. Sie zeigt dieselbe Messung, nur an dem Maßstab, den du vorgegeben hast:
+Wer 5 cm erlaubt, will bei 4 cm nicht sehen, dass 4 cm fehlen — er will sehen,
+dass er fertig ist.
+
+Zwei Dinge halten die Anzeige zusätzlich ruhig, wenn das Fahrzeug längere Zeit
+steht:
+
+- **Die Firmware glättet adaptiv.** Kleine Änderungen gelten als Rauschen und
+  wirken nur träge, große als echte Lageänderung und wirken sofort. Beim
+  Auffahren auf den Keil bleibt die Anzeige deshalb live, im Stand steht sie
+  still. Verloren geht dabei nichts — der geglättete Wert läuft jeder echten
+  Änderung vollständig nach, nur langsamer.
+- **Einmal „eben" bleibt „eben"**, bis die Neigung deutlich über die Toleranz
+  hinausgeht. Ohne das entscheidet sich an einem einzigen Punkt, ob das
+  Fahrzeug steht — und genau auf diesem Punkt rauscht jeder Messwert.
+
+Wem das zu grob ist, der schaltet den **Präzisionsmodus** ein: Dort steht die
+Blase auch innerhalb der Toleranz an ihrer echten Stelle, die Winkel stehen mit
+zwei Nachkommastellen da, und statt der Zentimeter gilt `Toleranz genau` in
+Grad — dieselbe Zahl für beide Achsen.
+
+Der Schalter sitzt auf der Geräteseite unter *Fahrzeug* und auf der Karte unten
+bei den Bedienelementen. Beide legen denselben Schalter um: Er liegt im Gerät,
+damit er auch ohne Home Assistant erreichbar ist. Die Integration legt deshalb
+keinen zweiten daneben — genau wie bei Radstand, Spurweite und Toleranz.
+
+Auch der Binärsensor **Camper steht gerade** im Gerät folgt jetzt dieser
+Rechnung. Vorher galt dort eine feste Gradzahl, und er meldete „nicht gerade",
+während die Geräteseite daneben „EBEN – STOP" zeigte. Wer ihn in einer
+Automation benutzt, bekommt jetzt genau das, was auf dem Handy steht.
 
 ## Wie lange hält eine Kalibrierung?
 

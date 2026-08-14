@@ -57,8 +57,8 @@ Einschalten sein eigenes Netz.
 2. Im Browser **`192.168.4.1`** öffnen.
 3. Über *Zum Home-Bildschirm hinzufügen* landet ein Symbol auf dem Handy.
 
-Dort stellst du unter **Fahrzeug** Fahrzeugart, Radstand, Spurweite, Toleranz
-und Keilstufe ein — die Werte liegen im Gerät, nicht im Handy.
+Dort stellst du unter **Fahrzeug** Fahrzeugart, Radstand, Spurweite, Toleranz,
+Präzisionsmodus und Keilstufe ein — die Werte liegen im Gerät, nicht im Handy.
 
 - ✔ Zwei Wasserwaagen, Draufsicht mit wandernder Blase, Seiten- und
   Heckansicht, Klartextanweisung.
@@ -92,8 +92,9 @@ mitgelieferte Firmware läuft.
 
 - ✔ Es entsteht ein Gerät **CamperMaid** mit „Phase", „Steht eben",
   „Schwelle längs/quer", „Korrektur längs/quer" und „Ansageziel".
-- ✔ Fahrzeugmaße und Ausrichtart erscheinen **nicht** doppelt — die liest die
-  Integration vom Gerät.
+- ✔ Fahrzeugmaße, Ausrichtart und Präzisionsmodus erscheinen **nicht**
+  doppelt — die liest die Integration vom Gerät. Die Karte bedient dann den
+  Schalter des Geräts.
 
 **3.5 Karte aufs Dashboard** — Dashboard → Bearbeiten → *Karte hinzufügen* →
 „CamperMaid" suchen.

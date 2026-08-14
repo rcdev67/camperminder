@@ -62,15 +62,23 @@ substitutions:
   # Ein Bindestrich macht die Nummer zur Vorabfassung: "2.0.4-rc1" statt
   # "2.0.4". Daran erkennen die Werkzeuge, dass dieser Stand NICHT
   # veröffentlicht werden soll - Einzelheiten in docs/firmware_update.md.
-  firmware_version: "2.0.4"
+  firmware_version: "2.0.5"
 
   # I2C-Pins (0,42"-OLED-Board): SDA=GPIO5, SCL=GPIO6
   i2c_sda_pin: GPIO5
   i2c_scl_pin: GPIO6
-  # Toleranz in Grad, bis zu der "steht gerade" gilt.
-  # NUR für die Anzeige am Gerät (OLED + binary_sensor "steht gerade").
-  # Ansagen und Karte benutzen die Toleranz aus der HA-Integration.
+  # Vorgabe für "Toleranz genau" - die Gradtoleranz des Präzisionsmodus.
+  # Nur der Anfangswert; verstellt wird sie danach über die Entität, damit
+  # dafür niemand flashen muss. Muss zu DEFAULT_TOLERANCE_DEG in
+  # custom_components/campermaid/const.py passen.
   level_tolerance_deg: "0.4"
+
+  # Einmal "eben" bleibt "eben", bis die Neigung um diesen Faktor über die
+  # Toleranz hinausgeht. Ohne diese Hysterese entscheidet sich an einem
+  # einzigen Punkt, ob das Fahrzeug steht - und genau auf diesem Punkt rauscht
+  # der Messwert. Muss mit LEVEL_RELEASE in const.py und webui.js
+  # übereinstimmen, sonst widersprechen sich Gerät und Karte.
+  level_release: "1.25"
   # Achsen-Vorzeichen - nur "1" oder "-1".
   # Konvention: pitch > 0 = Front höher, roll > 0 = rechte Seite höher.
   pitch_sign: "1"
@@ -94,6 +102,44 @@ substitutions:
   # auseinanderliefen.
   axis_pitch: "x"
   axis_roll: "y"
+
+  # --- Ruhige Anzeige: adaptive Glättung -----------------------------------
+  #
+  # Das Problem, das diese vier Zahlen lösen: Ein Grad Neigung sind rund 17
+  # Milli-g. Das Rauschen eines MPU6050 liegt in derselben Größenordnung, und
+  # über einen Radstand von 3500 mm werden aus zwei, drei Zehntelgrad ein
+  # ganzer Zentimeter. Bei 5 cm Toleranz sprang die Anzeige dadurch im Stand
+  # zwischen 4,3 und 5,2 cm hin und her - das Fahrzeug stand längst, die
+  # Anzeige aber nicht.
+  #
+  # Ein einfacher Tiefpass löst das nicht: Stark genug eingestellt, um das
+  # Rauschen wegzunehmen, hinkt er beim Auffahren auf den Keil sekundenlang
+  # hinterher - und genau da zählt jede Sekunde.
+  #
+  # Deshalb hängt die Trägheit davon ab, WIE WEIT der Messwert vom
+  # geglätteten Wert abweicht:
+  #
+  #   bis  smooth_noise_deg  - das ist Rauschen. Sehr träge (alpha_slow),
+  #                            bei 10 Hz rund 5 s Zeitkonstante. Die Anzeige
+  #                            steht still, solange das Fahrzeug still steht.
+  #   ab   smooth_move_deg   - das ist eine echte Lageänderung. Voll flott
+  #                            (alpha_fast), wie bisher.
+  #   dazwischen             - linear überblendet.
+  #
+  # Warum das beim Auffahren trotzdem sofort reagiert: Verglichen wird der
+  # Rohwert mit dem GEGLÄTTETEN Wert, nicht mit dem vorherigen Rohwert. Rollt
+  # das Fahrzeug, läuft der geglättete Wert dem Rohwert nach - der Abstand
+  # wächst binnen Zehntelsekunden über die Rauschgrenze, und ab da folgt die
+  # Glättung wieder flott. Zusätzlich schaltet der Bewegungssensor sofort auf
+  # flott, bevor der Abstand überhaupt aufläuft.
+  #
+  # Genauigkeit geht dabei nicht verloren: Ein exponentieller Mittelwert hat
+  # keinen toten Bereich, er läuft jeder echten Änderung vollständig nach -
+  # nur eben langsam, solange sie klein ist.
+  smooth_noise_deg: "0.25"
+  smooth_move_deg: "1.5"
+  smooth_alpha_slow: "0.02"
+  smooth_alpha_fast: "0.5"
 
 # Board-Feinheiten, die der Assistent nicht setzt. "board:" kommt bewusst aus
 # der Gerätedatei, damit die Wahl im Assistenten gilt.
@@ -143,6 +189,24 @@ globals:
   - id: z_flip
     type: float
     initial_value: "1.0"
+
+  # Der geglättete Stand der beiden Achsen - siehe smooth_* oben.
+  #
+  # NAN heißt "noch nichts gesehen": Der erste Messwert wird dann unverändert
+  # übernommen, statt aus einer erfundenen Null herauszulaufen. Bewusst ohne
+  # restore_value - ein gespeicherter Neigungswert vom letzten Stellplatz wäre
+  # nach dem Einschalten schlicht falsch.
+  - id: pitch_smooth
+    type: float
+    initial_value: "NAN"
+  - id: roll_smooth
+    type: float
+    initial_value: "NAN"
+
+  # Gedächtnis der Hysterese von "steht gerade" - siehe level_release.
+  - id: level_hold
+    type: bool
+    initial_value: "false"
 
 # --- Fahrzeugmaße ---------------------------------------------------------
 # Gehören ins Gerät, nicht ins Handy: sie beschreiben das Fahrzeug, nicht den
@@ -194,6 +258,30 @@ number:
     max_value: 20
     step: 0.5
     initial_value: 5
+    restore_value: true
+    optimistic: true
+    mode: box
+
+  # Die Toleranz des Präzisionsmodus - eine feste Gradzahl für beide Achsen
+  # statt einer über die Fahrzeugmaße umgerechneten Zentimeterangabe.
+  #
+  # Sie ist bewusst NICHT dasselbe wie "Toleranz": Zentimeter sind das Maß der
+  # Wirklichkeit (5 cm Höhenunterschied merkt man im Bett), Grad das Maß des
+  # Sensors. Wer beide Achsen gleich streng bewertet haben will, arbeitet in
+  # Grad - dann bedeutet dieselbe Gradzahl längs allerdings mehr Zentimeter
+  # als quer, weil der Radstand größer ist als die Spurweite.
+  #
+  # Grenzen und Schrittweite müssen zu number.py der Integration passen.
+  - platform: template
+    name: "Toleranz genau"
+    id: tolerance_deg
+    unit_of_measurement: "°"
+    icon: mdi:angle-acute
+    entity_category: config
+    min_value: 0.1
+    max_value: 3
+    step: 0.1
+    initial_value: ${level_tolerance_deg}
     restore_value: true
     optimistic: true
     mode: box
@@ -285,6 +373,34 @@ select:
               ESP_LOGW("level", "Einbaulage jetzt '%s' - Nullpunkt neu kalibrieren!", x.c_str());
             }
 
+# --- Präzisionsmodus --------------------------------------------------------
+# Die Anzeige misst in Toleranzen, nicht in Grad: Innerhalb der eingestellten
+# Toleranz steht die Blase in der Mitte, weil dort nichts mehr zu tun ist. Das
+# ist für den Alltag richtig und für Pedanten zu grob - wer die letzten Zehntel
+# sehen will, sieht sie hier.
+#
+# Was der Schalter ändert:
+#   - Die Toleranz ist "Toleranz genau" in Grad statt "Toleranz" in
+#     Zentimetern, und sie gilt für beide Achsen gleich.
+#   - Die Blase bleibt auch innerhalb der Toleranz an ihrer echten Stelle.
+#   - Winkel stehen mit zwei Nachkommastellen statt mit einer.
+#
+# Gehört ins GERÄT und nicht nur in Home Assistant - aus demselben Grund wie
+# die Einbaulage: Wer das Gerät ohne Zentrale betreibt, käme sonst an eine
+# Einstellung nicht heran, die darüber entscheidet, was er sieht. Die
+# Integration liest den Schalter vom Gerät, statt einen zweiten danebenzustellen.
+switch:
+  - platform: template
+    name: "Präzisionsmodus"
+    id: precise_mode
+    icon: mdi:target
+    entity_category: config
+    optimistic: true
+    # Übersteht den Neustart und startet im Zweifel aus - eine
+    # Verhaltenserweiterung soll niemanden überraschen, der das Gerät gerade
+    # erst auspackt.
+    restore_mode: RESTORE_DEFAULT_OFF
+
 # --- Schriften fürs OLED (lädt sich beim Kompilieren automatisch) --------
 font:
   # Zwei Größen, weil das Feld nur 72 x 40 Pixel hat: Die Adresse muss lesbar
@@ -368,11 +484,44 @@ sensor:
       ) * (180.0f / 3.14159265358979323846f);
       return (raw - id(pitch_offset)) * ${pitch_sign};
     filters:
-      - sliding_window_moving_average:
-          window_size: 3
+      # Median statt Mittelwert: Ein einzelner Ausreißer wird verworfen statt
+      # anteilig weitergereicht. Ein gemittelter Ausreißer wandert sonst in
+      # die Glättung darunter und wird dort als "echte Bewegung" gelesen.
+      - median:
+          window_size: 5
           send_every: 1
-      - exponential_moving_average:
-          alpha: 0.5                 # geringe Latenz, ruhige Anzeige
+      - lambda: |-
+          // Adaptive Glättung - Begründung und Zahlen stehen bei den
+          // substitutions smooth_* am Dateianfang. Muss für Pitch und Roll
+          // gleich bleiben, sonst verhalten sich die beiden Achsen in der
+          // Anzeige unterschiedlich.
+          if (isnan(x)) { id(pitch_smooth) = NAN; return x; }
+          if (isnan(id(pitch_smooth))) { id(pitch_smooth) = x; return x; }
+
+          const float abstand = fabsf(x - id(pitch_smooth));
+          float alpha = ${smooth_alpha_slow};
+          if (id(in_motion).has_state() && id(in_motion).state) {
+            alpha = ${smooth_alpha_fast};
+          } else if (abstand > ${smooth_noise_deg}) {
+            const float anteil = (abstand - ${smooth_noise_deg}) /
+                                 (${smooth_move_deg} - ${smooth_noise_deg});
+            alpha += (${smooth_alpha_fast} - ${smooth_alpha_slow}) *
+                     (anteil > 1.0f ? 1.0f : anteil);
+          }
+          id(pitch_smooth) += alpha * (x - id(pitch_smooth));
+          return id(pitch_smooth);
+      # Nur melden, was sich wirklich geändert hat. 0,02° sind über 3500 mm
+      # Radstand gut ein Millimeter - feiner braucht es niemand, und im Stand
+      # hört der Datenstrom damit schlicht auf. Genau das ist der Punkt: Die
+      # Karte zeichnet dann nicht mehr zehnmal je Sekunde eine Zahl neu, die
+      # sich nur im Rauschen unterscheidet.
+      #
+      # Der Herzschlag daneben hält den Wert trotzdem frisch - für den
+      # Verlaufsgraphen in Home Assistant und für die Driftmessung weiter
+      # unten, die je Minute mittelt.
+      - or:
+          - delta: 0.02
+          - heartbeat: 30s
 
   # --- Neigung Quer (Roll) -------------------------------------------------
   - platform: template
@@ -402,11 +551,29 @@ sensor:
       ) * (180.0f / 3.14159265358979323846f);
       return (raw - id(roll_offset)) * ${roll_sign};
     filters:
-      - sliding_window_moving_average:
-          window_size: 3
+      # Wortgleich zum Pitch-Sensor oben - siehe die Begründung dort.
+      - median:
+          window_size: 5
           send_every: 1
-      - exponential_moving_average:
-          alpha: 0.5
+      - lambda: |-
+          if (isnan(x)) { id(roll_smooth) = NAN; return x; }
+          if (isnan(id(roll_smooth))) { id(roll_smooth) = x; return x; }
+
+          const float abstand = fabsf(x - id(roll_smooth));
+          float alpha = ${smooth_alpha_slow};
+          if (id(in_motion).has_state() && id(in_motion).state) {
+            alpha = ${smooth_alpha_fast};
+          } else if (abstand > ${smooth_noise_deg}) {
+            const float anteil = (abstand - ${smooth_noise_deg}) /
+                                 (${smooth_move_deg} - ${smooth_noise_deg});
+            alpha += (${smooth_alpha_fast} - ${smooth_alpha_slow}) *
+                     (anteil > 1.0f ? 1.0f : anteil);
+          }
+          id(roll_smooth) += alpha * (x - id(roll_smooth));
+          return id(roll_smooth);
+      - or:
+          - delta: 0.02
+          - heartbeat: 30s
 
   # --- Diagnose: Nullpunktdrift über Temperatur ----------------------------
   #
@@ -419,8 +586,16 @@ sensor:
   #
   # Warum eigene Werte statt der vorhandenen: Die Live-Werte oben tragen
   # accuracy_decimals 1. Ein Drift von wenigen Hundertstelgrad ist darin
-  # unsichtbar. Diese Kopien mitteln je Minute über 600 Messungen - das drückt
-  # das Rauschen um etwa den Faktor 25 - und führen drei Nachkommastellen.
+  # unsichtbar. Diese Kopien führen drei Nachkommastellen und mitteln
+  # zusätzlich je Minute.
+  #
+  # Die Rauschunterdrückung leistet inzwischen die adaptive Glättung oben: Im
+  # Stand entspricht sie einem Mittel über rund hundert Messungen, drückt das
+  # Rauschen also um etwa den Faktor zehn. Sie verschiebt den Mittelwert nicht,
+  # und der ist hier die gesuchte Größe - ein exponentieller Mittelwert hat
+  # keinen toten Bereich, er läuft jeder echten Verschiebung vollständig nach.
+  # Der Herzschlag im Filter oben sorgt dafür, dass hier auch im völligen
+  # Stillstand je Minute Werte ankommen und die Reihe keine Lücken bekommt.
   #
   # Auswertung siehe docs/drift_messung.md.
   - platform: copy
@@ -477,16 +652,50 @@ binary_sensor:
     name: "Status"
     id: zentrale_verbunden
 
+  # Dieselbe Rechnung wie die Oberfläche, nicht mehr eine eigene.
+  #
+  # Vorher stand hier eine feste Gradzahl. Bei 5 cm Toleranz meldete dieser
+  # Sensor deshalb "nicht gerade", während die Geräteseite daneben "EBEN -
+  # STOP" zeigte - zwei Antworten auf dieselbe Frage, und keine davon war
+  # erkennbar die maßgebliche. Wer diesen Sensor in einer Automation benutzt,
+  # bekommt jetzt genau das, was er auf dem Handy sieht.
   - platform: template
     name: "Camper steht gerade"
     id: camper_level_ok
     icon: mdi:axis-arrow
     lambda: |-
       if (isnan(id(pitch).state) || isnan(id(roll).state)) {
+        id(level_hold) = false;
         return {};
       }
-      return fabsf(id(pitch).state) <= ${level_tolerance_deg}
-        && fabsf(id(roll).state) <= ${level_tolerance_deg};
+
+      // Im Präzisionsmodus eine feste Gradzahl für beide Achsen, sonst die
+      // Zentimeterangabe über das jeweilige Fahrzeugmaß umgerechnet - so ist
+      // längs und quer gleich streng bewertet. MUSS zu tolerance() in
+      // webui.js und _tolerance() in coordinator.py passen.
+      const bool genau = id(precise_mode).state;
+      const float grad = id(tolerance_deg).state;
+      const float zentimeter = id(tolerance_cm).state;
+      const float laengs = id(wheelbase_mm).state;
+      const float quer = id(track_mm).state;
+      // Beim Start kann ein Einstellwert noch fehlen. Dann lieber "unbekannt"
+      // melden als "steht nicht gerade" - ein falsches Nein ist hier so
+      // schlecht wie ein falsches Ja.
+      if (isnan(grad) || isnan(zentimeter) || isnan(laengs) || isnan(quer)) {
+        return {};
+      }
+
+      const float tol_pitch = genau ? grad
+        : fmaxf(atanf(zentimeter * 10.0f / laengs) * 180.0f / M_PI, 0.05f);
+      const float tol_roll = genau ? grad
+        : fmaxf(atanf(zentimeter * 10.0f / quer) * 180.0f / M_PI, 0.05f);
+
+      // Hysterese: Wer einmal drinsteht, bleibt drin, bis die Neigung
+      // deutlich darüber hinausgeht - siehe level_release.
+      const float faktor = id(level_hold) ? ${level_release} : 1.0f;
+      id(level_hold) = fabsf(id(pitch).state) <= tol_pitch * faktor
+        && fabsf(id(roll).state) <= tol_roll * faktor;
+      return id(level_hold);
 
   # Bewegungserkennung über Gyro -> "steht" erst 20 s nach letzter Bewegung
   - platform: template

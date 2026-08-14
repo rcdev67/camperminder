@@ -23,7 +23,7 @@ das Gerät es selbst.
 
 | Wert | Bedeutung |
 |---|---|
-| **Diagnose Pitch Mittel** | Längsneigung, je Minute über 600 Messungen gemittelt, drei Nachkommastellen |
+| **Diagnose Pitch Mittel** | Längsneigung, geglättet und je Minute gemittelt, drei Nachkommastellen |
 | **Diagnose Roll Mittel** | dasselbe quer |
 | **Diagnose Betrag** | Betrag des Beschleunigungsvektors, vier Nachkommastellen |
 | **MPU6050 Temperatur** | Temperatur im Sensor selbst, nicht der Raumluft |

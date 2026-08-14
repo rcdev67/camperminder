@@ -12,7 +12,7 @@ import logging
 import math
 from datetime import datetime
 
-from homeassistant.const import STATE_UNAVAILABLE, STATE_UNKNOWN
+from homeassistant.const import STATE_ON, STATE_UNAVAILABLE, STATE_UNKNOWN
 from homeassistant.core import Event, EventStateChangedData, HomeAssistant, callback
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.dispatcher import async_dispatcher_send
@@ -23,6 +23,7 @@ from .const import (
     CONF_MOTION_SENSOR,
     CONF_NOTIFY_SERVICE,
     CONF_PITCH_SENSOR,
+    CONF_PRECISE,
     CONF_ROLL_SENSOR,
     CONF_TOLERANCE_CM,
     CONF_TOLERANCE_DEG,
@@ -38,11 +39,13 @@ from .const import (
     DEFAULT_VEHICLE_TYPE,
     DEFAULT_WHEELBASE,
     DEVICE_METHOD_MAP,
+    DEVICE_SWITCH_VALUES,
     DEVICE_VALUE_ENTITIES,
     DEVICE_VEHICLE_MAP,
     DIRECTION_DOWN,
     DIRECTION_UP,
     IMPLAUSIBLE_DEG,
+    LEVEL_RELEASE,
     METHOD_WEDGE,
     METHODS,
     MIN_TOLERANCE_DEG,
@@ -120,7 +123,7 @@ VALUE_DEFAULTS: dict[str, float | bool | str | None] = {
     CONF_VEHICLE_TYPE: DEFAULT_VEHICLE_TYPE,
     CONF_NOTIFY_SERVICE: None,
     "voice": False,  # Sprachansage - neue Verhaltenserweiterungen starten aus
-    "precise": False,  # Präzisionsmodus
+    CONF_PRECISE: False,  # Präzisionsmodus, sofern das Gerät ihn nicht führt
 }
 
 # Diese Werte sind Zahlen, alle übrigen nicht.
@@ -158,6 +161,9 @@ class CamperCoordinator:
 
         self.values: dict[str, float | bool | str | None] = dict(VALUE_DEFAULTS)
         self._apply_config(config)
+
+        # Gedächtnis der Ebenheit je Achse - siehe _axis_level.
+        self._level_hold: dict[str, bool] = {"pitch": False, "roll": False}
 
         # Wird in async_start gefüllt, sobald die Entitätsregistrierung
         # befragt werden kann.
@@ -329,6 +335,8 @@ class CamperCoordinator:
                 STATE_UNKNOWN,
                 STATE_UNAVAILABLE,
             ):
+                if key in DEVICE_SWITCH_VALUES:
+                    return state.state == STATE_ON
                 if key == CONF_LEVEL_METHOD:
                     return DEVICE_METHOD_MAP.get(state.state, DEFAULT_LEVEL_METHOD)
                 if key == CONF_VEHICLE_TYPE:
@@ -366,7 +374,7 @@ class CamperCoordinator:
 
     @property
     def precise(self) -> bool:
-        return bool(self.get_value("precise"))
+        return bool(self.get_value(CONF_PRECISE))
 
     @property
     def voice(self) -> bool:
@@ -394,6 +402,52 @@ class CamperCoordinator:
     def tolerance_roll(self) -> float:
         return self._tolerance(self.track)
 
+    # -- Ebenheit je Achse -------------------------------------------------
+
+    def _axis_level(self, key: str, value: float | None, tolerance: float) -> bool:
+        """Steht diese Achse innerhalb der Toleranz? Mit Hysterese.
+
+        Die Frage hat genau eine Antwort, und die gilt für alles: Text,
+        Wasserwaage, Blase, Fahrzeugneigung und Anweisung. Vorher rechnete
+        jede dieser Stellen dieselbe Bedingung selbst aus - beim gleichen
+        Messwert kam zwar überall dasselbe heraus, aber jede Stelle sprang für
+        sich, sobald der Messwert auf der Schwelle stand.
+
+        Der Rückweg liegt über dem Hinweg (LEVEL_RELEASE): Wer einmal
+        drinsteht, bleibt drin, bis die Neigung deutlich darüber hinausgeht.
+        Das ist keine Beschönigung, sondern die einzige Art, mit einem
+        rauschenden Messwert eine ruhige Aussage zu treffen - die Alternative
+        ist eine Anzeige, die im Stand zwischen "fertig" und "5 cm fehlen"
+        hin und her springt.
+
+        Absichtlich beim Lesen fortgeschrieben und nicht in _read_sources:
+        Auch eine geänderte Toleranz oder ein geändertes Fahrzeugmaß muss
+        sofort wirken, und die kommen nicht über die Sensoren herein.
+        Mehrfaches Auswerten desselben Messwerts ändert nichts - die Regel
+        kennt keinen Zwischenzustand.
+        """
+        if value is None:
+            self._level_hold[key] = False
+            return False
+
+        deviation = abs(value)
+        if self._level_hold[key]:
+            if deviation > tolerance * LEVEL_RELEASE:
+                self._level_hold[key] = False
+        elif deviation <= tolerance:
+            self._level_hold[key] = True
+        return self._level_hold[key]
+
+    @property
+    def level_pitch(self) -> bool:
+        """Längsachse innerhalb der Toleranz."""
+        return self._axis_level("pitch", self.pitch, self.tolerance_pitch)
+
+    @property
+    def level_roll(self) -> bool:
+        """Querachse innerhalb der Toleranz."""
+        return self._axis_level("roll", self.roll, self.tolerance_roll)
+
     @property
     def correction_pitch_cm(self) -> float | None:
         """Wie hoch die Front bzw. das Heck müsste, in cm."""
@@ -419,7 +473,10 @@ class CamperCoordinator:
         tol_p = self.tolerance_pitch
         tol_r = self.tolerance_roll
 
-        if abs(pitch) <= tol_p and abs(roll) <= tol_r:
+        # Über _axis_level und nicht über den nackten Vergleich: sonst hätte
+        # die Phase - und damit die Ansage - eine andere Schwelle als die
+        # Anzeige, die dieselbe Frage bereits beantwortet hat.
+        if self.level_pitch and self.level_roll:
             return PHASE_LEVEL
         if abs(pitch) <= 2 * tol_p and abs(roll) <= 2 * tol_r:
             return PHASE_CLOSE
@@ -504,8 +561,8 @@ class CamperCoordinator:
         # entscheidet. Damit kann die Anweisung nichts verlangen, was die
         # Phasenanzeige bereits als erledigt ausweist - vorher konnte sie genau
         # das.
-        pitch = 0.0 if abs(self.pitch) <= self.tolerance_pitch else self.pitch
-        roll = 0.0 if abs(self.roll) <= self.tolerance_roll else self.roll
+        pitch = 0.0 if self.level_pitch else self.pitch
+        roll = 0.0 if self.level_roll else self.roll
 
         half_long = self.wheelbase * math.tan(math.radians(pitch)) / 20.0
         half_lat = self.track * math.tan(math.radians(roll)) / 20.0
@@ -549,8 +606,17 @@ class CamperCoordinator:
 
         plan: list[dict] = []
 
+        # Eine Achse innerhalb der Toleranz ist fertig und kommt nicht in die
+        # Anweisung - dieselbe Regel wie beim Wohnmobil in wheel_lifts_cm.
+        # Ohne sie stünde beim Wohnwagen "Stützrad hoch, 3 cm" unter einer
+        # Anzeige, die für dieselbe Achse gerade "EBEN - STOP" meldet.
+
         # Quer: das tiefere Rad auf den Keil. roll > 0 = rechts höher.
-        across_cm = round(self.track * math.tan(math.radians(abs(self.roll))) / 10.0, 1)
+        across_cm = (
+            0.0
+            if self.level_roll
+            else round(self.track * math.tan(math.radians(abs(self.roll))) / 10.0, 1)
+        )
         if across_cm >= WHEEL_LIFT_IGNORE_CM:
             plan.append(
                 {
@@ -562,7 +628,13 @@ class CamperCoordinator:
             )
 
         # Längs: Stützrad. pitch > 0 = Front höher, also senken.
-        along_cm = round(self.wheelbase * math.tan(math.radians(abs(self.pitch))) / 10.0, 1)
+        along_cm = (
+            0.0
+            if self.level_pitch
+            else round(
+                self.wheelbase * math.tan(math.radians(abs(self.pitch))) / 10.0, 1
+            )
+        )
         if along_cm >= WHEEL_LIFT_IGNORE_CM:
             plan.append(
                 {
