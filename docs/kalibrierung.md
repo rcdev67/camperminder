@@ -153,6 +153,36 @@ steht:
   hinausgeht. Ohne das entscheidet sich an einem einzigen Punkt, ob das
   Fahrzeug steht — und genau auf diesem Punkt rauscht jeder Messwert.
 
+### Beides ist einstellbar
+
+Wie ruhig eine Anzeige sein *soll*, ist Geschmack. Der eine will, dass sie steht
+wie angenagelt, der andere will jede Regung sehen. Deshalb sind es Regler und
+keine einkompilierten Zahlen — auf der Geräteseite unter **Anzeige**, in Home
+Assistant beim Gerät unter *Konfiguration*:
+
+| Was du beobachtest | Regler | Richtung |
+|---|---|---|
+| zappelt im Stand noch | **Anzeigeruhe** | höher |
+| hinkt beim Auffahren hinterher | **Anzeigeruhe** | niedriger |
+| folgt beim Rangieren zu ruckelig | **Anzeigeruhe** | höher |
+| springt an der Toleranzgrenze hin und her | **Haltebereich** | höher |
+
+**Anzeigeruhe** geht von 0 bis 10, Vorgabe 5. Sie ändert nichts an der Messung
+und nichts an der Toleranz — nur die Geduld: Bei 0 folgt die Anzeige jeder
+Regung und zappelt im Stand mehr, bei 10 steht sie still und reagiert dafür
+etwas später. Ein Regler und nicht vier, weil die vier Beiwerte des Filters
+dieselbe Eigenschaft aus vier Richtungen beschreiben; einzeln verstellbar
+könnte man sie gegeneinander stellen und bekäme eine Anzeige, die weder ruhig
+ist noch reagiert.
+
+**Haltebereich** in Prozent, Vorgabe 125: Wie weit die Neigung über die
+Toleranz hinausgehen darf, bevor „eben" zurückgenommen wird. 100 % heißt
+sofort — dann springt die Anzeige an der Grenze hin und her, genau das soll die
+Hysterese verhindern.
+
+Beide wirken sofort, ohne Neustart. Zum Ausprobieren im Fahrzeug ist das der
+Sinn der Sache.
+
 Wem das zu grob ist, der schaltet den **Präzisionsmodus** ein: Dort steht die
 Blase auch innerhalb der Toleranz an ihrer echten Stelle, die Winkel stehen mit
 zwei Nachkommastellen da, und statt der Zentimeter gilt `Toleranz genau` in

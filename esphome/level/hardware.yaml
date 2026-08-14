@@ -62,7 +62,7 @@ substitutions:
   # Ein Bindestrich macht die Nummer zur Vorabfassung: "2.0.4-rc1" statt
   # "2.0.4". Daran erkennen die Werkzeuge, dass dieser Stand NICHT
   # veröffentlicht werden soll - Einzelheiten in docs/firmware_update.md.
-  firmware_version: "2.0.5"
+  firmware_version: "2.0.6"
 
   # I2C-Pins (0,42"-OLED-Board): SDA=GPIO5, SCL=GPIO6
   i2c_sda_pin: GPIO5
@@ -73,12 +73,15 @@ substitutions:
   # custom_components/campermaid/const.py passen.
   level_tolerance_deg: "0.4"
 
-  # Einmal "eben" bleibt "eben", bis die Neigung um diesen Faktor über die
-  # Toleranz hinausgeht. Ohne diese Hysterese entscheidet sich an einem
-  # einzigen Punkt, ob das Fahrzeug steht - und genau auf diesem Punkt rauscht
-  # der Messwert. Muss mit LEVEL_RELEASE in const.py und webui.js
-  # übereinstimmen, sonst widersprechen sich Gerät und Karte.
-  level_release: "1.25"
+  # Vorgabe für "Haltebereich" in Prozent: Einmal "eben" bleibt "eben", bis die
+  # Neigung um diesen Anteil über die Toleranz hinausgeht. Ohne diese Hysterese
+  # entscheidet sich an einem einzigen Punkt, ob das Fahrzeug steht - und genau
+  # auf diesem Punkt rauscht der Messwert.
+  #
+  # Auch das ist nur der Anfangswert; verstellt wird zur Laufzeit. Muss zu
+  # LEVEL_RELEASE in const.py passen - die Zahl dort gilt, solange kein Gerät
+  # den Wert führt, etwa bei einem fremden Neigungssensor.
+  level_release_default: "125"
   # Achsen-Vorzeichen - nur "1" oder "-1".
   # Konvention: pitch > 0 = Front höher, roll > 0 = rechte Seite höher.
   pitch_sign: "1"
@@ -105,7 +108,7 @@ substitutions:
 
   # --- Ruhige Anzeige: adaptive Glättung -----------------------------------
   #
-  # Das Problem, das diese vier Zahlen lösen: Ein Grad Neigung sind rund 17
+  # Das Problem, das diese Rechnung löst: Ein Grad Neigung sind rund 17
   # Milli-g. Das Rauschen eines MPU6050 liegt in derselben Größenordnung, und
   # über einen Radstand von 3500 mm werden aus zwei, drei Zehntelgrad ein
   # ganzer Zentimeter. Bei 5 cm Toleranz sprang die Anzeige dadurch im Stand
@@ -119,12 +122,10 @@ substitutions:
   # Deshalb hängt die Trägheit davon ab, WIE WEIT der Messwert vom
   # geglätteten Wert abweicht:
   #
-  #   bis  smooth_noise_deg  - das ist Rauschen. Sehr träge (alpha_slow),
-  #                            bei 10 Hz rund 5 s Zeitkonstante. Die Anzeige
-  #                            steht still, solange das Fahrzeug still steht.
-  #   ab   smooth_move_deg   - das ist eine echte Lageänderung. Voll flott
-  #                            (alpha_fast), wie bisher.
-  #   dazwischen             - linear überblendet.
+  #   bis zur Rauschgrenze - das ist Rauschen. Sehr träge, die Anzeige steht
+  #                          still, solange das Fahrzeug still steht.
+  #   ab der Bewegungsgrenze - das ist eine echte Lageänderung. Voll flott.
+  #   dazwischen           - linear überblendet.
   #
   # Warum das beim Auffahren trotzdem sofort reagiert: Verglichen wird der
   # Rohwert mit dem GEGLÄTTETEN Wert, nicht mit dem vorherigen Rohwert. Rollt
@@ -136,10 +137,35 @@ substitutions:
   # Genauigkeit geht dabei nicht verloren: Ein exponentieller Mittelwert hat
   # keinen toten Bereich, er läuft jeder echten Änderung vollständig nach -
   # nur eben langsam, solange sie klein ist.
-  smooth_noise_deg: "0.25"
-  smooth_move_deg: "1.5"
-  smooth_alpha_slow: "0.02"
-  smooth_alpha_fast: "0.5"
+  #
+  # WAS HIER STEHT, IST NUR DIE ABBILDUNG - eingestellt wird zur Laufzeit.
+  #
+  # Wie ruhig eine Anzeige sein soll, ist Geschmack: Der eine will, dass sie
+  # steht wie angenagelt, der andere will jede Regung sehen. Das lässt sich
+  # nicht ab Werk entscheiden, und es über eine Substitution zu regeln hieße,
+  # jeden Nutzer zum Flashen zu zwingen. Deshalb gibt es EINEN Regler
+  # "Anzeigeruhe" (0 bis 10), und diese sechs Zahlen rechnen ihn in die vier
+  # Beiwerte des Filters um:
+  #
+  #   Rauschgrenze = base + Ruhe * step        bei Ruhe 5:  0,25 Grad
+  #   Bewegung ab  = Rauschgrenze * faktor                  1,50 Grad
+  #   alpha träge  = zaehler / (1 + Ruhe)                   0,0167  (~6 s)
+  #   alpha flott  = fast_base - Ruhe * fast_step           0,50
+  #
+  # Ein Regler und nicht vier: Die vier Beiwerte beschreiben EINE Eigenschaft
+  # aus vier Richtungen. Einzeln verstellbar wären sie in der Hand eines
+  # Nutzers kein Werkzeug, sondern eine Falle - man kann sie gegeneinander
+  # stellen und bekommt eine Anzeige, die weder ruhig ist noch reagiert.
+  #
+  # Ruhe 5 ergibt exakt das Verhalten, mit dem 2.0.5 ausgeliefert wurde. Wer
+  # die Abbildung ändert, verschiebt damit die Voreinstellung für alle.
+  calm_default: "5"
+  calm_noise_base: "0.05"
+  calm_noise_step: "0.04"
+  calm_move_faktor: "6.0"
+  calm_slow_zaehler: "0.10"
+  calm_fast_base: "0.60"
+  calm_fast_step: "0.02"
 
 # Board-Feinheiten, die der Assistent nicht setzt. "board:" kommt bewusst aus
 # der Gerätedatei, damit die Wahl im Assistenten gilt.
@@ -282,6 +308,48 @@ number:
     max_value: 3
     step: 0.1
     initial_value: ${level_tolerance_deg}
+    restore_value: true
+    optimistic: true
+    mode: box
+
+  # --- Die beiden Regler für das Empfinden ---------------------------------
+  #
+  # Sie ändern nichts an der Messung und nichts an der Toleranz. Sie ändern,
+  # wie die Anzeige sich anfühlt - und das empfindet jeder anders. Genau
+  # deshalb stehen sie hier als Entität und nicht als Substitution: Sonst
+  # müsste jeder, dem die Anzeige zu zappelig oder zu träge ist, die Firmware
+  # neu bauen.
+  - platform: template
+    name: "Anzeigeruhe"
+    id: anzeigeruhe
+    icon: mdi:sine-wave
+    entity_category: config
+    min_value: 0
+    max_value: 10
+    step: 1
+    initial_value: ${calm_default}
+    restore_value: true
+    optimistic: true
+    # Schieber und kein Eingabefeld: Das hier ist eine Geschmacksfrage, die man
+    # durch Probieren beantwortet, keine gemessene Zahl, die man einträgt.
+    mode: slider
+
+  # Prozent und kein Faktor: "125 %" liest sich als "ein Viertel über der
+  # Toleranz", "1,25" muss man erst übersetzen. 100 % schaltet die Hysterese
+  # ab - dann fällt die Anzeige sofort aus "eben", sobald die Toleranz auch
+  # nur um ein Rauschen überschritten wird. Genau das war der Ausgangszustand,
+  # den niemand haben will; deshalb ist es die untere Grenze und nicht die
+  # Vorgabe.
+  - platform: template
+    name: "Haltebereich"
+    id: haltebereich
+    unit_of_measurement: "%"
+    icon: mdi:arrow-expand-horizontal
+    entity_category: config
+    min_value: 100
+    max_value: 200
+    step: 5
+    initial_value: ${level_release_default}
     restore_value: true
     optimistic: true
     mode: box
@@ -491,22 +559,32 @@ sensor:
           window_size: 5
           send_every: 1
       - lambda: |-
-          // Adaptive Glättung - Begründung und Zahlen stehen bei den
-          // substitutions smooth_* am Dateianfang. Muss für Pitch und Roll
-          // gleich bleiben, sonst verhalten sich die beiden Achsen in der
+          // Adaptive Glättung - Begründung und Abbildung stehen bei den
+          // substitutions calm_* am Dateianfang. Muss für Pitch und Roll
+          // wortgleich bleiben, sonst verhalten sich die beiden Achsen in der
           // Anzeige unterschiedlich.
           if (isnan(x)) { id(pitch_smooth) = NAN; return x; }
           if (isnan(id(pitch_smooth))) { id(pitch_smooth) = x; return x; }
 
+          // Der Regler wird bei jeder Messung gelesen: Eine Änderung wirkt
+          // sofort, ohne Neustart - nur so kann man sie im Fahrzeug
+          // ausprobieren, und dafür ist sie da.
+          const float ruhe = isnan(id(anzeigeruhe).state)
+            ? ${calm_default} : id(anzeigeruhe).state;
+          const float rausch   = ${calm_noise_base} + ruhe * ${calm_noise_step};
+          const float bewegung = rausch * ${calm_move_faktor};
+          const float a_traege = ${calm_slow_zaehler} / (1.0f + ruhe);
+          const float a_flott  = ${calm_fast_base} - ruhe * ${calm_fast_step};
+
           const float abstand = fabsf(x - id(pitch_smooth));
-          float alpha = ${smooth_alpha_slow};
+          float alpha = a_traege;
           if (id(in_motion).has_state() && id(in_motion).state) {
-            alpha = ${smooth_alpha_fast};
-          } else if (abstand > ${smooth_noise_deg}) {
-            const float anteil = (abstand - ${smooth_noise_deg}) /
-                                 (${smooth_move_deg} - ${smooth_noise_deg});
-            alpha += (${smooth_alpha_fast} - ${smooth_alpha_slow}) *
-                     (anteil > 1.0f ? 1.0f : anteil);
+            alpha = a_flott;
+          } else if (abstand > rausch) {
+            // bewegung > rausch ist durch calm_move_faktor > 1 gesichert -
+            // hier kann nicht durch null geteilt werden.
+            const float anteil = (abstand - rausch) / (bewegung - rausch);
+            alpha += (a_flott - a_traege) * (anteil > 1.0f ? 1.0f : anteil);
           }
           id(pitch_smooth) += alpha * (x - id(pitch_smooth));
           return id(pitch_smooth);
@@ -559,15 +637,20 @@ sensor:
           if (isnan(x)) { id(roll_smooth) = NAN; return x; }
           if (isnan(id(roll_smooth))) { id(roll_smooth) = x; return x; }
 
+          const float ruhe = isnan(id(anzeigeruhe).state)
+            ? ${calm_default} : id(anzeigeruhe).state;
+          const float rausch   = ${calm_noise_base} + ruhe * ${calm_noise_step};
+          const float bewegung = rausch * ${calm_move_faktor};
+          const float a_traege = ${calm_slow_zaehler} / (1.0f + ruhe);
+          const float a_flott  = ${calm_fast_base} - ruhe * ${calm_fast_step};
+
           const float abstand = fabsf(x - id(roll_smooth));
-          float alpha = ${smooth_alpha_slow};
+          float alpha = a_traege;
           if (id(in_motion).has_state() && id(in_motion).state) {
-            alpha = ${smooth_alpha_fast};
-          } else if (abstand > ${smooth_noise_deg}) {
-            const float anteil = (abstand - ${smooth_noise_deg}) /
-                                 (${smooth_move_deg} - ${smooth_noise_deg});
-            alpha += (${smooth_alpha_fast} - ${smooth_alpha_slow}) *
-                     (anteil > 1.0f ? 1.0f : anteil);
+            alpha = a_flott;
+          } else if (abstand > rausch) {
+            const float anteil = (abstand - rausch) / (bewegung - rausch);
+            alpha += (a_flott - a_traege) * (anteil > 1.0f ? 1.0f : anteil);
           }
           id(roll_smooth) += alpha * (x - id(roll_smooth));
           return id(roll_smooth);
@@ -678,10 +761,12 @@ binary_sensor:
       const float zentimeter = id(tolerance_cm).state;
       const float laengs = id(wheelbase_mm).state;
       const float quer = id(track_mm).state;
+      const float halten = id(haltebereich).state;
       // Beim Start kann ein Einstellwert noch fehlen. Dann lieber "unbekannt"
       // melden als "steht nicht gerade" - ein falsches Nein ist hier so
       // schlecht wie ein falsches Ja.
-      if (isnan(grad) || isnan(zentimeter) || isnan(laengs) || isnan(quer)) {
+      if (isnan(grad) || isnan(zentimeter) || isnan(laengs) || isnan(quer)
+          || isnan(halten)) {
         return {};
       }
 
@@ -690,9 +775,9 @@ binary_sensor:
       const float tol_roll = genau ? grad
         : fmaxf(atanf(zentimeter * 10.0f / quer) * 180.0f / M_PI, 0.05f);
 
-      // Hysterese: Wer einmal drinsteht, bleibt drin, bis die Neigung
-      // deutlich darüber hinausgeht - siehe level_release.
-      const float faktor = id(level_hold) ? ${level_release} : 1.0f;
+      // Hysterese: Wer einmal drinsteht, bleibt drin, bis die Neigung über den
+      // Haltebereich hinausgeht. Auch der ist ein Regler - siehe dort.
+      const float faktor = id(level_hold) ? halten / 100.0f : 1.0f;
       id(level_hold) = fabsf(id(pitch).state) <= tol_pitch * faktor
         && fabsf(id(roll).state) <= tol_roll * faktor;
       return id(level_hold);

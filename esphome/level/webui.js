@@ -59,7 +59,7 @@
    * schlimmer als eine plausible Zahl. */
   var cfg = {
     wheelbase: 3500, track: 1800, tolerance_cm: 5, wedge_step: 0,
-    tolerance_deg: 0.4, precise: false,
+    tolerance_deg: 0.4, precise: false, calm: 5, hold_percent: 125,
     method: "keile", vehicle: "wohnmobil", mounting: "oben"
   };
 
@@ -72,6 +72,11 @@
     tolerance_cm: "toleranz",
     tolerance_deg: "toleranz_genau",
     wedge_step: "keilstufe",
+    /* Die Anzeigeruhe braucht hier keinen Eintrag zum Lesen - sie wirkt
+     * ausschließlich im Filter der Firmware. Geschrieben wird sie trotzdem
+     * von dieser Seite, deshalb steht sie in der Liste. */
+    calm: "anzeigeruhe",
+    hold_percent: "haltebereich",
     method: "ausrichtart",
     vehicle: "fahrzeugart",
     mounting: "einbaulage",
@@ -175,10 +180,16 @@
   var IMPLAUSIBLE_DEG = 45;
   var WHEEL_LIFT_IGNORE_CM = 1;
 
-  /* Einmal "eben" bleibt "eben", bis die Neigung deutlich darüber hinausgeht.
-   * Muss mit LEVEL_RELEASE in custom_components/campermaid/const.py
-   * übereinstimmen - sonst sagen Gerät und Karte Verschiedenes. */
+  /* Rückfallwert für den Haltebereich, solange das Gerät seinen noch nicht
+   * gemeldet hat. Muss mit LEVEL_RELEASE in const.py übereinstimmen. */
   var LEVEL_RELEASE = 1.25;
+
+  function levelRelease() {
+    var f = cfg.hold_percent / 100;
+    // Unter 1 wäre es keine Hysterese mehr, sondern eine Anzeige, die "eben"
+    // schon vor der Toleranz zurücknimmt.
+    return f >= 1 ? f : LEVEL_RELEASE;
+  }
 
   /* Im Präzisionsmodus eine feste Gradzahl für beide Achsen, sonst die
    * Zentimeterangabe über das jeweilige Fahrzeugmaß umgerechnet.
@@ -218,7 +229,7 @@
     }
     var deviation = Math.abs(value);
     if (hold[key]) {
-      if (deviation > tol * LEVEL_RELEASE) hold[key] = false;
+      if (deviation > tol * levelRelease()) hold[key] = false;
     } else if (deviation <= tol) {
       hold[key] = true;
     }
@@ -816,6 +827,23 @@
   var preciseBox = null;
   var settingsNote = null;
 
+  /* Eine Zahlenzeile. Der Verweis auf das Eingabefeld bleibt in
+   * settingInputs, damit syncSettings() den Wert später nachziehen kann, ohne
+   * das Feld neu anzulegen - wer gerade tippt, verlöre sonst den Text. */
+  function zahlZeile(ziel, key, label) {
+    var row = el('<div class="set"><span>' + label + "</span></div>");
+    var input = el('<input type="number" step="any">');
+    input.value = cfg[key];
+    input.onchange = function () {
+      var v = parseFloat(input.value);
+      if (!isNaN(v)) setNumber(key, v);
+    };
+    settingInputs[key] = input;
+    row.appendChild(input);
+    ziel.appendChild(row);
+    return input;
+  }
+
   function settings() {
     settingInputs = {};
     var box = el('<div class="plan"><h2>Fahrzeug</h2></div>');
@@ -832,18 +860,7 @@
         : ["tolerance_cm", "Toleranz (cm)"],
       ["wedge_step", "Keilstufe (cm, 0 = aus)"]
     ];
-    rows.forEach(function (r) {
-      var row = el('<div class="set"><span>' + r[1] + "</span></div>");
-      var input = el('<input type="number" step="any">');
-      input.value = cfg[r[0]];
-      input.onchange = function () {
-        var v = parseFloat(input.value);
-        if (!isNaN(v)) setNumber(r[0], v);
-      };
-      settingInputs[r[0]] = input;
-      row.appendChild(input);
-      box.appendChild(row);
-    });
+    rows.forEach(function (r) { zahlZeile(box, r[0], r[1]); });
 
     /* Steht direkt unter der Toleranz, weil er ändert, was sie bedeutet.
      *
@@ -902,10 +919,30 @@
       "der Pfeil zeigt weiterhin nach vorn. Nach dem Umstellen neu kalibrieren." +
       "</div>"));
 
-    /* Zwei Kästen, ein Rückgabewert: appendChild fügt bei einem Fragment alle
+    /* Eigener Kasten, weil diese beiden weder die Messung noch die Toleranz
+     * anfassen - sie ändern, wie sich die Anzeige anfühlt. Und das empfindet
+     * jeder anders: Der eine will, dass sie steht wie angenagelt, der andere
+     * will jede Regung sehen. Ab Werk lässt sich das nicht entscheiden,
+     * deshalb steht es hier und nicht in der Firmware. */
+    var anzeige = el('<div class="plan"><h2>Anzeige</h2></div>');
+    zahlZeile(anzeige, "calm", "Anzeigeruhe (0–10)");
+    anzeige.appendChild(el('<div class="muted" style="margin-bottom:10px">' +
+      "Klein: die Anzeige folgt jeder Regung, zappelt im Stand aber mehr. " +
+      "Groß: sie steht im Stand still und reagiert dafür etwas später. " +
+      "Die Genauigkeit ändert sich nicht – nur die Geduld." +
+      "</div>"));
+    zahlZeile(anzeige, "hold_percent", "Haltebereich (%)");
+    anzeige.appendChild(el('<div class="muted">' +
+      "Wie weit die Neigung über die Toleranz hinausgehen darf, bevor die " +
+      "Anzeige „eben“ zurücknimmt. 100 % heißt sofort – dann springt sie an " +
+      "der Grenze hin und her. Höher setzen, wenn genau das passiert." +
+      "</div>"));
+
+    /* Drei Kästen, ein Rückgabewert: appendChild fügt bei einem Fragment alle
      * Kinder ein, der Aufrufer bleibt unverändert. */
     var beide = document.createDocumentFragment();
     beide.appendChild(box);
+    beide.appendChild(anzeige);
     beide.appendChild(geraet);
     return beide;
   }
@@ -1313,6 +1350,8 @@
       else if (id.indexOf(IDS.tolerance_deg) >= 0) cfg.tolerance_deg = num(data.value);
       else if (id.indexOf(IDS.tolerance_cm) >= 0) cfg.tolerance_cm = num(data.value);
       else if (id.indexOf(IDS.wedge_step) >= 0) cfg.wedge_step = num(data.value);
+      else if (id.indexOf(IDS.calm) >= 0) cfg.calm = num(data.value);
+      else if (id.indexOf(IDS.hold_percent) >= 0) cfg.hold_percent = num(data.value);
       else if (id.indexOf(IDS.precise) >= 0) {
         // Wie bei der Fahrzeugart: Der Modus formt die Bedienelemente, da
         // reicht das Nachziehen der Messwerte nicht.
