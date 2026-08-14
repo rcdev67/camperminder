@@ -19,15 +19,15 @@ Alles hängt an `releases/latest/download/…`. GitHub löst das selbst auf die
 neueste Veröffentlichung auf, die Adressen ändern sich also **nie**:
 
 ```
-https://github.com/rcdev67/campermaid/releases/latest/download/level-manifest.json
-https://github.com/rcdev67/campermaid/releases/latest/download/level-firmware.ota.bin
-https://github.com/rcdev67/campermaid/releases/latest/download/level-firmware.ota.bin.md5
+https://github.com/rcdev67/camperminder/releases/latest/download/level-manifest.json
+https://github.com/rcdev67/camperminder/releases/latest/download/level-firmware.ota.bin
+https://github.com/rcdev67/camperminder/releases/latest/download/level-firmware.ota.bin.md5
 ```
 
 Das Produktpräfix `level-` trägt jede Datei, weil sich Level und Gas später ein
 Release teilen.
 
-Sie stehen fest in [`campermaid-level.yaml`](../esphome/level/campermaid-level.yaml)
+Sie stehen fest in [`camperminder-level.yaml`](../esphome/level/camperminder-level.yaml)
 und müssen bei einer neuen Version **nicht** angefasst werden.
 
 ## Eine neue Version veröffentlichen
@@ -69,7 +69,7 @@ Hochladen.
 Das Skript braucht ein Token mit Schreibrecht und sucht es an drei Stellen, in
 dieser Reihenfolge:
 
-1. Umgebungsvariable `CAMPERMAID_GH_TOKEN`
+1. Umgebungsvariable `CAMPERMINDER_GH_TOKEN`
 2. `tools/github_token.txt` (durch `.gitignore` ausgeschlossen)
 3. **den Git Credential Manager** — also dasselbe Token, mit dem `git push`
    ohnehin arbeitet
@@ -118,7 +118,7 @@ Auf das eigene Gerät am schnellsten direkt aus dem Arbeitsstand, ganz ohne
 Veröffentlichung:
 
 ```bash
-esphome run campermaid-level.yaml --device campermaid-level.local
+esphome run camperminder-level.yaml --device camperminder-level.local
 ```
 
 Auf ein entferntes Gerät über die Geräteseite: *Technik → Software → Datei
@@ -128,7 +128,7 @@ aufspielen*, dann `level-firmware.ota.bin` aus der Vorabfassung wählen.
 
 Taugt die Fassung, wird aus `2.0.4-rc1` schlicht `2.0.4` — in
 `esphome/level/hardware.yaml` **und** in
-`custom_components/campermaid/manifest.json`, beide müssen übereinstimmen. Dann
+`custom_components/camperminder/manifest.json`, beide müssen übereinstimmen. Dann
 neu bauen und erneut veröffentlichen. Die Vorabfassung kann stehenbleiben; sie
 stört nicht.
 
@@ -146,16 +146,16 @@ Nach der ESP-Web-Tools-Spezifikation mit der OTA-Erweiterung:
 
 ```json
 {
-  "name": "CamperMaid Level",
+  "name": "CamperMinder Level",
   "version": "2.0.0",
   "builds": [
     {
       "chipFamily": "ESP32-C3",
       "ota": {
         "md5": "…32 Zeichen…",
-        "path": "https://github.com/rcdev67/campermaid/releases/latest/download/level-firmware.ota.bin",
-        "summary": "CamperMaid 2.0.0",
-        "release_url": "https://github.com/rcdev67/campermaid/releases/latest"
+        "path": "https://github.com/rcdev67/camperminder/releases/latest/download/level-firmware.ota.bin",
+        "summary": "CamperMinder 2.0.0",
+        "release_url": "https://github.com/rcdev67/camperminder/releases/latest"
       }
     }
   ]

@@ -1,12 +1,12 @@
 # ============================================================================
-#  CamperMaid  -  Produktfirmware
+#  CamperMinder  -  Produktfirmware
 # ----------------------------------------------------------------------------
 #  DIES IST DIE AUSZULIEFERNDE FASSUNG. Eine Firmware, die beides kann:
 #
 #    * Standalone - eigene Bedienoberfläche auf dem Gerät (web_server unten),
 #      erreichbar über das Camper-WLAN oder das eigene Fallback-Netz des
 #      Geräts. Ohne Home Assistant, ohne Internet, ohne App.
-#    * Home Assistant - über api: mit der Integration campermaid.
+#    * Home Assistant - über api: mit der Integration camperminder.
 #
 #  Bewusst NICHT zwei getrennte Firmwares: zwei Stände hießen zwei
 #  Testläufe, zwei Update-Kanäle und die Gewissheit, dass irgendwann ein
@@ -21,8 +21,8 @@
 # ============================================================================
 
 substitutions:
-  device_name: campermaid-level
-  friendly_name: CamperMaid Level
+  device_name: camperminder-level
+  friendly_name: CamperMinder Level
   # WLAN-Stromsparen: "none" = niedrigste Latenz (Werkseinstellung dieses
   # Projekts), "light" spart im Dauerbetrieb spürbar Strom aus der
   # Aufbaubatterie, kostet etwas Reaktionszeit. "high" nur für Messungen.
@@ -31,7 +31,7 @@ substitutions:
 esphome:
   name: ${device_name}
   friendly_name: ${friendly_name}
-  comment: CamperMaid - ESP32-C3 + MPU-6050 + OLED
+  comment: CamperMinder - ESP32-C3 + MPU-6050 + OLED
 
   # Ohne diesen Block wäre die Update-Prüfung wertlos. Der Quelltext von
   # http_request_update.cpp:
@@ -46,7 +46,7 @@ esphome:
   # - das Gerät meldete dauerhaft "Update verfügbar", auch direkt nach dem
   # Aktualisieren.
   project:
-    name: "campermaid.level"
+    name: "camperminder.level"
     version: "${firmware_version}"
 
   # Ein Übersetzungsvorgang statt so vieler, wie der Rechner Kerne hat.
@@ -89,12 +89,12 @@ logger:
 
 api:
   encryption:
-    key: !secret campermaid_api_key
+    key: !secret camperminder_api_key
 
 ota:
   # Für Entwicklung und Werkstatt: aus dem ESPHome-Dashboard heraus.
   - platform: esphome
-    password: !secret campermaid_ota_password
+    password: !secret camperminder_ota_password
   # Für ausgelieferte Geräte: das Gerät holt sich das Update selbst.
   - platform: http_request
   # Für den Fall ohne Internet: Datei vom Handy hochladen. Auf dem
@@ -147,7 +147,7 @@ http_request:
 update:
   - platform: http_request
     name: "Firmware"
-    source: https://github.com/rcdev67/campermaid/releases/latest/download/level-manifest.json
+    source: https://github.com/rcdev67/camperminder/releases/latest/download/level-manifest.json
     update_interval: 12h
 
 # Aktualisierung von Hand - der Weg für die Betriebsart ohne Home Assistant.
@@ -165,8 +165,8 @@ button:
     entity_category: config
     on_press:
       - ota.http_request.flash:
-          url: https://github.com/rcdev67/campermaid/releases/latest/download/level-firmware.ota.bin
-          md5_url: https://github.com/rcdev67/campermaid/releases/latest/download/level-firmware.ota.bin.md5
+          url: https://github.com/rcdev67/camperminder/releases/latest/download/level-firmware.ota.bin
+          md5_url: https://github.com/rcdev67/camperminder/releases/latest/download/level-firmware.ota.bin.md5
 
   # Setzt den Einstellungsbereich des Flash zurück: WLAN-Zugangsdaten,
   # Kalibrierung, Fahrzeugmaße. Danach startet das Gerät neu und öffnet
@@ -259,8 +259,8 @@ wifi:
   # stillschweigender Vorgabewert ist das Letzte, worauf man sich dabei
   # verlassen sollte.
   ap:
-    ssid: "CamperMaid"
-    password: !secret campermaid_fallback_password
+    ssid: "CamperMinder"
+    password: !secret camperminder_fallback_password
     # 20 Sekunden statt der voreingestellten 90: Wer auf dem Stellplatz
     # ankommt und ausrichten will, wartet sonst anderthalb Minuten auf eine
     # Anzeige. Ein hinterlegtes Heimnetz bekommt immer noch reichlich Zeit.

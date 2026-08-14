@@ -1,9 +1,9 @@
 <!--
-  Wortmarke fuer HELLE Hintergraende. Siehe campermaid-wordmark-dark.svg fuer
+  Wortmarke fuer HELLE Hintergraende. Siehe camperminder-wordmark-dark.svg fuer
   die Begruendung der zwei Fassungen und den Hinweis zur Schriftart.
 
   Unterschied ist ausschliesslich die Farbe von "CAMPER" und der Zeile
-  darunter. Bildmarke und "MAID" bleiben tuerkis - dadurch sieht die Marke auf
+  darunter. Bildmarke und "MINDER" bleiben tuerkis - dadurch sieht die Marke auf
   beiden Untergruenden gleich aus und nicht wie zwei verschiedene Logos.
 -->
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 340 64" width="100%" height="100%">
@@ -19,7 +19,7 @@
   </g>
 
   <text x="72" y="36" font-family="Bahnschrift, 'DIN Alternate', 'Segoe UI', Arial"
-        font-weight="600" font-size="30" letter-spacing="1" fill="#1b2430">CAMPER<tspan fill="#2fb6c9">MAID</tspan></text>
+        font-weight="600" font-size="30" letter-spacing="1" fill="#1b2430">CAMPER<tspan fill="#2fb6c9">MINDER</tspan></text>
   <text x="73" y="52" font-family="Bahnschrift, 'DIN Alternate', 'Segoe UI', Arial"
         font-weight="400" font-size="10.5" letter-spacing="3.4" fill="#6b7787">ENHANCE YOUR JOURNEY</text>
 </svg>

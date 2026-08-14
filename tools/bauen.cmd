@@ -5,7 +5,7 @@ rem Leseposition in Bytes, rechnet aber mit einem Zeichen je Byte. In einer
 rem UTF-8-Datei verrutscht dadurch jede folgende Zeile.
 chcp 850 >nul
 rem ===========================================================================
-rem  CamperMaid Level bauen - zum Doppelklicken.
+rem  CamperMinder Level bauen - zum Doppelklicken.
 rem
 rem  Ruft esphome direkt aus der virtuellen Umgebung auf. Ein "Aktivieren" der
 rem  Umgebung w„re hier nicht nur unn”tig, sondern scheitert auf vielen
@@ -45,7 +45,7 @@ echo ============================================================
 echo  Firmware bauen
 echo ============================================================
 pushd "%ROOT%\esphome\level"
-"%ESPHOME%" compile campermaid-level.yaml
+"%ESPHOME%" compile camperminder-level.yaml
 set BUILD=%ERRORLEVEL%
 popd
 

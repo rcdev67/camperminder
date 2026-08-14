@@ -1,4 +1,4 @@
-# CamperMaid Level — Selbstbau
+# CamperMinder Level — Selbstbau
 
 Für ein **fertig gekauftes Gerät** ist diese Seite nicht nötig — dort führt
 [docs/inbetriebnahme.md](docs/inbetriebnahme.md) durch drei Schritte.
@@ -25,16 +25,16 @@ Repository holen, dann eine `secrets.yaml` neben die Vorlage legen:
 
 ```
 esphome/level/secrets.yaml    ← aus secrets.yaml.example
-esphome/level/campermaid-level.yaml
+esphome/level/camperminder-level.yaml
 ```
 
-Drei Einträge genügen: `campermaid_api_key`, `campermaid_ota_password`,
-`campermaid_fallback_password`. Den API-Schlüssel erzeugt ESPHome auf Wunsch
+Drei Einträge genügen: `camperminder_api_key`, `camperminder_ota_password`,
+`camperminder_fallback_password`. Den API-Schlüssel erzeugt ESPHome auf Wunsch
 selbst; das Passwort des Gerätenetzes brauchst du gleich am Handy.
 
 ```bash
 cd esphome/level
-esphome run campermaid-level.yaml
+esphome run camperminder-level.yaml
 ```
 
 - ✔ Der Build läuft durch. **Bricht er mit `Killed signal terminated program
@@ -53,7 +53,7 @@ esphome run campermaid-level.yaml
 Die Firmware bringt **kein WLAN** mit. Das Gerät öffnet beim ersten
 Einschalten sein eigenes Netz.
 
-1. Am Handy WLAN **CamperMaid** wählen, Passwort aus deiner `secrets.yaml`.
+1. Am Handy WLAN **CamperMinder** wählen, Passwort aus deiner `secrets.yaml`.
 2. Im Browser **`192.168.4.1`** öffnen.
 3. Über *Zum Home-Bildschirm hinzufügen* landet ein Symbol auf dem Handy.
 
@@ -71,7 +71,7 @@ Wer hier stehenbleibt, ist fertig. Alles Weitere ist freiwillig.
 ## 3. Home Assistant anbinden
 
 **3.1 WLAN eintragen** — auf der Geräteseite unter *Technik → WLAN*. Das Gerät
-startet neu und verbindet sich; das Netz `CamperMaid` verschwindet dabei.
+startet neu und verbindet sich; das Netz `CamperMinder` verschwindet dabei.
 
 **3.2 Gerät übernehmen** — Home Assistant findet es von selbst und fragt nach
 dem API-Schlüssel aus deiner `secrets.yaml`.
@@ -81,26 +81,26 @@ Repositories*:
 
 | Feld | Wert |
 |---|---|
-| Repository | `https://github.com/rcdev67/campermaid` |
+| Repository | `https://github.com/rcdev67/camperminder` |
 | Typ | **Integration** |
 
-Danach **CamperMaid** herunterladen und Home Assistant neu starten.
+Danach **CamperMinder** herunterladen und Home Assistant neu starten.
 
 **3.4 Einrichten** — Einstellungen → Geräte & Dienste → *Integration
-hinzufügen* → **CamperMaid**. Die Sensorfelder sind vorausgefüllt, sofern die
+hinzufügen* → **CamperMinder**. Die Sensorfelder sind vorausgefüllt, sofern die
 mitgelieferte Firmware läuft.
 
-- ✔ Es entsteht ein Gerät **CamperMaid** mit „Phase", „Steht eben",
+- ✔ Es entsteht ein Gerät **CamperMinder** mit „Phase", „Steht eben",
   „Schwelle längs/quer", „Korrektur längs/quer" und „Ansageziel".
 - ✔ Fahrzeugmaße, Ausrichtart und Präzisionsmodus erscheinen **nicht**
   doppelt — die liest die Integration vom Gerät. Die Karte bedient dann den
   Schalter des Geräts.
 
 **3.5 Karte aufs Dashboard** — Dashboard → Bearbeiten → *Karte hinzufügen* →
-„CamperMaid" suchen.
+„CamperMinder" suchen.
 
 Erscheint sie nicht in der Auswahl, prüf unter Einstellungen → Dashboards → ⋮
-→ *Ressourcen*, ob `/campermaid_static/campermaid-card.js` eingetragen ist.
+→ *Ressourcen*, ob `/camperminder_static/camperminder-card.js` eingetragen ist.
 Die Integration legt den Eintrag beim Start selbst an.
 
 ---
@@ -115,7 +115,7 @@ Zum Schluss einmal im Fahrzeug — wie und warum steht in
 ## Anhang: Ohne Bauen aufs Board
 
 Wer nicht selbst bauen will, nimmt die fertige Firmware aus dem
-[jüngsten Release](https://github.com/rcdev67/campermaid/releases/latest):
+[jüngsten Release](https://github.com/rcdev67/camperminder/releases/latest):
 `level-firmware.factory.bin` enthält Bootloader und Partitionstabelle und geht
 auf ein leeres Board — mit [ESPHome Web](https://web.esphome.io) oder
 `esptool` an Adresse `0x0`.

@@ -2,11 +2,11 @@
 
 ```
 esphome/
-  common/     geteilte Bausteine — noch leer, siehe dort
-  level/      CamperMaid Level
-    campermaid-level.yaml            die auszuliefernde Firmware
-    hardware.yaml                    Messlogik, Anzeige, Einstellwerte
-    webui.js                         Bedienoberfläche auf dem Gerät
+  common/                     geteilte Bausteine — noch leer, siehe dort
+  level/                      CamperMinder Level
+    camperminder-level.yaml   die auszuliefernde Firmware
+    hardware.yaml             Messlogik, Anzeige, Einstellwerte
+    webui.js                  Bedienoberfläche auf dem Gerät
     secrets.yaml.example
 ```
 
@@ -14,7 +14,7 @@ esphome/
 
 ```bash
 cd esphome/level
-esphome run campermaid-level.yaml
+esphome run camperminder-level.yaml
 ```
 
 Voraussetzung ist eine `secrets.yaml` in `esphome/level/` mit drei Einträgen —
@@ -25,7 +25,7 @@ in jedem ausgelieferten Gerät und auf jedem Aufkleber.
 
 Firmware und Integration tragen **immer dieselbe Nummer**. `firmware_version`
 in [`level/hardware.yaml`](level/hardware.yaml) und `version` in
-`custom_components/campermaid/manifest.json` müssen zeichengleich sein —
+`custom_components/camperminder/manifest.json` müssen zeichengleich sein —
 `tools/build_release.ps1` vergleicht beide und bricht bei Abweichung ab.
 
 Der Grund ist der Nutzer: Zwei verschiedene Nummern für **ein** Gerät lassen
@@ -35,14 +35,14 @@ andere sieht, weiß nicht mehr, welchen Stand er hat. Dazu kommt, dass eine
 die beiden gehören zusammen.
 
 Eigenständig zählen die **Produkte**, nicht die Bestandteile eines Produkts:
-CamperMaid Gas bekommt später eine eigene Nummer, damit eine Änderung an der
+CamperMinder Gas bekommt später eine eigene Nummer, damit eine Änderung an der
 Gaswaage nicht jedem Nivelliergerät ein Update aufzwingt.
 
 ## Veröffentlichen
 
 ```powershell
 cd esphome/level
-esphome compile campermaid-level.yaml
+esphome compile camperminder-level.yaml
 pwsh ../../tools/build_release.ps1
 ```
 

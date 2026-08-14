@@ -12,7 +12,7 @@
 #  ZUGANG: ein GitHub-Token mit Schreibrecht auf Inhalte. Drei Quellen, in
 #  dieser Reihenfolge:
 #
-#    1. Umgebungsvariable CAMPERMAID_GH_TOKEN
+#    1. Umgebungsvariable CAMPERMINDER_GH_TOKEN
 #    2. tools/github_token.txt  (durch .gitignore ausgeschlossen)
 #    3. der Git Credential Manager - also das Token, mit dem `git push`
 #       ohnehin schon arbeitet
@@ -37,7 +37,7 @@ $here = Split-Path -Parent $MyInvocation.MyCommand.Path
 $root = Split-Path -Parent $here
 
 $owner = 'rcdev67'
-$repo  = 'campermaid'
+$repo  = 'camperminder'
 
 # --- Version aus der einen Quelle ------------------------------------------
 $hardware = Join-Path $root 'esphome\level\hardware.yaml'
@@ -131,7 +131,7 @@ if ($unpush) {
 function Hole-GitToken {
   $alt = $env:GIT_TERMINAL_PROMPT
   $env:GIT_TERMINAL_PROMPT = '0'
-  $frage = Join-Path ([IO.Path]::GetTempPath()) ("campermaid-cred-" + [guid]::NewGuid().ToString('N') + ".txt")
+  $frage = Join-Path ([IO.Path]::GetTempPath()) ("camperminder-cred-" + [guid]::NewGuid().ToString('N') + ".txt")
   try {
     # Zeilenenden ausdrücklich als LF: Git erwartet das Format so, ein CR
     # landete sonst im Wert des letzten Feldes.
@@ -154,8 +154,8 @@ function Hole-GitToken {
 }
 
 $quelle = $null
-$token = $env:CAMPERMAID_GH_TOKEN
-if ($token) { $quelle = 'Umgebungsvariable CAMPERMAID_GH_TOKEN' }
+$token = $env:CAMPERMINDER_GH_TOKEN
+if ($token) { $quelle = 'Umgebungsvariable CAMPERMINDER_GH_TOKEN' }
 
 if (-not $token) {
   $tf = Join-Path $here 'github_token.txt'
@@ -186,7 +186,7 @@ Kein Token gefunden. Drei Wege, einer genügt:
      Skript dasselbe Token - es erneuert sich von selbst.
   2. tools\github_token.txt anlegen (fein granuliert, nur dieses Repository,
      Berechtigung "Contents: Read and write").
-  3. Umgebungsvariable CAMPERMAID_GH_TOKEN setzen.
+  3. Umgebungsvariable CAMPERMINDER_GH_TOKEN setzen.
 "@
 }
 
@@ -194,7 +194,7 @@ $kopf = @{
   Authorization          = "Bearer $token"
   Accept                 = 'application/vnd.github+json'
   'X-GitHub-Api-Version' = '2022-11-28'
-  'User-Agent'           = 'campermaid-release'
+  'User-Agent'           = 'camperminder-release'
 }
 $api = "https://api.github.com/repos/$owner/$repo"
 
@@ -236,7 +236,7 @@ gar nicht, GitHub kennt es schlicht nicht. Von Hand angelegte Tokens laufen
 ab, fein granulierte nach Voreinstellung schon nach 30 Tagen.
 
 Der Ausweg ohne Pflege: tools\github_token.txt leeren oder löschen und
-CAMPERMAID_GH_TOKEN nicht setzen. Dann nimmt dieses Skript das Token des Git
+CAMPERMINDER_GH_TOKEN nicht setzen. Dann nimmt dieses Skript das Token des Git
 Credential Managers - dasselbe, mit dem 'git push' arbeitet, und das erneuert
 sich von selbst.
 "@
@@ -248,7 +248,7 @@ Quelle: $quelle
 
 Das Token ist gültig, darf dieses Repository aber nicht schreiben (404 statt
 403 kommt, wenn es das Repository nicht einmal sehen darf). Nötig ist
-"Contents: Read and write" für rcdev67/campermaid.
+"Contents: Read and write" für rcdev67/camperminder.
 "@
   }
   throw
@@ -290,7 +290,7 @@ if ($release) {
 } else {
   if ($istVorab) {
     $text = @"
-CamperMaid Level $version - interne Vorabfassung
+CamperMinder Level $version - interne Vorabfassung
 
 Diese Fassung ist **nicht zur Verwendung bestimmt**. Sie dient der Erprobung
 vor einer Auslieferung.
@@ -302,9 +302,9 @@ Geräteseite -> Technik -> Software.
 "@
   } else {
     $text = @"
-CamperMaid Level $version
+CamperMinder Level $version
 
-Firmware für CamperMaid Level.
+Firmware für CamperMinder Level.
 
 **Aktualisieren:** Geräte mit Internet melden das Update von selbst.
 Ohne Internet: Geräteseite -> Technik -> Software -> Datei aufspielen,
@@ -317,7 +317,7 @@ keinen Bootloader.
   }
   $release = Sende-Json -Uri "$api/releases" -Methode Post -Daten @{
     tag_name   = $tag
-    name       = "CamperMaid Level $version"
+    name       = "CamperMinder Level $version"
     body       = $text
     draft      = $true
     prerelease = $istVorab
@@ -352,7 +352,7 @@ if ($istVorab) {
   Write-Host "Als VORABFASSUNG markiert. Kein Gerät und kein HACS holt sie sich."
   Write-Host "Zum Erproben von Hand aufspielen:"
   Write-Host "   Geräteseite -> Technik -> Software -> Datei aufspielen"
-  Write-Host "   oder aus dem Arbeitsstand:  esphome run campermaid-level.yaml"
+  Write-Host "   oder aus dem Arbeitsstand:  esphome run camperminder-level.yaml"
   Write-Host ""
   Write-Host "Taugt die Fassung, den Bindestrich aus firmware_version und aus"
   Write-Host "manifest.json entfernen und erneut veröffentlichen. Erst dann"

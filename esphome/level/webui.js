@@ -1,5 +1,5 @@
 /*
- * CamperMaid - Oberfläche auf dem Gerät selbst
+ * CamperMinder - Oberfläche auf dem Gerät selbst
  * ---------------------------------------------------------------------------
  * Wird über web_server.js_include in die Firmware eingebettet und als /0.js
  * ausgeliefert. Braucht weder Home Assistant noch Internet noch eine App: das
@@ -589,7 +589,7 @@
   var root, page = "anzeige";
 
   function build() {
-    document.title = "CamperMaid";
+    document.title = "CamperMinder";
     var style = document.createElement("style");
     style.textContent = CSS;
     document.head.appendChild(style);
@@ -1211,7 +1211,7 @@
             post(pSave + "/press");
             say("Gespeichert. Das Gerät startet jetzt neu und verbindet sich mit „" +
               ssid.value + "“.\n\n" +
-              "Achte auf die WLAN-Liste deines Handys: Verschwindet das Netz CamperMaid " +
+              "Achte auf die WLAN-Liste deines Handys: Verschwindet das Netz CamperMinder " +
               "innerhalb einer Minute, hat es geklappt. Bleibt es bestehen, stimmt " +
               "Name oder Passwort nicht – dann einfach erneut verbinden und korrigieren.", "good");
           });
@@ -1243,7 +1243,7 @@
       reset.disabled = true;
       reset.textContent = "Setze zurück …";
       press("werkseinstellungen", function () {
-        rnote.textContent = "Zurückgesetzt. Das Gerät startet neu – verbinde dich anschließend wieder mit dem Netz CamperMaid.";
+        rnote.textContent = "Zurückgesetzt. Das Gerät startet neu – verbinde dich anschließend wieder mit dem Netz CamperMinder.";
       });
     };
     box.appendChild(reset);

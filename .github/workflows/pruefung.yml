@@ -25,7 +25,7 @@ jobs:
 # Warum hier keine HACS-Prüfung läuft
 #
 # Sie setzt eine Lizenz voraus, die GitHub selbsttätig einer der bekannten
-# Vorlagen zuordnen kann. CamperMaid steht unter eigenen Bedingungen
+# Vorlagen zuordnen kann. CamperMinder steht unter eigenen Bedingungen
 # (siehe LICENSE), die GitHub folgerichtig als "nicht zugeordnet" ausweist.
 # Diese eine Prüfung lässt sich als einzige nicht übergehen - sie würde also
 # dauerhaft fehlschlagen und die übrigen Ergebnisse unlesbar machen.

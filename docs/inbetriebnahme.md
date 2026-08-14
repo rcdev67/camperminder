@@ -7,7 +7,7 @@ Konto.
 ## Schritt 1: Verbinden (immer nötig)
 
 1. Gerät einschalten.
-2. Am Handy in die WLAN-Liste, **CamperMaid** auswählen, Passwort eingeben.
+2. Am Handy in die WLAN-Liste, **CamperMinder** auswählen, Passwort eingeben.
 3. Die Bedienseite öffnet sich meist von selbst. Falls nicht:
    **`192.168.4.1`** im Browser eingeben.
 4. Über *Zum Home-Bildschirm hinzufügen* landet ein Symbol auf dem Handy,
@@ -48,7 +48,7 @@ Die laufende Fassung steht im selben Reiter.
 ## Mit Home Assistant
 
 Sobald das Gerät im heimischen WLAN hängt, findet Home Assistant es über
-ESPHome von selbst. Die Integration **CamperMaid** kommt über HACS und bringt
+ESPHome von selbst. Die Integration **CamperMinder** kommt über HACS und bringt
 die Bedienkarte mit; Firmware-Updates meldet Home Assistant dann automatisch.
 
 Beide Betriebsarten laufen auf derselben Firmware. Wer klein anfängt, kann

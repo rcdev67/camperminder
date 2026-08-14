@@ -31,7 +31,7 @@ from .const import (
     DOMAIN,
 )
 
-DEFAULT_TITLE = "CamperMaid"
+DEFAULT_TITLE = "CamperMinder"
 
 # Felder, die leer bleiben dürfen. Ein leergeräumtes Feld taucht im Ergebnis
 # des Formulars gar nicht auf - deshalb müssen sie beim Speichern ausdrücklich

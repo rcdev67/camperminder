@@ -1,4 +1,4 @@
-"""CamperMaid - Einrichtung der Integration."""
+"""CamperMinder - Einrichtung der Integration."""
 
 from __future__ import annotations
 

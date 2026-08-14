@@ -46,7 +46,8 @@ Test: Fahrzeug (oder Board) **vorne anheben**.
 
 - Ändert sich **„Neigung Pitch"** → Zuordnung stimmt.
 - Ändert sich stattdessen **„Neigung Roll"** → längs und quer sind vertauscht.
-  In `esphome/campermaid-level.yaml` die beiden Werte tauschen und neu flashen:
+  In `esphome/level/camperminder-level.yaml` die beiden Werte tauschen und neu
+  flashen:
 
 ```yaml
 substitutions:

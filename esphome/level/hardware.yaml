@@ -1,5 +1,5 @@
 # ============================================================================
-#  CamperMaid  -  Hardware und Messlogik
+#  CamperMinder  -  Hardware und Messlogik
 # ----------------------------------------------------------------------------
 #  Enthält ausschließlich das Projektspezifische: Sensorik, OLED-Anzeige,
 #  Kalibrierung und Geräte-Webseite.
@@ -15,7 +15,7 @@
 #  ergäbe das doppelte Schlüssel und einen YAML-Fehler. Stattdessen als
 #  PAKET einbinden, dann führt ESPHome die Blöcke sauber zusammen:
 #
-#  A) Datei nach /config/esphome/campermaid/ legen - also in einen
+#  A) Datei nach /config/esphome/camperminder/ legen - also in einen
 #     UNTERORDNER, nicht neben die Gerätedatei. Grund: Das ESPHome-Dashboard
 #     listet jede YAML-Datei der obersten Ebene als Gerät. Lag diese Datei
 #     dort, erschien sie als eigene Kachel, rot markiert (ihr fehlen
@@ -25,13 +25,13 @@
 #     Dann in der Gerätedatei am Ende:
 #
 #        packages:
-#          campermaid: !include hardware.yaml
+#          camperminder: !include hardware.yaml
 #
 #  B) Oder direkt von GitHub, ohne die Datei abzulegen (setzt ein
 #     öffentliches Repository voraus):
 #
 #        packages:
-#          campermaid: github://rcdev67/campermaid/esphome/level/hardware.yaml@main
+#          camperminder: github://rcdev67/camperminder/esphome/level/hardware.yaml@main
 #
 #  Hat die Gerätedatei eine Zeile "framework:", lösche sie - sonst gilt sie
 #  statt der hier eingestellten.
@@ -43,7 +43,7 @@
 
 substitutions:
   # Firmware und Integration tragen IMMER dieselbe Nummer. Sie steht in dieser
-  # Datei und in custom_components/campermaid/manifest.json;
+  # Datei und in custom_components/camperminder/manifest.json;
   # tools/build_release.ps1 vergleicht beide und bricht bei Abweichung ab.
   #
   # Der Grund ist der Nutzer: Zwei verschiedene Nummern für EIN Gerät lassen
@@ -53,7 +53,7 @@ substitutions:
   # zieht; die beiden gehören zusammen.
   #
   # Eigenständig zählen die PRODUKTE, nicht die Bestandteile eines Produkts:
-  # CamperMaid Gas bekommt später eine eigene Nummer, damit eine Änderung an
+  # CamperMinder Gas bekommt später eine eigene Nummer, damit eine Änderung an
   # der Gaswaage nicht jedem Nivelliergerät ein Update aufzwingt.
   #
   # Sie muss zeichengleich im Update-Manifest stehen: Die Prüfung im Gerät
@@ -62,7 +62,7 @@ substitutions:
   # Ein Bindestrich macht die Nummer zur Vorabfassung: "2.0.4-rc1" statt
   # "2.0.4". Daran erkennen die Werkzeuge, dass dieser Stand NICHT
   # veröffentlicht werden soll - Einzelheiten in docs/firmware_update.md.
-  firmware_version: "2.0.6"
+  firmware_version: "3.0.0"
 
   # I2C-Pins (0,42"-OLED-Board): SDA=GPIO5, SCL=GPIO6
   i2c_sda_pin: GPIO5
@@ -70,7 +70,7 @@ substitutions:
   # Vorgabe für "Toleranz genau" - die Gradtoleranz des Präzisionsmodus.
   # Nur der Anfangswert; verstellt wird sie danach über die Entität, damit
   # dafür niemand flashen muss. Muss zu DEFAULT_TOLERANCE_DEG in
-  # custom_components/campermaid/const.py passen.
+  # custom_components/camperminder/const.py passen.
   level_tolerance_deg: "0.4"
 
   # Vorgabe für "Haltebereich" in Prozent: Einmal "eben" bleibt "eben", bis die
@@ -896,7 +896,7 @@ display:
         it.printf(0,  0, id(font_klein), "WLAN %.9s", netz.c_str());
         it.print (0, 12, id(font_zeile), ip.c_str());
       } else {
-        it.print (0,  0, id(font_klein), "Netz CamperMaid");
+        it.print (0,  0, id(font_klein), "Netz CamperMinder");
         it.print (0, 12, id(font_zeile), "192.168.4.1");
       }
 

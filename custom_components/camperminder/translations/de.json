@@ -2,7 +2,7 @@
   "config": {
     "step": {
       "user": {
-        "title": "CamperMaid",
+        "title": "CamperMinder",
         "description": "Die Sensoren deines Nivelliergeräts sind bereits eingetragen, sofern die mitgelieferte Firmware läuft – bitte einmal prüfen. Ergänze dann die Maße deines Fahrzeugs. Alles lässt sich später über „Konfigurieren“ ändern.",
         "data": {
           "pitch_sensor": "Neigung längs (Pitch)",
@@ -31,7 +31,7 @@
   "options": {
     "step": {
       "init": {
-        "title": "CamperMaid",
+        "title": "CamperMinder",
         "description": "Sensoren, Fahrzeugmaße und Ansageziel ändern.",
         "data": {
           "pitch_sensor": "Neigung längs (Pitch)",

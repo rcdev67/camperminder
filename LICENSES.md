@@ -1,6 +1,6 @@
 # Lizenzen
 
-## CamperMaid
+## CamperMinder
 
 | | |
 |---|---|
