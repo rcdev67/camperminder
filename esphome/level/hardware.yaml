@@ -62,7 +62,7 @@ substitutions:
   # Ein Bindestrich macht die Nummer zur Vorabfassung: "2.0.4-rc1" statt
   # "2.0.4". Daran erkennen die Werkzeuge, dass dieser Stand NICHT
   # veröffentlicht werden soll - Einzelheiten in docs/firmware_update.md.
-  firmware_version: "3.0.1"
+  firmware_version: "3.1.0"
 
   # I2C-Pins (0,42"-OLED-Board): SDA=GPIO5, SCL=GPIO6
   i2c_sda_pin: GPIO5
@@ -174,6 +174,45 @@ esp32:
   framework:
     type: esp-idf
 
+# --- Eigenes Netz: Passwort je Gerät ----------------------------------------
+#
+# Läuft VOR dem WLAN. Priorität 600 gegen dessen 250 - stünde es später, wäre
+# das Netz mit dem alten Passwort bereits offen.
+#
+# Der Wert aus secrets.yaml bleibt als Netz darunter: Er gilt genau so lange,
+# bis diese Zeilen ein gewürfeltes Passwort gesetzt haben. Scheitert das
+# Erzeugen, steht das Gerät also nicht ohne Zugang da - ein Fehler hier würde
+# sonst genau das Gerät aussperren, an dem man ihn beheben müsste.
+esphome:
+  on_boot:
+    - priority: 600
+      then:
+        - lambda: |-
+            // Beim ersten Start würfeln, danach aus dem Flash.
+            if (id(ap_passwort)[0] == '\0') {
+              // Ohne verwechselbare Zeichen: kein O gegen 0, kein I gegen 1,
+              // kein S gegen 5, kein B gegen 8. Wer das vom Aufkleber
+              // abtippt, soll nicht raten müssen.
+              static const char zeichen[] = "ACDEFGHJKLMNPQRTUVWXY34679";
+              const uint32_t anzahl = sizeof(zeichen) - 1;
+              for (uint8_t i = 0; i < 10; i++) {
+                id(ap_passwort)[i] = zeichen[random_uint32() % anzahl];
+              }
+              id(ap_passwort)[10] = '\0';
+              ESP_LOGI("netz", "Neues Passwort für das eigene Netz gewürfelt.");
+            }
+
+            // Zehn Zeichen aus 26 sind rund 47 Bit. Gegen das Mitschneiden
+            // eines Handschlags und stures Durchprobieren reicht das weit;
+            // acht Zeichen (das Mindestmaß von WPA2) wären dafür knapp.
+            ESP_LOGI("netz", "Passwort des eigenen Netzes: %s", id(ap_passwort));
+
+            // Nur das Passwort tauschen: get_ap() bringt Netzname, Kanal und
+            // die feste Adresse 192.168.4.1 unverändert mit.
+            auto ap = wifi::global_wifi_component->get_ap();
+            ap.set_password(id(ap_passwort));
+            wifi::global_wifi_component->set_ap(ap);
+
 web_server:
   port: 80
   include_internal: true
@@ -233,6 +272,31 @@ globals:
   - id: level_hold
     type: bool
     initial_value: "false"
+
+  # Das Passwort des geräteeigenen Netzes - für JEDES Gerät ein anderes.
+  #
+  # Warum nicht eines für alle: Wer im Netz des Geräts ist, kann kalibrieren,
+  # das WLAN ändern und Firmware aufspielen - die Geräteseite hat bewusst
+  # keine eigene Anmeldung. Ein Serienpasswort stünde damit nach dem ersten
+  # verkauften Gerät in jedem Forum, und zwar für alle.
+  #
+  # Warum gewürfelt und nicht aus der MAC-Adresse gerechnet: Die Firmware ist
+  # GPLv3 und öffentlich, jeder kann sie herunterladen. Ein Rechenweg mit
+  # geheimer Zutat wäre nur so lange geheim, bis jemand die Zutat aus der
+  # Binärdatei liest - und die MAC-Adresse funkt das Gerät ohnehin in jedem
+  # Beacon mit. Gewürfelt gibt es nichts zu extrahieren.
+  #
+  # char-Feld und nicht std::string: restore_value speichert die Bytes des
+  # Objekts, und bei std::string wäre das ein Zeiger ins Nichts.
+  #
+  # Ohne initial_value: Ein "{0}" hier passt auf zwei Konstruktoren von
+  # RestoringGlobalsComponent, und der Compiler wählt den für einen
+  # Einzelwert - aus dem Feld würde ein Zeiger. Ohne Angabe greift die
+  # Nullinitialisierung des Feldes, und genau die ist gemeint: leer heißt
+  # "noch nichts gewürfelt".
+  - id: ap_passwort
+    type: char[11]
+    restore_value: true
 
 # --- Fahrzeugmaße ---------------------------------------------------------
 # Gehören ins Gerät, nicht ins Handy: sie beschreiben das Fahrzeug, nicht den
@@ -811,6 +875,20 @@ text_sensor:
     # stundenlang "unbekannt" und die Zeile fehlte in der Technik-Liste.
     update_interval: 60s
 
+  # Damit man das Passwort auch dann nachschlagen kann, wenn der Aufkleber
+  # abgefallen oder das Gerät hinter einer Verkleidung verschwunden ist.
+  #
+  # Wer das hier liest, ist entweder in Home Assistant angemeldet oder bereits
+  # im Netz des Geräts - beides setzt voraus, dass er ohnehin schon drin ist.
+  # Es wird hier also nichts preisgegeben, was noch schützen würde.
+  - platform: template
+    name: "Netz Passwort"
+    id: netz_passwort
+    icon: mdi:form-textbox-password
+    entity_category: diagnostic
+    lambda: 'return {std::string(id(ap_passwort))};'
+    update_interval: 60s
+
   - platform: wifi_info
     ip_address:
       name: "IP Adresse"
@@ -895,11 +973,24 @@ display:
       if (im_fremden_netz) {
         it.printf(0,  0, id(font_klein), "WLAN %.9s", netz.c_str());
         it.print (0, 12, id(font_zeile), ip.c_str());
+        // Fußzeile: eigene Version, dazu ein Kürzel, wenn eine Zentrale
+        // mithört.
+        it.printf(0, 28, id(font_klein), "v${firmware_version}%s",
+                  id(zentrale_verbunden).state ? "  HA" : "");
       } else {
-        it.print (0,  0, id(font_klein), "Netz CamperMinder");
-        it.print (0, 12, id(font_zeile), "192.168.4.1");
+        /* Im eigenen Netz steht hier das PASSWORT statt der Version.
+         *
+         * Das ist der Moment, in dem es gebraucht wird: Das Handy fragt
+         * danach, und ohne Verbindung kommt man an keine Seite, die es zeigen
+         * könnte - auch nicht an die des Geräts. Ein Aufkleber kann abfallen
+         * oder hinter einer Verkleidung verschwinden; das Display kann das
+         * nicht. Die Version steht derweil auf der Geräteseite.
+         *
+         * "CamperMinder" statt "Netz CamperMinder": In Schriftgröße 8 passen
+         * gut vierzehn Zeichen in die 72 Pixel Breite. Das Wort "Netz" wäre
+         * das, was rechts abgeschnitten wird.
+         */
+        it.print (0,  0, id(font_klein), "CamperMinder");
+        it.print (0, 11, id(font_zeile), "192.168.4.1");
+        it.printf(0, 27, id(font_klein), "PW %s", id(ap_passwort));
       }
-
-      // Fußzeile: eigene Version, dazu ein Kürzel, wenn eine Zentrale mithört.
-      it.printf(0, 28, id(font_klein), "v${firmware_version}%s",
-                id(zentrale_verbunden).state ? "  HA" : "");

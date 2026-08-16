@@ -53,9 +53,21 @@ esphome run camperminder-level.yaml
 Die Firmware bringt **kein WLAN** mit. Das Gerät öffnet beim ersten
 Einschalten sein eigenes Netz.
 
-1. Am Handy WLAN **CamperMinder** wählen, Passwort aus deiner `secrets.yaml`.
+1. Am Handy WLAN **CamperMinder** wählen. Das Passwort steht **auf dem
+   Aufkleber** und, solange das Gerät sein eigenes Netz aufspannt, **auf dem
+   Display** — zehn Zeichen hinter `PW`.
 2. Im Browser **`192.168.4.1`** öffnen.
 3. Über *Zum Home-Bildschirm hinzufügen* landet ein Symbol auf dem Handy.
+
+> **Jedes Gerät hat ein eigenes Passwort.** Es wird beim ersten Einschalten
+> gewürfelt und bleibt danach gleich — auch über Updates hinweg. Der Wert in
+> `secrets.yaml` ist nur ein Rückfall und gilt im Betrieb nicht.
+>
+> Zwei Wege, es später nachzuschlagen: das Display, sobald das eigene Netz
+> läuft, oder in Home Assistant die Entität **Netz Passwort**.
+>
+> Nach *Werkseinstellungen* wird ein **neues** gewürfelt. Der Aufkleber stimmt
+> dann nicht mehr — das Display schon.
 
 Dort stellst du unter **Fahrzeug** Fahrzeugart, Radstand, Spurweite, Toleranz,
 Präzisionsmodus und Keilstufe ein — die Werte liegen im Gerät, nicht im Handy.
