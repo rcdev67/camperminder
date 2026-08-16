@@ -172,10 +172,10 @@ button:
   # Kalibrierung, Fahrzeugmaße. Danach startet das Gerät neu und öffnet
   # wieder sein eigenes Netz - Auslieferungszustand.
   #
-  # Das PASSWORT des eigenen Netzes übersteht das: Es wird bei jedem Start aus
-  # der MAC-Adresse gerechnet und liegt gar nicht im Flash. Der Aufkleber gilt
-  # also weiter - und das muss er auch, sonst wäre eine Ausführung ohne
-  # Display nach einem Zurücksetzen unerreichbar.
+  # Gelöscht wird dabei auch ein selbst vergebenes Passwort für das eigene
+  # Netz. Das ist Absicht und gefahrlos: Danach ist das Netz wieder offen,
+  # also erreichbar. Wer sein Passwort vergessen hat, kommt so wieder an das
+  # Gerät - ohne Kabel, ohne Aufkleber, ohne Rückfrage bei uns.
   #
   # Warum das nötig ist: Ein OTA-Update lässt diesen Bereich absichtlich
   # unangetastet, und Home Assistant kann ihn gar nicht erreichen. Ohne diese
@@ -265,7 +265,9 @@ wifi:
   # verlassen sollte.
   ap:
     ssid: "CamperMinder"
-    password: !secret camperminder_fallback_password
+    # KEIN password: Das eigene Netz ist ab Werk offen. Wer es abschließen
+    # will, trägt auf der Geräteseite unter Technik ein eigenes ein - dann
+    # setzt es die on_boot-Regel in hardware.yaml. Die Begründung steht dort.
     # 20 Sekunden statt der voreingestellten 90: Wer auf dem Stellplatz
     # ankommt und ausrichten will, wartet sonst anderthalb Minuten auf eine
     # Anzeige. Ein hinterlegtes Heimnetz bekommt immer noch reichlich Zeit.

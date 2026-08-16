@@ -1229,18 +1229,80 @@
     box.appendChild(btn);
     box.appendChild(note);
 
+    /* Eigenes Netz abschließen - freiwillig.
+     *
+     * Ab Werk ist das Netz offen, damit niemand vor einem Gerät steht, in das
+     * er nicht hineinkommt. Wer nicht will, dass jeder in Funkreichweite die
+     * Einstellungen erreicht, vergibt hier ein Passwort. */
+    box.appendChild(el('<div class="grouphead" style="margin-top:22px">Eigenes Netz</div>'));
+    var anote = el('<div class="muted"></div>');
+    anote.textContent = "Das Netz „CamperMinder“ ist ohne Passwort erreichbar. " +
+      "Es besteht nur, solange oben kein WLAN eingetragen ist. Wer es " +
+      "abschließen möchte, vergibt hier eines – mindestens acht Zeichen. " +
+      "Leer lassen und speichern öffnet es wieder.";
+    box.appendChild(anote);
+
+    var apPass = el('<input type="password" placeholder="Neues Passwort (leer = offen)" style="width:100%;margin-top:10px">');
+    var apBtn = el('<button class="act ghost" style="margin-top:8px">Netz-Passwort speichern</button>');
+    var apNote = el('<div class="muted" style="margin-top:10px;line-height:1.5;white-space:pre-line"></div>');
+
+    function apSay(text, kind) {
+      apNote.textContent = text;
+      apNote.style.color = kind === "bad" ? "#ff7a7a" : kind === "good" ? "#37d67a" : "#cfd6de";
+      apNote.style.fontWeight = kind ? "700" : "400";
+    }
+
+    apBtn.onclick = function () {
+      /* Dieselbe Grenze wie im Gerät, hier nur früher: WPA2 kennt nichts
+       * zwischen offen und acht Zeichen. Wer es hier erfährt, muss nicht
+       * erst einen Neustart abwarten, um zu merken, dass nichts passiert
+       * ist. */
+      if (apPass.value && apPass.value.length < 8) {
+        apSay("Mindestens acht Zeichen – so verlangt es WPA2. Oder leer lassen, dann bleibt das Netz offen.", "bad");
+        return;
+      }
+      var offen = !apPass.value;
+      var pText = pathFor("text", "netz_passwort_neu");
+      var pSave = pathFor("button", "netz_passwort_speichern");
+      if (!pText || !pSave) {
+        apSay("Das Gerät kennt diese Einstellung nicht. Läuft die passende Firmware?", "bad");
+        return;
+      }
+      apBtn.disabled = true;
+      apSay("Übertrage …");
+      setText(pText, apPass.value, function (ok) {
+        if (!ok) {
+          apSay("Das Gerät hat die Eingabe nicht angenommen.", "bad");
+          apBtn.disabled = false;
+          return;
+        }
+        post(pSave + "/press");
+        apPass.value = "";
+        apSay(offen
+          ? "Gespeichert. Das Gerät startet neu – das Netz ist danach wieder ohne Passwort erreichbar."
+          : "Gespeichert. Das Gerät startet neu.\n\nDanach fragt dein Handy nach dem neuen Passwort. " +
+            "Merke es dir gut: Ohne WLAN und ohne dieses Passwort kommst du nur noch " +
+            "über ein USB-Kabel an das Gerät – oder über Zurücksetzen weiter unten, " +
+            "das es wieder öffnet.", "good");
+      });
+    };
+
+    box.appendChild(apPass);
+    box.appendChild(apBtn);
+    box.appendChild(apNote);
+
     /* Werksreset. Steht bewusst hier unten und nicht bei den Bedienelementen
      * oben - er löscht WLAN, Kalibrierung und Fahrzeugmaße auf einmal. */
     box.appendChild(el('<div class="grouphead" style="margin-top:22px">Zurücksetzen</div>'));
     var rnote = el('<div class="muted"></div>');
-    rnote.textContent = "Löscht WLAN-Zugangsdaten, Kalibrierung und Fahrzeugmaße. " +
-      "Das Gerät startet danach neu und öffnet wieder sein eigenes Netz – mit " +
-      "demselben Passwort wie bisher, das steht auf dem Aufkleber.";
+    rnote.textContent = "Löscht WLAN-Zugangsdaten, Kalibrierung, Fahrzeugmaße und ein " +
+      "selbst vergebenes Netz-Passwort. Das Gerät startet danach neu und " +
+      "öffnet wieder sein eigenes, offenes Netz.";
     box.appendChild(rnote);
 
     var reset = el('<button class="act ghost" style="margin-top:10px">Auf Werkseinstellungen zurücksetzen</button>');
     reset.onclick = function () {
-      if (!window.confirm("Wirklich zurücksetzen?\n\nWLAN, Kalibrierung und Fahrzeugmaße gehen verloren. Das Gerät muss danach neu eingerichtet und neu kalibriert werden.\n\nDas Passwort des eigenen Netzes bleibt – es steht auf dem Aufkleber.")) return;
+      if (!window.confirm("Wirklich zurücksetzen?\n\nWLAN, Kalibrierung und Fahrzeugmaße gehen verloren. Das Gerät muss danach neu eingerichtet und neu kalibriert werden.\n\nEin selbst vergebenes Netz-Passwort wird ebenfalls gelöscht – das eigene Netz ist danach wieder offen.")) return;
       reset.disabled = true;
       reset.textContent = "Setze zurück …";
       press("werkseinstellungen", function () {
