@@ -1233,14 +1233,14 @@
      * oben - er löscht WLAN, Kalibrierung und Fahrzeugmaße auf einmal. */
     box.appendChild(el('<div class="grouphead" style="margin-top:22px">Zurücksetzen</div>'));
     var rnote = el('<div class="muted"></div>');
-    rnote.textContent = "Löscht WLAN-Zugangsdaten, Kalibrierung, Fahrzeugmaße " +
-      "und das Passwort des eigenen Netzes – dafür wird ein neues gewürfelt. " +
-      "Das Gerät startet danach neu und öffnet wieder sein eigenes Netz.";
+    rnote.textContent = "Löscht WLAN-Zugangsdaten, Kalibrierung und Fahrzeugmaße. " +
+      "Das Gerät startet danach neu und öffnet wieder sein eigenes Netz – mit " +
+      "demselben Passwort wie bisher, das steht auf dem Aufkleber.";
     box.appendChild(rnote);
 
     var reset = el('<button class="act ghost" style="margin-top:10px">Auf Werkseinstellungen zurücksetzen</button>');
     reset.onclick = function () {
-      if (!window.confirm("Wirklich zurücksetzen?\n\nWLAN, Kalibrierung und Fahrzeugmaße gehen verloren. Das Gerät muss danach neu eingerichtet und neu kalibriert werden.\n\nAuch das Passwort des eigenen Netzes wird neu gewürfelt – der Aufkleber stimmt danach nicht mehr. Das neue steht auf dem Display.")) return;
+      if (!window.confirm("Wirklich zurücksetzen?\n\nWLAN, Kalibrierung und Fahrzeugmaße gehen verloren. Das Gerät muss danach neu eingerichtet und neu kalibriert werden.\n\nDas Passwort des eigenen Netzes bleibt – es steht auf dem Aufkleber.")) return;
       reset.disabled = true;
       reset.textContent = "Setze zurück …";
       press("werkseinstellungen", function () {
