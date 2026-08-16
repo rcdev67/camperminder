@@ -53,24 +53,20 @@ esphome run camperminder-level.yaml
 Die Firmware bringt **kein WLAN** mit. Das Gerät öffnet beim ersten
 Einschalten sein eigenes Netz.
 
-1. Am Handy WLAN **CamperMinder** wählen. Das Passwort steht **auf dem
-   Aufkleber** und, solange das Gerät sein eigenes Netz aufspannt, **auf dem
-   Display** — zehn Zeichen hinter `PW`.
+1. Am Handy WLAN **CamperMinder** wählen — **ohne Passwort**.
 2. Im Browser **`192.168.4.1`** öffnen.
 3. Über *Zum Home-Bildschirm hinzufügen* landet ein Symbol auf dem Handy.
 
-> **Jedes Gerät hat ein eigenes Passwort.** Es wird aus der MAC-Adresse des
-> Geräts gerechnet und ändert sich nie — auch nicht durch Updates, neues
-> Aufspielen oder *Werkseinstellungen*. Der Aufkleber gilt damit dauerhaft.
-> Der Wert in `secrets.yaml` ist nur ein Rückfall und gilt im Betrieb nicht.
+> **Das eigene Netz ist ab Werk offen.** Kein Aufkleber, kein Passwort, keine
+> Rückfrage — man verbindet sich und ist da. Es besteht ohnehin nur, solange
+> kein WLAN eingetragen ist.
 >
-> Drei Wege, es nachzuschlagen, wenn der Aufkleber fehlt:
+> Wer nicht möchte, dass jeder in Funkreichweite die Einstellungen erreicht,
+> vergibt unter *Technik → Eigenes Netz* ein eigenes Passwort (mindestens acht
+> Zeichen). Leer speichern öffnet es wieder.
 >
-> | Weg | wann |
-> |---|---|
-> | Entität **Netz Passwort** | wenn das Gerät in Home Assistant hängt |
-> | Display, Zeile `PW` | nur bei der Ausführung mit OLED, im eigenen Netz |
-> | `python tools/netzpasswort.py <MAC>` | immer — die MAC nennt esptool beim Aufspielen |
+> Vergessen? *Zurücksetzen* am Ende derselben Seite öffnet das Netz wieder.
+> Ausgesperrt ist damit niemand.
 
 Dort stellst du unter **Fahrzeug** Fahrzeugart, Radstand, Spurweite, Toleranz,
 Präzisionsmodus und Keilstufe ein — die Werte liegen im Gerät, nicht im Handy.

@@ -64,14 +64,6 @@ substitutions:
   # veröffentlicht werden soll - Einzelheiten in docs/firmware_update.md.
   firmware_version: "3.1.0"
 
-  # Geheime Zutat für das Passwort des eigenen Netzes - Begründung und
-  # Rechenweg stehen bei globals/ap_passwort.
-  #
-  # NIEMALS ÄNDERN, sobald ein Gerät ausgeliefert ist: Aus ihr und der
-  # MAC-Adresse entsteht das Passwort. Eine neue Zutat bedeutet ein neues
-  # Passwort für JEDES Gerät - und damit stimmt kein einziger Aufkleber mehr.
-  ap_salt: !secret camperminder_ap_salt
-
   # I2C-Pins (0,42"-OLED-Board): SDA=GPIO5, SCL=GPIO6
   i2c_sda_pin: GPIO5
   i2c_scl_pin: GPIO6
@@ -182,64 +174,52 @@ esp32:
   framework:
     type: esp-idf
 
-# --- Eigenes Netz: Passwort je Gerät ----------------------------------------
+# --- Eigenes Netz: offen, bis der Nutzer es abschliesst ---------------------
 #
-# Läuft VOR dem WLAN. Priorität 600 gegen dessen 250 - stünde es später, wäre
-# das Netz mit dem alten Passwort bereits offen.
+# Das Geraet spannt sein eigenes Netz nur auf, solange kein WLAN eingetragen
+# ist - also im Handbetrieb und waehrend der Einrichtung. Es ist dann OFFEN,
+# ohne Passwort.
 #
-# Der Wert aus secrets.yaml bleibt als Netz darunter: Er gilt genau so lange,
-# bis diese Zeilen ein gewürfeltes Passwort gesetzt haben. Scheitert das
-# Erzeugen, steht das Gerät also nicht ohne Zugang da - ein Fehler hier würde
-# sonst genau das Gerät aussperren, an dem man ihn beheben müsste.
+# Warum offen die richtige Voreinstellung ist: Ein Passwort ab Werk muesste
+# entweder fuer alle Geraete gleich sein (dann steht es nach dem ersten
+# verkauften Geraet in jedem Forum) oder je Geraet verschieden (dann braucht
+# es einen Aufkleber, und nach Werkseinstellungen stimmt der nicht mehr - bei
+# einer Ausfuehrung ohne Display waere der Besitzer ausgesperrt). Beides war
+# gebaut und beides war schlechter als das hier.
+#
+# Wer es abschliessen will, traegt unter Technik ein eigenes Passwort ein.
+# Dann gilt seines, und zwar bis er es wieder loescht.
+#
+# Laeuft VOR dem WLAN: Prioritaet 600 gegen dessen 250. Spaeter waere das Netz
+# bereits offen.
 esphome:
   on_boot:
     - priority: 600
       then:
         - lambda: |-
-            /* Aus geheimer Zutat und MAC-Adresse - Begründung bei der
-             * Erklärung von ap_passwort weiter oben.
-             *
-             * FNV-1a zum Einrühren, danach xorshift64 je Zeichen. Keine
-             * Kryptografie, und das ist hier auch nicht der Punkt: Was diese
-             * Rechnung schützt, ist allein die Zutat, und die steckt ohnehin
-             * in der Binärdatei. Ein SHA-256 würde daran nichts ändern, aber
-             * einen Include und eine Abhängigkeit kosten.
-             *
-             * MUSS zeichengleich mit tools/netzpasswort.py bleiben - sonst
-             * druckt der Aufkleber etwas anderes, als das Gerät erwartet.
-             */
-            uint64_t h = 14695981039346656037ULL;
-            auto einruehren = [&h](const char *s) {
-              for (const char *p = s; *p != '\0'; p++) {
-                h ^= (uint8_t) *p;
-                h *= 1099511628211ULL;
-              }
-            };
-            einruehren("${ap_salt}");
-            einruehren(get_mac_address().c_str());
-
-            // Ohne verwechselbare Zeichen: kein O gegen 0, kein I gegen 1,
-            // kein S gegen 5, kein B gegen 8. Wer das vom Aufkleber abtippt,
-            // soll nicht raten müssen.
-            static const char zeichen[] = "ACDEFGHJKLMNPQRTUVWXY34679";
-            const uint32_t anzahl = sizeof(zeichen) - 1;
-            for (uint8_t i = 0; i < 10; i++) {
-              h ^= h << 13;
-              h ^= h >> 7;
-              h ^= h << 17;
-              id(ap_passwort)[i] = zeichen[h % anzahl];
+            // Leer heisst offen - dann bleibt die Einstellung aus der
+            // Geraetedatei stehen, und die kennt kein Passwort.
+            const size_t laenge = strlen(id(ap_passwort));
+            if (laenge == 0) {
+              ESP_LOGI("netz", "Eigenes Netz ohne Passwort (offen).");
+              return;
             }
-            id(ap_passwort)[10] = '\0';
-
-            // Steht im Log jedes Starts - das ist der Weg zum Aufkleber bei
-            // einer Ausführung ohne Display.
-            ESP_LOGI("netz", "Passwort des eigenen Netzes: %s", id(ap_passwort));
-
+            // WPA2 verlangt mindestens acht Zeichen. Kuerzeres kann gar nicht
+            // erst hier ankommen - der Knopf zum Speichern weist es ab -, aber
+            // ein beschaedigter Flash-Inhalt koennte es. Dann lieber offen als
+            // ein Netz, das niemand mehr betreten kann.
+            if (laenge < 8) {
+              ESP_LOGW("netz", "Gespeichertes Netz-Passwort ist zu kurz - Netz bleibt offen.");
+              id(ap_passwort)[0] = '\0';
+              return;
+            }
             // Nur das Passwort tauschen: get_ap() bringt Netzname, Kanal und
-            // die feste Adresse 192.168.4.1 unverändert mit.
+            // die feste Adresse 192.168.4.1 unveraendert mit.
             auto ap = wifi::global_wifi_component->get_ap();
             ap.set_password(id(ap_passwort));
             wifi::global_wifi_component->set_ap(ap);
+            ESP_LOGI("netz", "Eigenes Netz mit eigenem Passwort geschuetzt.");
+
 
 web_server:
   port: 80
@@ -301,42 +281,22 @@ globals:
     type: bool
     initial_value: "false"
 
-  # Das Passwort des geräteeigenen Netzes - für JEDES Gerät ein anderes.
+  # Das selbst vergebene Passwort des geräteeigenen Netzes.
   #
-  # Warum nicht eines für alle: Wer im Netz des Geräts ist, kann kalibrieren,
-  # das WLAN ändern und Firmware aufspielen - die Geräteseite hat bewusst
-  # keine eigene Anmeldung. Ein Serienpasswort stünde damit nach dem ersten
-  # verkauften Gerät in jedem Forum, und zwar für alle.
+  # Leer heißt offen, und das ist der Auslieferungszustand - Begründung beim
+  # on_boot weiter unten. Wer eines setzt, findet es hier wieder; wer es
+  # löscht, macht das Netz wieder offen.
   #
-  # WARUM GERECHNET UND NICHT GEWÜRFELT - der Zielkonflikt in drei Sätzen:
+  # 63 Zeichen ist die Obergrenze von WPA2, plus Abschluss macht 64. Mit
+  # restore_value, damit es Neustarts und Updates übersteht. Werkseinstellungen
+  # löschen es - und das ist hier richtig und gefahrlos: Danach ist das Netz
+  # offen, niemand ist ausgesperrt, und genau darum geht es.
   #
-  #   Ein gewürfeltes Passwort müsste gespeichert werden. Gespeichert wird in
-  #   NVS, und die Werkseinstellungen löschen mit nvs_flash_erase() die ganze
-  #   Partition - ein eigener Namensraum hilft nicht. Nach einem Reset stünde
-  #   also ein neues Passwort im Gerät, und bei einer Ausführung OHNE Display
-  #   gäbe es keinen Weg, es zu erfahren: Der Besitzer wäre ausgesperrt.
-  #
-  # Deshalb wird gerechnet: aus der MAC-Adresse des Geräts und einer geheimen
-  # Zutat aus secrets.yaml. Das Ergebnis ist für jedes Gerät verschieden,
-  # überlebt Werkseinstellungen und Neuaufspielen, und der Aufkleber stimmt
-  # dadurch dauerhaft.
-  #
-  # Der Preis, offen benannt: Die Zutat steckt in der ausgelieferten Firmware,
-  # und die ist GPLv3 und öffentlich. Wer sie aus der Binärdatei liest, kann
-  # aus der MAC-Adresse - die das Gerät in jedem Beacon mitfunkt - das
-  # Passwort jedes Geräts errechnen. Gegen den Nachbarn auf dem Stellplatz
-  # schützt es, gegen jemanden mit dieser Absicht nicht.
-  #
-  # Anders geht es nicht, solange ALLE Geräte dieselbe Firmware bekommen: Was
-  # in einer Binärdatei steht, die jeder herunterladen kann, ist kein
-  # Geheimnis mehr. Genau so machen es Router mit ihrem aufgedruckten
-  # WLAN-Schlüssel auch.
-  #
-  # BEWUSST OHNE restore_value: Das Passwort wird bei jedem Start neu
-  # berechnet, nicht gespeichert. Es ist eine Eigenschaft des Geräts, kein
-  # Zustand - genau wie die Seriennummer auf dem Gehäuse.
+  # char-Feld und nicht std::string: restore_value speichert die Bytes des
+  # Objekts, und bei std::string wäre das ein Zeiger ins Nichts.
   - id: ap_passwort
-    type: char[11]
+    type: char[64]
+    restore_value: true
 
 # --- Fahrzeugmaße ---------------------------------------------------------
 # Gehören ins Gerät, nicht ins Handy: sie beschreiben das Fahrzeug, nicht den
@@ -915,18 +875,18 @@ text_sensor:
     # stundenlang "unbekannt" und die Zeile fehlte in der Technik-Liste.
     update_interval: 60s
 
-  # Damit man das Passwort auch dann nachschlagen kann, wenn der Aufkleber
-  # abgefallen oder das Gerät hinter einer Verkleidung verschwunden ist.
+  # Ob das eigene Netz geschützt ist - NICHT womit.
   #
-  # Wer das hier liest, ist entweder in Home Assistant angemeldet oder bereits
-  # im Netz des Geräts - beides setzt voraus, dass er ohnehin schon drin ist.
-  # Es wird hier also nichts preisgegeben, was noch schützen würde.
+  # Der Zustand ist die nützliche Auskunft: "Steht mein Gerät offen?" lässt
+  # sich damit beantworten, ohne das Passwort des Nutzers irgendwo anzuzeigen.
+  # Wer es vergessen hat, setzt ein neues; wer gar keines mehr will, löscht es.
   - platform: template
-    name: "Netz Passwort"
-    id: netz_passwort
-    icon: mdi:form-textbox-password
+    name: "Eigenes Netz"
+    id: netz_schutz
+    icon: mdi:wifi-lock
     entity_category: diagnostic
-    lambda: 'return {std::string(id(ap_passwort))};'
+    lambda: |-
+      return {strlen(id(ap_passwort)) >= 8 ? "mit Passwort" : "offen"};
     update_interval: 60s
 
   - platform: wifi_info
@@ -942,7 +902,60 @@ text_sensor:
       name: "WLAN MAC"
       entity_category: diagnostic
 
+text:
+  # Eingabefeld für ein selbst vergebenes Passwort des eigenen Netzes.
+  #
+  # Es liegt hier und nicht in der Gerätedatei, weil die Funktion zum Produkt
+  # gehört: Wer hardware.yaml als Paket einbindet, soll sie mitbekommen.
+  #
+  # optimistic, weil es keine Gegenstelle gibt - das Gerät ist die Gegenstelle.
+  # Ohne restore_value: Das Feld ist die EINGABE, gespeichert wird erst beim
+  # Druck auf den Knopf. Sonst stünde ein halb getippter Versuch im Flash.
+  - platform: template
+    name: "Netz Passwort neu"
+    id: ap_pass_input
+    icon: mdi:form-textbox-password
+    entity_category: config
+    mode: password
+    min_length: 0
+    max_length: 63
+    optimistic: true
+
 button:
+  # Übernimmt, was im Feld darüber steht. Leer bedeutet: Netz wieder öffnen.
+  #
+  # Neustart danach, weil ein laufendes Netz sein Passwort nicht wechseln kann
+  # - die Gegenstelle müsste sich ohnehin neu anmelden.
+  - platform: template
+    name: "Netz Passwort speichern"
+    id: ap_pass_save
+    icon: mdi:wifi-lock
+    entity_category: config
+    on_press:
+      - lambda: |-
+          const std::string neu = id(ap_pass_input).state;
+          // WPA2 kennt nichts zwischen "offen" und acht Zeichen. Ein zu
+          // kurzer Versuch wird deshalb abgewiesen und nicht etwa
+          // stillschweigend aufgefüllt oder verworfen - sonst stünde der
+          // Nutzer vor einem Netz, das anders heißt, als er dachte.
+          if (!neu.empty() && neu.length() < 8) {
+            ESP_LOGW("netz", "Passwort nicht gespeichert: WPA2 braucht mindestens 8 Zeichen.");
+            return;
+          }
+          strncpy(id(ap_passwort), neu.c_str(), sizeof(id(ap_passwort)) - 1);
+          id(ap_passwort)[sizeof(id(ap_passwort)) - 1] = '\0';
+          ESP_LOGI("netz", "Netz-Passwort %s. Neustart.",
+                   neu.empty() ? "geloescht - Netz ist wieder offen" : "gespeichert");
+      # Fünf Sekunden: Die Geräteseite wartet auf die Bestätigung über den
+      # Ereignisstrom und zeigt erst danach ihre Schlussmeldung. Startet das
+      # Gerät zu früh neu, erfährt der Nutzer nie, ob es geklappt hat.
+      #
+      # Die Zeit reicht zugleich, damit die Änderung im Flash landet: Ein
+      # wiederhergestelltes Global schreibt beim nächsten Durchlauf, und
+      # safe_reboot sichert vorher ohnehin ab.
+      - delay: 5s
+      - lambda: 'App.safe_reboot();'
+
   - platform: template
     name: "Neigung kalibrieren"
     id: calibrate_level
@@ -1013,24 +1026,14 @@ display:
       if (im_fremden_netz) {
         it.printf(0,  0, id(font_klein), "WLAN %.9s", netz.c_str());
         it.print (0, 12, id(font_zeile), ip.c_str());
-        // Fußzeile: eigene Version, dazu ein Kürzel, wenn eine Zentrale
-        // mithört.
-        it.printf(0, 28, id(font_klein), "v${firmware_version}%s",
-                  id(zentrale_verbunden).state ? "  HA" : "");
       } else {
-        /* Im eigenen Netz steht hier das PASSWORT statt der Version.
-         *
-         * Das ist der Moment, in dem es gebraucht wird: Das Handy fragt
-         * danach, und ohne Verbindung kommt man an keine Seite, die es zeigen
-         * könnte - auch nicht an die des Geräts. Ein Aufkleber kann abfallen
-         * oder hinter einer Verkleidung verschwinden; das Display kann das
-         * nicht. Die Version steht derweil auf der Geräteseite.
-         *
-         * "CamperMinder" statt "Netz CamperMinder": In Schriftgröße 8 passen
-         * gut vierzehn Zeichen in die 72 Pixel Breite. Das Wort "Netz" wäre
-         * das, was rechts abgeschnitten wird.
-         */
-        it.print (0,  0, id(font_klein), "CamperMinder");
-        it.print (0, 11, id(font_zeile), "192.168.4.1");
-        it.printf(0, 27, id(font_klein), "PW %s", id(ap_passwort));
+        // Kein Passwort auf dem Display: Ab Werk gibt es keins, und ein selbst
+        // vergebenes gehört dem Nutzer - das steht nicht sichtbar im
+        // Fahrzeug herum.
+        it.print (0,  0, id(font_klein), "Netz CamperMinder");
+        it.print (0, 12, id(font_zeile), "192.168.4.1");
       }
+
+      // Fußzeile: eigene Version, dazu ein Kürzel, wenn eine Zentrale mithört.
+      it.printf(0, 28, id(font_klein), "v${firmware_version}%s",
+                id(zentrale_verbunden).state ? "  HA" : "");

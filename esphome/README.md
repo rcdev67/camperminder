@@ -17,9 +17,13 @@ cd esphome/level
 esphome run camperminder-level.yaml
 ```
 
-Voraussetzung ist eine `secrets.yaml` in `esphome/level/` mit drei Einträgen —
+Voraussetzung ist eine `secrets.yaml` in `esphome/level/` mit zwei Einträgen —
 Vorlage danebenliegend. **Der API-Schlüssel darf sich nie ändern**: Er steckt
 in jedem ausgelieferten Gerät und auf jedem Aufkleber.
+
+Ein Passwort für das geräteeigene Netz steht dort bewusst nicht: Das Netz ist
+ab Werk offen, und wer es abschließen will, vergibt auf der Geräteseite ein
+eigenes.
 
 ## Versionen
 
