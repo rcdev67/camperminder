@@ -64,6 +64,14 @@ substitutions:
   # veröffentlicht werden soll - Einzelheiten in docs/firmware_update.md.
   firmware_version: "3.1.0"
 
+  # Geheime Zutat für das Passwort des eigenen Netzes - Begründung und
+  # Rechenweg stehen bei globals/ap_passwort.
+  #
+  # NIEMALS ÄNDERN, sobald ein Gerät ausgeliefert ist: Aus ihr und der
+  # MAC-Adresse entsteht das Passwort. Eine neue Zutat bedeutet ein neues
+  # Passwort für JEDES Gerät - und damit stimmt kein einziger Aufkleber mehr.
+  ap_salt: !secret camperminder_ap_salt
+
   # I2C-Pins (0,42"-OLED-Board): SDA=GPIO5, SCL=GPIO6
   i2c_sda_pin: GPIO5
   i2c_scl_pin: GPIO6
@@ -188,23 +196,43 @@ esphome:
     - priority: 600
       then:
         - lambda: |-
-            // Beim ersten Start würfeln, danach aus dem Flash.
-            if (id(ap_passwort)[0] == '\0') {
-              // Ohne verwechselbare Zeichen: kein O gegen 0, kein I gegen 1,
-              // kein S gegen 5, kein B gegen 8. Wer das vom Aufkleber
-              // abtippt, soll nicht raten müssen.
-              static const char zeichen[] = "ACDEFGHJKLMNPQRTUVWXY34679";
-              const uint32_t anzahl = sizeof(zeichen) - 1;
-              for (uint8_t i = 0; i < 10; i++) {
-                id(ap_passwort)[i] = zeichen[random_uint32() % anzahl];
+            /* Aus geheimer Zutat und MAC-Adresse - Begründung bei der
+             * Erklärung von ap_passwort weiter oben.
+             *
+             * FNV-1a zum Einrühren, danach xorshift64 je Zeichen. Keine
+             * Kryptografie, und das ist hier auch nicht der Punkt: Was diese
+             * Rechnung schützt, ist allein die Zutat, und die steckt ohnehin
+             * in der Binärdatei. Ein SHA-256 würde daran nichts ändern, aber
+             * einen Include und eine Abhängigkeit kosten.
+             *
+             * MUSS zeichengleich mit tools/netzpasswort.py bleiben - sonst
+             * druckt der Aufkleber etwas anderes, als das Gerät erwartet.
+             */
+            uint64_t h = 14695981039346656037ULL;
+            auto einruehren = [&h](const char *s) {
+              for (const char *p = s; *p != '\0'; p++) {
+                h ^= (uint8_t) *p;
+                h *= 1099511628211ULL;
               }
-              id(ap_passwort)[10] = '\0';
-              ESP_LOGI("netz", "Neues Passwort für das eigene Netz gewürfelt.");
-            }
+            };
+            einruehren("${ap_salt}");
+            einruehren(get_mac_address().c_str());
 
-            // Zehn Zeichen aus 26 sind rund 47 Bit. Gegen das Mitschneiden
-            // eines Handschlags und stures Durchprobieren reicht das weit;
-            // acht Zeichen (das Mindestmaß von WPA2) wären dafür knapp.
+            // Ohne verwechselbare Zeichen: kein O gegen 0, kein I gegen 1,
+            // kein S gegen 5, kein B gegen 8. Wer das vom Aufkleber abtippt,
+            // soll nicht raten müssen.
+            static const char zeichen[] = "ACDEFGHJKLMNPQRTUVWXY34679";
+            const uint32_t anzahl = sizeof(zeichen) - 1;
+            for (uint8_t i = 0; i < 10; i++) {
+              h ^= h << 13;
+              h ^= h >> 7;
+              h ^= h << 17;
+              id(ap_passwort)[i] = zeichen[h % anzahl];
+            }
+            id(ap_passwort)[10] = '\0';
+
+            // Steht im Log jedes Starts - das ist der Weg zum Aufkleber bei
+            // einer Ausführung ohne Display.
             ESP_LOGI("netz", "Passwort des eigenen Netzes: %s", id(ap_passwort));
 
             // Nur das Passwort tauschen: get_ap() bringt Netzname, Kanal und
@@ -280,23 +308,35 @@ globals:
   # keine eigene Anmeldung. Ein Serienpasswort stünde damit nach dem ersten
   # verkauften Gerät in jedem Forum, und zwar für alle.
   #
-  # Warum gewürfelt und nicht aus der MAC-Adresse gerechnet: Die Firmware ist
-  # GPLv3 und öffentlich, jeder kann sie herunterladen. Ein Rechenweg mit
-  # geheimer Zutat wäre nur so lange geheim, bis jemand die Zutat aus der
-  # Binärdatei liest - und die MAC-Adresse funkt das Gerät ohnehin in jedem
-  # Beacon mit. Gewürfelt gibt es nichts zu extrahieren.
+  # WARUM GERECHNET UND NICHT GEWÜRFELT - der Zielkonflikt in drei Sätzen:
   #
-  # char-Feld und nicht std::string: restore_value speichert die Bytes des
-  # Objekts, und bei std::string wäre das ein Zeiger ins Nichts.
+  #   Ein gewürfeltes Passwort müsste gespeichert werden. Gespeichert wird in
+  #   NVS, und die Werkseinstellungen löschen mit nvs_flash_erase() die ganze
+  #   Partition - ein eigener Namensraum hilft nicht. Nach einem Reset stünde
+  #   also ein neues Passwort im Gerät, und bei einer Ausführung OHNE Display
+  #   gäbe es keinen Weg, es zu erfahren: Der Besitzer wäre ausgesperrt.
   #
-  # Ohne initial_value: Ein "{0}" hier passt auf zwei Konstruktoren von
-  # RestoringGlobalsComponent, und der Compiler wählt den für einen
-  # Einzelwert - aus dem Feld würde ein Zeiger. Ohne Angabe greift die
-  # Nullinitialisierung des Feldes, und genau die ist gemeint: leer heißt
-  # "noch nichts gewürfelt".
+  # Deshalb wird gerechnet: aus der MAC-Adresse des Geräts und einer geheimen
+  # Zutat aus secrets.yaml. Das Ergebnis ist für jedes Gerät verschieden,
+  # überlebt Werkseinstellungen und Neuaufspielen, und der Aufkleber stimmt
+  # dadurch dauerhaft.
+  #
+  # Der Preis, offen benannt: Die Zutat steckt in der ausgelieferten Firmware,
+  # und die ist GPLv3 und öffentlich. Wer sie aus der Binärdatei liest, kann
+  # aus der MAC-Adresse - die das Gerät in jedem Beacon mitfunkt - das
+  # Passwort jedes Geräts errechnen. Gegen den Nachbarn auf dem Stellplatz
+  # schützt es, gegen jemanden mit dieser Absicht nicht.
+  #
+  # Anders geht es nicht, solange ALLE Geräte dieselbe Firmware bekommen: Was
+  # in einer Binärdatei steht, die jeder herunterladen kann, ist kein
+  # Geheimnis mehr. Genau so machen es Router mit ihrem aufgedruckten
+  # WLAN-Schlüssel auch.
+  #
+  # BEWUSST OHNE restore_value: Das Passwort wird bei jedem Start neu
+  # berechnet, nicht gespeichert. Es ist eine Eigenschaft des Geräts, kein
+  # Zustand - genau wie die Seriennummer auf dem Gehäuse.
   - id: ap_passwort
     type: char[11]
-    restore_value: true
 
 # --- Fahrzeugmaße ---------------------------------------------------------
 # Gehören ins Gerät, nicht ins Handy: sie beschreiben das Fahrzeug, nicht den

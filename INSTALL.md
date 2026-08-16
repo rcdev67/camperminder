@@ -59,15 +59,18 @@ Einschalten sein eigenes Netz.
 2. Im Browser **`192.168.4.1`** öffnen.
 3. Über *Zum Home-Bildschirm hinzufügen* landet ein Symbol auf dem Handy.
 
-> **Jedes Gerät hat ein eigenes Passwort.** Es wird beim ersten Einschalten
-> gewürfelt und bleibt danach gleich — auch über Updates hinweg. Der Wert in
-> `secrets.yaml` ist nur ein Rückfall und gilt im Betrieb nicht.
+> **Jedes Gerät hat ein eigenes Passwort.** Es wird aus der MAC-Adresse des
+> Geräts gerechnet und ändert sich nie — auch nicht durch Updates, neues
+> Aufspielen oder *Werkseinstellungen*. Der Aufkleber gilt damit dauerhaft.
+> Der Wert in `secrets.yaml` ist nur ein Rückfall und gilt im Betrieb nicht.
 >
-> Zwei Wege, es später nachzuschlagen: das Display, sobald das eigene Netz
-> läuft, oder in Home Assistant die Entität **Netz Passwort**.
+> Drei Wege, es nachzuschlagen, wenn der Aufkleber fehlt:
 >
-> Nach *Werkseinstellungen* wird ein **neues** gewürfelt. Der Aufkleber stimmt
-> dann nicht mehr — das Display schon.
+> | Weg | wann |
+> |---|---|
+> | Entität **Netz Passwort** | wenn das Gerät in Home Assistant hängt |
+> | Display, Zeile `PW` | nur bei der Ausführung mit OLED, im eigenen Netz |
+> | `python tools/netzpasswort.py <MAC>` | immer — die MAC nennt esptool beim Aufspielen |
 
 Dort stellst du unter **Fahrzeug** Fahrzeugart, Radstand, Spurweite, Toleranz,
 Präzisionsmodus und Keilstufe ein — die Werte liegen im Gerät, nicht im Handy.

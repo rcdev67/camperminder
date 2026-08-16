@@ -172,13 +172,10 @@ button:
   # Kalibrierung, Fahrzeugmaße. Danach startet das Gerät neu und öffnet
   # wieder sein eigenes Netz - Auslieferungszustand.
   #
-  # ACHTUNG, das betrifft auch das PASSWORT des eigenen Netzes: Es liegt im
-  # selben Bereich und wird beim nächsten Start neu gewürfelt. Der Aufkleber
-  # stimmt danach nicht mehr, das Display schon.
-  #
-  # Bewusst nicht ausgenommen: Ein Zurücksetzen ist der Weg für Weiterverkauf.
-  # Dass der neue Besitzer dabei ein neues Passwort bekommt, ist dort richtig
-  # und nicht lästig - lästig wäre es, wenn das alte bliebe.
+  # Das PASSWORT des eigenen Netzes übersteht das: Es wird bei jedem Start aus
+  # der MAC-Adresse gerechnet und liegt gar nicht im Flash. Der Aufkleber gilt
+  # also weiter - und das muss er auch, sonst wäre eine Ausführung ohne
+  # Display nach einem Zurücksetzen unerreichbar.
   #
   # Warum das nötig ist: Ein OTA-Update lässt diesen Bereich absichtlich
   # unangetastet, und Home Assistant kann ihn gar nicht erreichen. Ohne diese
