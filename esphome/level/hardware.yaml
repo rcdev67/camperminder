@@ -62,7 +62,7 @@ substitutions:
   # Ein Bindestrich macht die Nummer zur Vorabfassung: "2.0.4-rc1" statt
   # "2.0.4". Daran erkennen die Werkzeuge, dass dieser Stand NICHT
   # veröffentlicht werden soll - Einzelheiten in docs/firmware_update.md.
-  firmware_version: "3.1.0"
+  firmware_version: "3.2.0"
 
   # I2C-Pins (0,42"-OLED-Board): SDA=GPIO5, SCL=GPIO6
   i2c_sda_pin: GPIO5
@@ -305,6 +305,65 @@ globals:
     type: char[64]
     restore_value: true
 
+  # --- Hubhöhe je Ecke, im Gerät gerechnet ----------------------------------
+  #
+  # Diese fünf Werte entstehen einmal je Sekunde im interval-Block weiter
+  # unten und werden von den Sensoren nur noch ausgegeben. Das ist Absicht:
+  # Die Rechnung steht damit an EINER Stelle, nicht in fünf Lambdas, die
+  # auseinanderlaufen können.
+  #
+  # Warum überhaupt im Gerät und nicht in Home Assistant: Stünde sie dort,
+  # gäbe es sie nur dort - nicht auf der Geräteseite, nicht über MQTT, nicht
+  # auf einem Cerbo GX. Genau das Merkmal, mit dem verkauft wird, wäre an die
+  # Plattform gefesselt, von der es unabhängig sein soll.
+  - id: hub_vl
+    type: float
+    initial_value: "0.0"
+  - id: hub_vr
+    type: float
+    initial_value: "0.0"
+  - id: hub_hl
+    type: float
+    initial_value: "0.0"
+  - id: hub_hr
+    type: float
+    initial_value: "0.0"
+  # Vorzeichenbehaftet: positiv heißt hoch, negativ runter. Nur das Stützrad
+  # kann beides - ein Keil hebt, er senkt nicht.
+  - id: stuetzrad
+    type: float
+    initial_value: "0.0"
+  # Der nächste Handgriff als Satz. std::string ohne restore_value: Er wird
+  # jede Sekunde neu gebildet, gespeichert werden müsste er nie.
+  - id: anweisung
+    type: std::string
+
+  # Gedächtnis der Hysterese der Schräglagenwarnung.
+  - id: schraeg_hold
+    type: bool
+    initial_value: "false"
+
+  # --- Ruhelage für die Lageänderung ----------------------------------------
+  #
+  # Wogegen die aktuelle Neigung verglichen wird. Mit restore_value, damit ein
+  # Stromausfall nicht als Diebstahl gemeldet wird.
+  - id: ruhe_pitch
+    type: float
+    initial_value: "0.0"
+    restore_value: true
+  - id: ruhe_roll
+    type: float
+    initial_value: "0.0"
+    restore_value: true
+  - id: ruhe_gesetzt
+    type: bool
+    initial_value: "false"
+    restore_value: true
+  # Zähler ruhiger Sekunden - siehe interval-Block.
+  - id: ruhe_takte
+    type: int
+    initial_value: "0"
+
 # --- Fahrzeugmaße ---------------------------------------------------------
 # Gehören ins Gerät, nicht ins Handy: sie beschreiben das Fahrzeug, nicht den
 # Betrachter. Lagen sie im Browser, wären sie beim Handywechsel weg und zwei
@@ -421,6 +480,47 @@ number:
     max_value: 200
     step: 5
     initial_value: ${level_release_default}
+    restore_value: true
+    optimistic: true
+    mode: box
+
+  # Ab welcher Schräglage gewarnt wird.
+  #
+  # Drei Grad ist keine gegriffene Zahl: Ein Absorberkühlschrank arbeitet
+  # darüber nicht mehr zuverlässig, weil das Kältemittel nicht mehr
+  # zurückläuft. Das merkt niemand, bis das Essen warm ist - deshalb warnt das
+  # Gerät, und deshalb hat die Warnung nichts mit der Nivellier-Toleranz zu
+  # tun. Die darf jeder nach Geschmack einstellen; diese Grenze kommt aus der
+  # Technik des Kühlschranks.
+  - platform: template
+    name: "Schräglage Grenzwert"
+    id: schraeg_grenz
+    unit_of_measurement: "°"
+    icon: mdi:fridge-alert
+    entity_category: config
+    min_value: 1
+    max_value: 10
+    step: 0.5
+    initial_value: 3
+    restore_value: true
+    optimistic: true
+    mode: box
+
+  # Ab welcher Abweichung von der Ruhelage eine Lageänderung gemeldet wird.
+  #
+  # Ein Grad entspricht bei 3500 mm Radstand rund 6 cm Höhenunterschied - so
+  # viel bewegt sich ein Fahrzeug nicht von selbst. Wind und Einsteigen
+  # bleiben darunter, Anheben und Abschleppen darüber.
+  - platform: template
+    name: "Lageänderung Grenzwert"
+    id: lage_grenz
+    unit_of_measurement: "°"
+    icon: mdi:car-arrow-right
+    entity_category: config
+    min_value: 0.2
+    max_value: 5
+    step: 0.1
+    initial_value: 1
     restore_value: true
     optimistic: true
     mode: box
@@ -772,6 +872,70 @@ sensor:
     filters:
       - throttle_average: 60s
 
+  # --- Hubhöhe je Ecke ------------------------------------------------------
+  #
+  # Sie geben nur aus, was der interval-Block gerechnet hat. Beim Wohnwagen
+  # bedeuten "hinten links/rechts" die beiden Räder der einen Achse, und
+  # "vorne" bleibt leer - dort steht das Stützrad.
+  #
+  # delta 0.05: Ein halber Millimeter Änderung muss niemanden erreichen.
+  - platform: template
+    name: "Hub vorne links"
+    id: hub_vorne_links
+    unit_of_measurement: cm
+    icon: mdi:arrow-up-bold-box-outline
+    accuracy_decimals: 1
+    state_class: measurement
+    update_interval: 1s
+    lambda: 'return id(hub_vl);'
+    filters: [ or: [ delta: 0.05, heartbeat: 60s ] ]
+
+  - platform: template
+    name: "Hub vorne rechts"
+    id: hub_vorne_rechts
+    unit_of_measurement: cm
+    icon: mdi:arrow-up-bold-box-outline
+    accuracy_decimals: 1
+    state_class: measurement
+    update_interval: 1s
+    lambda: 'return id(hub_vr);'
+    filters: [ or: [ delta: 0.05, heartbeat: 60s ] ]
+
+  - platform: template
+    name: "Hub hinten links"
+    id: hub_hinten_links
+    unit_of_measurement: cm
+    icon: mdi:arrow-up-bold-box-outline
+    accuracy_decimals: 1
+    state_class: measurement
+    update_interval: 1s
+    lambda: 'return id(hub_hl);'
+    filters: [ or: [ delta: 0.05, heartbeat: 60s ] ]
+
+  - platform: template
+    name: "Hub hinten rechts"
+    id: hub_hinten_rechts
+    unit_of_measurement: cm
+    icon: mdi:arrow-up-bold-box-outline
+    accuracy_decimals: 1
+    state_class: measurement
+    update_interval: 1s
+    lambda: 'return id(hub_hr);'
+    filters: [ or: [ delta: 0.05, heartbeat: 60s ] ]
+
+  # Vorzeichenbehaftet, weil das Stützrad als einziger Punkt auch nach unten
+  # kann: positiv heißt hoch, negativ runter. Beim Wohnmobil immer 0.
+  - platform: template
+    name: "Stützrad"
+    id: stuetzrad_cm
+    unit_of_measurement: cm
+    icon: mdi:tow-truck
+    accuracy_decimals: 1
+    state_class: measurement
+    update_interval: 1s
+    lambda: 'return id(stuetzrad);'
+    filters: [ or: [ delta: 0.05, heartbeat: 60s ] ]
+
   # Der Betrag des Beschleunigungsvektors. Er muss im Stillstand immer 9,81
   # betragen, ganz gleich wie das Fahrzeug steht - die Erdbeschleunigung ändert
   # sich nicht mit der Neigung. Jede Abweichung, die mit der Temperatur
@@ -797,6 +961,171 @@ sensor:
       );
     filters:
       - throttle_average: 60s
+
+# ============================================================================
+#  Hubhöhe je Ecke, Anweisung und Ruhelage - die eigentliche Denkarbeit
+# ----------------------------------------------------------------------------
+#  Einmal je Sekunde, an EINER Stelle. Die Sensoren darunter geben nur noch
+#  aus, was hier entsteht.
+#
+#  Eine Sekunde reicht: Das sind abgeleitete Größen, keine Messwerte. Wer
+#  auffährt, sieht die Blase in Echtzeit; die Zentimeterangabe eine Sekunde
+#  später ist immer noch schneller, als er den Keil zurechtlegen kann.
+# ============================================================================
+interval:
+  - interval: 1s
+    then:
+      - lambda: |-
+          const float p_roh = id(pitch).state;
+          const float r_roh = id(roll).state;
+          if (isnan(p_roh) || isnan(r_roh)) {
+            id(anweisung) = "Kein Messwert";
+            return;
+          }
+
+          const float radstand = id(wheelbase_mm).state;
+          const float spur     = id(track_mm).state;
+          const float grad     = id(tolerance_deg).state;
+          const float zentimeter = id(tolerance_cm).state;
+          if (isnan(radstand) || isnan(spur) || isnan(grad) || isnan(zentimeter)) return;
+
+          // Toleranz je Achse - MUSS zum Binärsensor "Camper steht gerade"
+          // und zu _tolerance() in coordinator.py passen.
+          const bool genau = id(precise_mode).state;
+          const float tol_p = genau ? grad
+            : fmaxf(atanf(zentimeter * 10.0f / radstand) * 180.0f / M_PI, 0.05f);
+          const float tol_r = genau ? grad
+            : fmaxf(atanf(zentimeter * 10.0f / spur) * 180.0f / M_PI, 0.05f);
+
+          // Eine Achse innerhalb ihrer Toleranz ist FERTIG - ihr Restwinkel
+          // darf die Anweisung nicht mehr formen. Ohne das nennt die Anweisung
+          // eine Richtung, die die Anzeige daneben bereits als erledigt
+          // ausweist.
+          const float p = fabsf(p_roh) <= tol_p ? 0.0f : p_roh;
+          const float r = fabsf(r_roh) <= tol_r ? 0.0f : r_roh;
+
+          const float BOGEN = 3.14159265358979323846f / 180.0f;
+          const bool wohnwagen = (id(vehicle_type).current_option() == "Wohnwagen");
+
+          if (wohnwagen) {
+            /* Zwei Räder auf einer Achse plus Stützrad.
+             *
+             * Quer wie beim Wohnmobil über die Spurweite - ein Keil unter das
+             * tiefere Rad. Längs dagegen über das Stützrad, und das kurbelt
+             * in BEIDE Richtungen; "nur anheben" wäre hier eine künstliche
+             * Einschränkung. Deshalb bewusst nicht über die Vier-Ecken-
+             * Rechnung, die das höchste Rad als Bezug nimmt.
+             */
+            id(hub_vl) = 0.0f;
+            id(hub_vr) = 0.0f;
+            const float quer = roundf(spur * tanf(fabsf(r) * BOGEN)) / 10.0f;
+            id(hub_hl) = (r > 0.0f) ? quer : 0.0f;   // roll > 0 = rechts höher
+            id(hub_hr) = (r > 0.0f) ? 0.0f : quer;
+            const float laengs = roundf(radstand * tanf(fabsf(p) * BOGEN)) / 10.0f;
+            id(stuetzrad) = (p > 0.0f) ? -laengs : laengs;  // pitch > 0 = Front höher
+          } else {
+            /* Vier Auflagepunkte. Bezug ist das höchste Rad: Es bleibt
+             * stehen, alle anderen steigen. Anders herum ginge es nicht -
+             * absenken kann weder ein Keil noch eine Stütze. */
+            const float halb_l = radstand * tanf(p * BOGEN) / 20.0f;
+            const float halb_q = spur * tanf(r * BOGEN) / 20.0f;
+            float boden[4] = { +halb_l - halb_q, +halb_l + halb_q,
+                               -halb_l - halb_q, -halb_l + halb_q };
+            float hoechster = boden[0];
+            for (int i = 1; i < 4; i++) if (boden[i] > hoechster) hoechster = boden[i];
+            id(hub_vl) = roundf((hoechster - boden[0]) * 10.0f) / 10.0f;
+            id(hub_vr) = roundf((hoechster - boden[1]) * 10.0f) / 10.0f;
+            id(hub_hl) = roundf((hoechster - boden[2]) * 10.0f) / 10.0f;
+            id(hub_hr) = roundf((hoechster - boden[3]) * 10.0f) / 10.0f;
+            id(stuetzrad) = 0.0f;
+          }
+
+          /* --- Der nächste Handgriff als Satz ---------------------------
+           *
+           * Unter einem Zentimeter wird nichts genannt: So fein lässt sich
+           * weder ein Keil legen noch eine Stütze stellen, und eine Anweisung,
+           * die niemand ausführen kann, ist keine.
+           */
+          char text[160];
+          if (wohnwagen) {
+            // Reihenfolge ist Absicht: erst quer, dann längs. Das Auffahren
+            // kippt den Wagen längs mit - eine vorher berechnete
+            // Stützradhöhe wäre danach falsch.
+            if (id(hub_hl) >= 1.0f) {
+              snprintf(text, sizeof(text), "Linkes Rad %.1f cm hoch", id(hub_hl));
+            } else if (id(hub_hr) >= 1.0f) {
+              snprintf(text, sizeof(text), "Rechtes Rad %.1f cm hoch", id(hub_hr));
+            } else if (fabsf(id(stuetzrad)) >= 1.0f) {
+              snprintf(text, sizeof(text), "Stützrad %.1f cm %s",
+                       fabsf(id(stuetzrad)), id(stuetzrad) > 0.0f ? "hoch" : "runter");
+            } else {
+              snprintf(text, sizeof(text), "Steht eben - fertig");
+            }
+          } else {
+            const char *namen[4] = { "Vorne links", "Vorne rechts",
+                                     "Hinten links", "Hinten rechts" };
+            float werte[4] = { id(hub_vl), id(hub_vr), id(hub_hl), id(hub_hr) };
+            int groesster = 0, offen = 0;
+            for (int i = 0; i < 4; i++) {
+              if (werte[i] > werte[groesster]) groesster = i;
+              if (werte[i] >= 1.0f) offen++;
+            }
+            if (offen == 0) {
+              snprintf(text, sizeof(text), "Steht eben - fertig");
+            } else if (id(level_method).current_option() == "Auffahrkeile" || offen == 1) {
+              // Mit Keilen eine Anweisung nach der anderen: Zwischen zwei
+              // Versuchen muss das Fahrzeug bewegt werden, eine Liste aller
+              // vier Räder wäre hier nicht hilfreich, sondern verwirrend.
+              snprintf(text, sizeof(text), "%s %.1f cm hoch",
+                       namen[groesster], werte[groesster]);
+            } else {
+              // Mit Hydraulik geht jede Ecke einzeln und gleichzeitig.
+              snprintf(text, sizeof(text), "%s %.1f cm hoch, dazu %d weitere Ecke%s",
+                       namen[groesster], werte[groesster], offen - 1,
+                       offen - 1 == 1 ? "" : "n");
+            }
+          }
+          id(anweisung) = text;
+
+          /* --- Ruhelage nachführen --------------------------------------
+           *
+           * Bezugspunkt für die Lageänderung. Er wandert bewusst mit, solange
+           * das Fahrzeug ruhig steht und sich nur wenig bewegt - sonst würde
+           * der Temperaturdrift des Sensors über Tage zum Alarm.
+           *
+           * Und er wird nach fünf ruhigen Minuten AUCH DANN übernommen, wenn
+           * die Abweichung groß war: Wer umgeparkt und neu ausgerichtet hat,
+           * soll keinen Daueralarm bekommen. Ein Alarm, den man nicht
+           * loswird, wird abgeschaltet - und dann schützt er nie wieder.
+           */
+          const float lage_g = id(lage_grenz).state;
+          if (isnan(lage_g)) return;
+
+          if (!id(ruhe_gesetzt)) {
+            id(ruhe_pitch) = p_roh;
+            id(ruhe_roll)  = r_roh;
+            id(ruhe_gesetzt) = true;
+            id(ruhe_takte) = 0;
+            return;
+          }
+
+          const bool bewegt = id(in_motion).has_state() && id(in_motion).state;
+          const float weg = fmaxf(fabsf(p_roh - id(ruhe_pitch)),
+                                  fabsf(r_roh - id(ruhe_roll)));
+          if (bewegt) {
+            id(ruhe_takte) = 0;
+          } else {
+            if (id(ruhe_takte) < 100000) id(ruhe_takte)++;
+            if (weg < lage_g && id(ruhe_takte) >= 30) {
+              id(ruhe_pitch) = p_roh;
+              id(ruhe_roll)  = r_roh;
+            }
+            if (id(ruhe_takte) >= 300) {
+              id(ruhe_pitch) = p_roh;
+              id(ruhe_roll)  = r_roh;
+              id(ruhe_takte) = 0;
+            }
+          }
 
 binary_sensor:
   # id, weil die OLED-Anzeige daran abliest, ob eine Zentrale mithört. Ohne
@@ -853,6 +1182,52 @@ binary_sensor:
         && fabsf(id(roll).state) <= tol_roll * faktor;
       return id(level_hold);
 
+  # --- Schräglagenwarnung ---------------------------------------------------
+  #
+  # Nicht dasselbe wie "steht gerade": Jene Frage entscheidet der Nutzer über
+  # seine Toleranz, diese entscheidet die Technik des Kühlschranks. Wer 8 cm
+  # Toleranz einstellt, weil ihm das zum Schlafen reicht, soll trotzdem
+  # erfahren, wenn sein Absorber aussteigt.
+  #
+  # Hysterese von 20 %: Ohne sie flattert die Meldung genau an der Grenze -
+  # und eine Warnung, die im Minutentakt kommt und geht, schaltet man ab.
+  - platform: template
+    name: "Schräglage"
+    id: schraeglage
+    device_class: problem
+    icon: mdi:fridge-alert
+    lambda: |-
+      if (isnan(id(pitch).state) || isnan(id(roll).state)) return {};
+      const float grenze = id(schraeg_grenz).state;
+      if (isnan(grenze)) return {};
+      const float ab = fmaxf(fabsf(id(pitch).state), fabsf(id(roll).state));
+      id(schraeg_hold) = id(schraeg_hold) ? (ab > grenze * 0.8f) : (ab > grenze);
+      return id(schraeg_hold);
+
+  # --- Lageänderung ---------------------------------------------------------
+  #
+  # Der Unterschied zu "In Bewegung" ist der ganze Punkt: Jenes meldet eine
+  # ERSCHÜTTERUNG - jemand steigt ein, Wind, der Nachbar rangiert. Das ist
+  # Anwesenheit, kein Alarm. Dieses hier meldet, dass das Fahrzeug seine LAGE
+  # verlassen hat und nicht zurückgekommen ist: angehoben, abgeschleppt,
+  # weggefahren.
+  #
+  # Nur das zweite ist ein Alarm. Getrennt herausgegeben, damit der Kunde
+  # selbst entscheidet, worauf er eine Meldung legt.
+  - platform: template
+    name: "Lageänderung"
+    id: lageaenderung
+    device_class: problem
+    icon: mdi:car-arrow-right
+    lambda: |-
+      if (!id(ruhe_gesetzt)) return {};
+      if (isnan(id(pitch).state) || isnan(id(roll).state)) return {};
+      const float grenze = id(lage_grenz).state;
+      if (isnan(grenze)) return {};
+      const float weg = fmaxf(fabsf(id(pitch).state - id(ruhe_pitch)),
+                              fabsf(id(roll).state - id(ruhe_roll)));
+      return weg >= grenze;
+
   # Bewegungserkennung über Gyro -> "steht" erst 20 s nach letzter Bewegung
   - platform: template
     name: "In Bewegung"
@@ -881,6 +1256,28 @@ text_sensor:
     # Ablauf des ersten Intervalls, nicht beim Start. Mit 6h stand hier
     # stundenlang "unbekannt" und die Zeile fehlte in der Technik-Liste.
     update_interval: 60s
+
+  # Der nächste Handgriff als Satz - "Hinten links 4,5 cm hoch".
+  #
+  # Das ist der Unterschied zwischen einer Wasserwaage und einer Hilfe: Eine
+  # Wasserwaage zeigt zwei Winkel und überlässt den Rest dem Kopfrechnen.
+  # Diese Zeile sagt, was zu tun ist - und sie sagt es überall, wo das Gerät
+  # gelesen wird: auf der Geräteseite, in Home Assistant, später über MQTT auf
+  # einem Cerbo GX.
+  - platform: template
+    name: "Anweisung"
+    id: anweisung_text
+    icon: mdi:hand-pointing-right
+    lambda: 'return {id(anweisung)};'
+    update_interval: 1s
+    filters:
+      # Nur weitergeben, was sich geändert hat: Sonst stünde derselbe Satz
+      # sekündlich in der Datenbank.
+      - lambda: |-
+          static std::string letzter;
+          if (x == letzter) return {};
+          letzter = x;
+          return x;
 
   # Ob das eigene Netz geschützt ist - NICHT womit.
   #
