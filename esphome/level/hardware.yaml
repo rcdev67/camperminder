@@ -226,7 +226,77 @@ esphome:
             ap.set_password(id(ap_passwort));
             wifi::global_wifi_component->set_ap(ap);
             ESP_LOGI("netz", "Eigenes Netz mit eigenem Passwort geschuetzt.");
+    # Zweiter Schritt, gleiche Priorität: MQTT einrichten, bevor es startet.
+    - priority: 600
+      then:
+        - lambda: |-
+            // Kein Broker eingetragen? Dann bleibt MQTT aus. Ohne diesen Zweig
+            // liefe der Client gegen den Platzhalter 0.0.0.0 und schriebe im
+            // Sekundentakt Fehler ins Log - bei jedem Kunden, der MQTT gar
+            // nicht benutzt.
+            if (strlen(id(mqtt_broker)) == 0) {
+              mqtt::global_mqtt_client->disable();
+              ESP_LOGI("mqtt", "Kein Broker eingetragen - MQTT bleibt aus.");
+              return;
+            }
 
+            const float port = id(mqtt_port_num).state;
+            mqtt::global_mqtt_client->set_broker_address(id(mqtt_broker));
+            mqtt::global_mqtt_client->set_broker_port(isnan(port) ? 1883 : (uint16_t) port);
+            mqtt::global_mqtt_client->set_username(id(mqtt_user));
+            mqtt::global_mqtt_client->set_password(id(mqtt_pass));
+            mqtt::global_mqtt_client->enable();
+            ESP_LOGI("mqtt", "Broker %s:%d", id(mqtt_broker), isnan(port) ? 1883 : (int) port);
+
+
+# --- MQTT: die Tür zu fremden Systemen --------------------------------------
+#
+# Level soll vorhandene Systeme ERGÄNZEN statt gegen sie anzutreten. MQTT ist
+# die Schnittstelle, die das leistet: Victron Cerbo GX (Venus OS bringt einen
+# eigenen Broker mit), E1NFACH E1NS, ioBroker, openHAB, Node-RED. Keines
+# davon hat einen Neigungssensor - mit MQTT ist Level deren Zubehör statt
+# deren Wettbewerber.
+#
+# DREI EINSTELLUNGEN, DIE HIER NICHT ZUFÄLLIG STEHEN:
+#
+# broker "0.0.0.0" ist ein PLATZHALTER. ESPHome verlangt die Adresse zur
+#   Kompilierzeit, ein Produkt kann sie aber nicht kennen - der Kunde trägt
+#   seine ein. Der on_boot-Block weiter oben ersetzt sie, bevor MQTT startet
+#   (Priorität 600 gegen dessen AFTER_WIFI = 200), und schaltet MQTT ganz ab,
+#   solange nichts eingetragen ist.
+#
+# reboot_timeout 0s ist KEINE Feinheit, sondern zwingend: Voreingestellt
+#   startet ESPHome das Gerät neu, wenn MQTT 15 Minuten lang nicht verbindet.
+#   Bei jedem Kunden ohne Broker wäre das ein Neustart alle 15 Minuten.
+#
+# discovery false, weil Home Assistant alles bereits über die native
+#   Schnittstelle bekommt. Eingeschaltet stünde jede Entität dort DOPPELT.
+#   Fremde Systeme brauchen die Erkennung nicht - sie abonnieren die Themen
+#   unten direkt.
+#
+# THEMENAUFBAU:  camperminder/level/<art>/<name>/state
+#
+#   camperminder/level/sensor/hub_hinten_links/state      ->  4.5
+#   camperminder/level/sensor/neigung_pitch/state         ->  -0.82
+#   camperminder/level/text_sensor/anweisung/state        ->  Hinten links 4.5 cm hoch
+#   camperminder/level/binary_sensor/schraeglage/state    ->  ON
+#
+# Die Reihenfolge <art>/<name> gibt ESPHome vor. Sie kostet nichts und hat
+# einen Vorteil: Neue Entitäten erscheinen von selbst am richtigen Platz,
+# statt dass jemand ein Thema von Hand nachtragen muss - und genau das
+# vergisst man.
+mqtt:
+  broker: "0.0.0.0"
+  topic_prefix: camperminder/level
+  discovery: false
+  reboot_timeout: 0s
+  # Damit ein fremdes System erkennt, ob die Werte noch gelten.
+  birth_message:
+    topic: camperminder/level/status
+    payload: online
+  will_message:
+    topic: camperminder/level/status
+    payload: offline
 
 web_server:
   port: 80
@@ -364,6 +434,25 @@ globals:
     type: int
     initial_value: "0"
 
+  # --- Zugangsdaten des MQTT-Brokers ----------------------------------------
+  #
+  # Gespeichert, nicht einkompiliert: Ein Produkt kann die Adresse seines
+  # Kunden nicht kennen. Leer heißt "kein MQTT" - dann bleibt der Client aus,
+  # und niemand, der MQTT gar nicht benutzt, merkt etwas davon.
+  #
+  # Die Eingabefelder darunter sind die EINGABE, diese Felder der Speicher.
+  # Übernommen wird erst auf Knopfdruck - sonst stünde ein halb getippter
+  # Versuch im Flash und das Gerät versuchte, ihn zu erreichen.
+  - id: mqtt_broker
+    type: char[64]
+    restore_value: true
+  - id: mqtt_user
+    type: char[33]
+    restore_value: true
+  - id: mqtt_pass
+    type: char[65]
+    restore_value: true
+
 # --- Fahrzeugmaße ---------------------------------------------------------
 # Gehören ins Gerät, nicht ins Handy: sie beschreiben das Fahrzeug, nicht den
 # Betrachter. Lagen sie im Browser, wären sie beim Handywechsel weg und zwei
@@ -484,6 +573,21 @@ number:
     optimistic: true
     mode: box
 
+  # Anschluss des MQTT-Brokers. 1883 unverschlüsselt, 8883 mit TLS - die
+  # Voreinstellung deckt Mosquitto und Venus OS ab.
+  - platform: template
+    name: "MQTT Port"
+    id: mqtt_port_num
+    icon: mdi:lan-connect
+    entity_category: config
+    min_value: 1
+    max_value: 65535
+    step: 1
+    initial_value: 1883
+    restore_value: true
+    optimistic: true
+    mode: box
+
   # Ab welcher Schräglage gewarnt wird.
   #
   # Drei Grad ist keine gegriffene Zahl: Ein Absorberkühlschrank arbeitet
@@ -495,6 +599,8 @@ number:
   - platform: template
     name: "Schräglage Grenzwert"
     id: schraeg_grenz
+    state_topic: camperminder/level/number/schraeglage_grenzwert/state
+    command_topic: camperminder/level/number/schraeglage_grenzwert/command
     unit_of_measurement: "°"
     icon: mdi:fridge-alert
     entity_category: config
@@ -514,6 +620,8 @@ number:
   - platform: template
     name: "Lageänderung Grenzwert"
     id: lage_grenz
+    state_topic: camperminder/level/number/lageaenderung_grenzwert/state
+    command_topic: camperminder/level/number/lageaenderung_grenzwert/command
     unit_of_measurement: "°"
     icon: mdi:car-arrow-right
     entity_category: config
@@ -632,6 +740,8 @@ switch:
   - platform: template
     name: "Präzisionsmodus"
     id: precise_mode
+    state_topic: camperminder/level/switch/praezisionsmodus/state
+    command_topic: camperminder/level/switch/praezisionsmodus/command
     icon: mdi:target
     entity_category: config
     optimistic: true
@@ -928,6 +1038,7 @@ sensor:
   - platform: template
     name: "Stützrad"
     id: stuetzrad_cm
+    state_topic: camperminder/level/sensor/stuetzrad/state
     unit_of_measurement: cm
     icon: mdi:tow-truck
     accuracy_decimals: 1
@@ -1194,6 +1305,7 @@ binary_sensor:
   - platform: template
     name: "Schräglage"
     id: schraeglage
+    state_topic: camperminder/level/binary_sensor/schraeglage/state
     device_class: problem
     icon: mdi:fridge-alert
     lambda: |-
@@ -1217,6 +1329,7 @@ binary_sensor:
   - platform: template
     name: "Lageänderung"
     id: lageaenderung
+    state_topic: camperminder/level/binary_sensor/lageaenderung/state
     device_class: problem
     icon: mdi:car-arrow-right
     lambda: |-
@@ -1279,6 +1392,23 @@ text_sensor:
           letzter = x;
           return x;
 
+  # Zustand der MQTT-Verbindung im Klartext - die erste Frage bei jedem
+  # Anbindungsversuch lautet "ist er überhaupt dran?".
+  #
+  # Das Passwort steht hier bewusst nicht, die Adresse schon: Sie ist keine
+  # Geheimnis, und ohne sie lässt sich ein Tippfehler nicht finden.
+  - platform: template
+    name: "MQTT"
+    id: mqtt_status
+    icon: mdi:transit-connection-variant
+    entity_category: diagnostic
+    update_interval: 10s
+    lambda: |-
+      if (strlen(id(mqtt_broker)) == 0) return {"aus"};
+      if (mqtt::global_mqtt_client->is_connected())
+        return {std::string("verbunden mit ") + id(mqtt_broker)};
+      return {std::string("keine Verbindung zu ") + id(mqtt_broker)};
+
   # Ob das eigene Netz geschützt ist - NICHT womit.
   #
   # Der Zustand ist die nützliche Auskunft: "Steht mein Gerät offen?" lässt
@@ -1325,6 +1455,38 @@ text:
     max_length: 63
     optimistic: true
 
+  # --- Eingabefelder für den MQTT-Broker ------------------------------------
+  # Adresse leer lassen und speichern schaltet MQTT wieder ab.
+  - platform: template
+    name: "MQTT Broker"
+    id: mqtt_broker_input
+    icon: mdi:server-network
+    entity_category: config
+    mode: text
+    min_length: 0
+    max_length: 63
+    optimistic: true
+
+  - platform: template
+    name: "MQTT Benutzer"
+    id: mqtt_user_input
+    icon: mdi:account
+    entity_category: config
+    mode: text
+    min_length: 0
+    max_length: 32
+    optimistic: true
+
+  - platform: template
+    name: "MQTT Passwort"
+    id: mqtt_pass_input
+    icon: mdi:form-textbox-password
+    entity_category: config
+    mode: password
+    min_length: 0
+    max_length: 64
+    optimistic: true
+
 button:
   # Übernimmt, was im Feld darüber steht. Leer bedeutet: Netz wieder öffnen.
   #
@@ -1357,6 +1519,29 @@ button:
       # Die Zeit reicht zugleich, damit die Änderung im Flash landet: Ein
       # wiederhergestelltes Global schreibt beim nächsten Durchlauf, und
       # safe_reboot sichert vorher ohnehin ab.
+      - delay: 5s
+      - lambda: 'App.safe_reboot();'
+
+  # Übernimmt die drei Felder darüber. Neustart danach, weil eine bestehende
+  # Verbindung ihre Zugangsdaten nicht wechseln kann.
+  - platform: template
+    name: "MQTT speichern"
+    id: mqtt_save
+    icon: mdi:content-save-cog
+    entity_category: config
+    on_press:
+      - lambda: |-
+          strncpy(id(mqtt_broker), id(mqtt_broker_input).state.c_str(), sizeof(id(mqtt_broker)) - 1);
+          id(mqtt_broker)[sizeof(id(mqtt_broker)) - 1] = '\0';
+          strncpy(id(mqtt_user), id(mqtt_user_input).state.c_str(), sizeof(id(mqtt_user)) - 1);
+          id(mqtt_user)[sizeof(id(mqtt_user)) - 1] = '\0';
+          strncpy(id(mqtt_pass), id(mqtt_pass_input).state.c_str(), sizeof(id(mqtt_pass)) - 1);
+          id(mqtt_pass)[sizeof(id(mqtt_pass)) - 1] = '\0';
+          ESP_LOGI("mqtt", "%s. Neustart.",
+                   strlen(id(mqtt_broker)) == 0 ? "Broker geloescht - MQTT aus" : "Broker gespeichert");
+      # Fünf Sekunden wie bei den anderen Speicherknöpfen: Die Geräteseite
+      # wartet auf die Bestätigung über den Ereignisstrom und zeigt erst
+      # danach ihre Schlussmeldung.
       - delay: 5s
       - lambda: 'App.safe_reboot();'
 

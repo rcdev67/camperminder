@@ -837,6 +837,7 @@
   var vehicleSelect = null;
   var mountingSelect = null;
   var preciseBox = null;
+  var mqttNote = null;
   var settingsNote = null;
 
   /* Eine Zahlenzeile. Der Verweis auf das Eingabefeld bleibt in
@@ -978,6 +979,11 @@
       mountingSelect.value = cfg.mounting === "unten" ? MOUNT_UNDER : "Deckel oben";
     }
     if (preciseBox && preciseBox !== focused) preciseBox.checked = cfg.precise;
+    // Nur, solange dort keine eigene Rueckmeldung steht - sonst ueberschriebe
+    // der Zustand die Meldung "Gespeichert, das Geraet startet neu".
+    if (mqttNote && !mqttNote.style.fontWeight) {
+      mqttNote.textContent = findStateOf("text_sensor", "mqtt") || "";
+    }
     if (settingsNote) {
       settingsNote.textContent = writeError ? writeError
         : state.ready ? "Diese Werte stehen im Gerät. Jedes Handy sieht dieselben."
@@ -1303,6 +1309,90 @@
     box.appendChild(apBtn);
     box.appendChild(apNote);
 
+    /* MQTT - die Tür zu fremden Systemen.
+     *
+     * Steht hier und nicht unter "Anzeige", weil es eine Netzsache ist: Wer
+     * hier landet, sucht Verbindungen. Leer lassen und speichern schaltet es
+     * wieder ab; wer MQTT nicht braucht, merkt nichts davon. */
+    box.appendChild(el('<div class="grouphead" style="margin-top:22px">MQTT</div>'));
+    box.appendChild(el('<div class="muted">' +
+      "Meldet Neigung, Hubhöhe je Ecke und Anweisung an einen MQTT-Broker – " +
+      "für Victron Cerbo GX, ioBroker, openHAB, Node-RED oder was immer du " +
+      "einsetzt. Für Home Assistant ist es nicht nötig, das läuft über die " +
+      "eigene Schnittstelle. Themen unter <b>camperminder/level/…</b>" +
+      "</div>"));
+
+    var mBroker = el('<input type="text" placeholder="Broker, z. B. 192.168.1.10 (leer = aus)" style="width:100%;margin-top:10px">');
+    var mPort = el('<input type="number" placeholder="Port" style="width:100%;margin-top:8px">');
+    var mUser = el('<input type="text" placeholder="Benutzer (optional)" style="width:100%;margin-top:8px">');
+    var mPass = el('<input type="password" placeholder="Passwort (optional)" style="width:100%;margin-top:8px">');
+    var mBtn = el('<button class="act ghost" style="margin-top:8px">MQTT speichern</button>');
+    var mNote = el('<div class="muted" style="margin-top:10px;line-height:1.5;white-space:pre-line"></div>');
+
+    function mSay(text, kind) {
+      mNote.textContent = text;
+      mNote.style.color = kind === "bad" ? "#ff7a7a" : kind === "good" ? "#37d67a" : "#cfd6de";
+      mNote.style.fontWeight = kind ? "700" : "400";
+    }
+
+    /* Den aktuellen Zustand zeigen, statt den Nutzer raten zu lassen. Das
+     * Gerät meldet ihn als Textwert - Adresse ja, Passwort nein.
+     *
+     * Der Verweis bleibt in mqttNote stehen, damit syncSettings() ihn bei
+     * jeder Meldung des Geräts nachziehen kann: Nach dem Speichern und
+     * Neustart soll dort von selbst "verbunden" erscheinen. */
+    mqttNote = mNote;
+    mSay(findStateOf("text_sensor", "mqtt") || "");
+
+    mBtn.onclick = function () {
+      var pB = pathFor("text", "mqtt_broker");
+      var pU = pathFor("text", "mqtt_benutzer");
+      var pP = pathFor("text", "mqtt_passwort");
+      var pPort = pathFor("number", "mqtt_port");
+      var pSave = pathFor("button", "mqtt_speichern");
+      if (!pB || !pSave) {
+        mSay("Das Gerät kennt MQTT nicht. Läuft die passende Firmware?", "bad");
+        return;
+      }
+      mBtn.disabled = true;
+      mSay("Übertrage …");
+
+      /* Der Reihe nach, nicht gleichzeitig: Das Gerät nimmt die Felder
+       * einzeln entgegen, und der Knopf darf erst drücken, wenn alle
+       * angekommen sind - sonst speichert er einen halben Stand. */
+      var offen = [];
+      offen.push([pB, mBroker.value]);
+      if (pU) offen.push([pU, mUser.value]);
+      if (pP) offen.push([pP, mPass.value]);
+
+      var i = 0;
+      (function weiter(ok) {
+        if (ok === false) {
+          mSay("Das Gerät hat die Eingabe nicht angenommen.", "bad");
+          mBtn.disabled = false;
+          return;
+        }
+        if (i < offen.length) {
+          var f = offen[i++];
+          setText(f[0], f[1], weiter);
+          return;
+        }
+        if (pPort && mPort.value) post(pPort + "/set?value=" + encodeURIComponent(mPort.value));
+        post(pSave + "/press");
+        mPass.value = "";
+        mSay(mBroker.value
+          ? "Gespeichert. Das Gerät startet neu und meldet sich beim Broker.\n\nDanach steht der Zustand hier oben – bei einem Tippfehler „keine Verbindung“."
+          : "Gespeichert. MQTT ist wieder aus.", "good");
+      })(true);
+    };
+
+    box.appendChild(mBroker);
+    box.appendChild(mPort);
+    box.appendChild(mUser);
+    box.appendChild(mPass);
+    box.appendChild(mBtn);
+    box.appendChild(mNote);
+
     /* Werksreset. Steht bewusst hier unten und nicht bei den Bedienelementen
      * oben - er löscht WLAN, Kalibrierung und Fahrzeugmaße auf einmal. */
     box.appendChild(el('<div class="grouphead" style="margin-top:22px">Zurücksetzen</div>'));
@@ -1340,6 +1430,18 @@
       if (id.indexOf(needle) >= 0) return state.seen[id].state;
     }
     return null;
+  }
+
+  /* Wie findState, aber auf einen Bereich eingegrenzt und mit Vorrang für den
+   * exakten Treffer.
+   *
+   * Nötig, seit "mqtt" in fünf Kennungen steckt: mqtt_broker, mqtt_benutzer,
+   * mqtt_passwort, mqtt_port und der Zustandssensor mqtt selbst. findState
+   * gäbe das erstbeste zurück - also mit einiger Wahrscheinlichkeit den Inhalt
+   * eines Eingabefelds statt des gesuchten Zustands. */
+  function findStateOf(domain, needle) {
+    var hit = findEntity(domain, needle);
+    return hit ? state.seen[hit.id].state : null;
   }
 
   /* Die tatsächliche Entität aus dem Ereignisstrom holen, statt ihre Kennung
