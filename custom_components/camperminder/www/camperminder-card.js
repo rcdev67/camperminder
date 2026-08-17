@@ -442,10 +442,17 @@ class CamperMinderCard extends HTMLElement {
     const tolR = Number(a.tolerance_roll) || 1.59;
     const precise = a.precise === true;
 
-    /* Rastermaß der Zahlen. Im Realitätsmodus grob genug, dass nichts mehr
-       flackert - ein halber Zentimeter ist ohnehin die Grenze dessen, was mit
-       Keil oder Stütze eingestellt werden kann. Im Präzisionsmodus fein. */
-    const stepCm = precise ? 0.1 : 0.5;
+    /* Rastermaß der Zahlen - so fein wie die angezeigte Stelle, nicht gröber.
+
+       Hier stand ein halber Zentimeter, weil sich feiner ohnehin kein Keil
+       legen lässt. Das gilt für die ANWEISUNG, für die ANZEIGE war es ein
+       Fehler: Seit die Firmware den Regler "Anzeigeruhe" hat, tun beide
+       dasselbe, und das Raster gewann. Das Restrauschen liegt über den
+       gesamten Regelbereich zwischen 0,03 und 0,11 cm, die Umschaltschwelle
+       des Rasters lag bei 0,375 cm - der Regler konnte sich nicht auswirken.
+
+       Das Raster bremst jetzt nur noch das Flackern der letzten Stelle. */
+    const stepCm = 0.1;
     const stepDeg = precise ? 0.05 : 0.1;
     const cm = (key, value) => this._steady(key, value, stepCm);
     const deg = (key, value) => this._steady(key, value, stepDeg) ?? 0;
