@@ -148,6 +148,13 @@ substitutions:
   # Beiwerte des Filters um:
   #
   #   Rauschgrenze = base + Ruhe * step        bei Ruhe 5:  0,25 Grad
+  #
+  # Zur Abbildung von alpha: Sie ist quadratisch, nicht linear, und beginnt bei
+  # Ruhe 0 mit 1,0 - also GAR KEINER Glättung. Die erste Fassung begann bei
+  # 0,10, und damit lag der gesamte Regelbereich unter der Auflösung der
+  # Anzeige: Jede Stellung sah gleich aus, der Regler wirkte kaputt. Jetzt
+  # spannt er von "roh" bis "rund 24 s Zeitkonstante", und 5 trifft weiterhin
+  # genau den Wert, mit dem 3.1.0 erprobt wurde.
   #   Bewegung ab  = Rauschgrenze * faktor                  1,50 Grad
   #   alpha träge  = zaehler / (1 + Ruhe)                   0,0167  (~6 s)
   #   alpha flott  = fast_base - Ruhe * fast_step           0,50
@@ -163,7 +170,7 @@ substitutions:
   calm_noise_base: "0.05"
   calm_noise_step: "0.04"
   calm_move_faktor: "6.0"
-  calm_slow_zaehler: "0.10"
+  calm_slow_faktor: "2.36"
   calm_fast_base: "0.60"
   calm_fast_step: "0.02"
 
@@ -637,7 +644,7 @@ sensor:
             ? ${calm_default} : id(anzeigeruhe).state;
           const float rausch   = ${calm_noise_base} + ruhe * ${calm_noise_step};
           const float bewegung = rausch * ${calm_move_faktor};
-          const float a_traege = ${calm_slow_zaehler} / (1.0f + ruhe);
+          const float a_traege = 1.0f / (1.0f + ${calm_slow_faktor} * ruhe * ruhe);
           const float a_flott  = ${calm_fast_base} - ruhe * ${calm_fast_step};
 
           const float abstand = fabsf(x - id(pitch_smooth));
@@ -705,7 +712,7 @@ sensor:
             ? ${calm_default} : id(anzeigeruhe).state;
           const float rausch   = ${calm_noise_base} + ruhe * ${calm_noise_step};
           const float bewegung = rausch * ${calm_move_faktor};
-          const float a_traege = ${calm_slow_zaehler} / (1.0f + ruhe);
+          const float a_traege = 1.0f / (1.0f + ${calm_slow_faktor} * ruhe * ruhe);
           const float a_flott  = ${calm_fast_base} - ruhe * ${calm_fast_step};
 
           const float abstand = fabsf(x - id(roll_smooth));

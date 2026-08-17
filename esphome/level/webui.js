@@ -286,9 +286,21 @@
    * Zeit: Der angezeigte Wert weicht nie weiter ab als diese 0,75 Schritte,
    * und einer echten Änderung hinkt er nicht hinterher. */
   var shown = {};
-  // Im Präzisionsmodus fein: Wer ihn einschaltet, will die letzten Zehntel
-  // sehen und nicht eine Anzeige, die sie wegräumt.
-  var STEP_CM = 0.5, STEP_CM_FEIN = 0.1;
+  /* Das Raster ist bewusst so fein wie die angezeigte Stelle - nicht gröber.
+   *
+   * Vorher stand hier ein halber Zentimeter, mit der Begründung, feiner lasse
+   * sich ohnehin kein Keil legen. Das stimmt für die ANWEISUNG, war für die
+   * ANZEIGE aber ein Fehler: Seit es den Regler "Anzeigeruhe" gibt, tut das
+   * Raster dieselbe Arbeit ein zweites Mal - und es gewann. Das Restrauschen
+   * liegt über den gesamten Regelbereich zwischen 0,03 und 0,11 cm, die
+   * Umschaltschwelle des Rasters lag bei 0,375 cm. Der Regler konnte sich
+   * damit gar nicht auswirken; jede Einstellung sah gleich aus.
+   *
+   * Jetzt bremst das Raster nur noch das Flackern der letzten angezeigten
+   * Stelle. Wie ruhig es darüber hinaus zugeht, entscheidet der Regler - und
+   * das ist auch die Stelle, an der der Nutzer es erwartet.
+   */
+  var STEP_CM = 0.1, STEP_CM_FEIN = 0.1;
   var STEP_DEG = 0.1, STEP_DEG_FEIN = 0.05;
 
   function steady(key, value, step) {

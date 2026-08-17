@@ -169,12 +169,26 @@ Assistant beim Gerät unter *Konfiguration*:
 | springt an der Toleranzgrenze hin und her | **Haltebereich** | höher |
 
 **Anzeigeruhe** geht von 0 bis 10, Vorgabe 5. Sie ändert nichts an der Messung
-und nichts an der Toleranz — nur die Geduld: Bei 0 folgt die Anzeige jeder
-Regung und zappelt im Stand mehr, bei 10 steht sie still und reagiert dafür
-etwas später. Ein Regler und nicht vier, weil die vier Beiwerte des Filters
-dieselbe Eigenschaft aus vier Richtungen beschreiben; einzeln verstellbar
-könnte man sie gegeneinander stellen und bekäme eine Anzeige, die weder ruhig
-ist noch reagiert.
+und nichts an der Toleranz — nur die Geduld. Ein Regler und nicht vier, weil die
+vier Beiwerte des Filters dieselbe Eigenschaft aus vier Richtungen beschreiben;
+einzeln verstellbar könnte man sie gegeneinander stellen und bekäme eine
+Anzeige, die weder ruhig ist noch reagiert.
+
+Was du bei welcher Stellung siehst:
+
+| Ruhe | Zeitkonstante | Restrauschen | woran man es merkt |
+|---|---|---|---|
+| 0 | 0,1 s | ~0,5 cm | die Zahl lebt, jede Regung sofort |
+| 2 | 1 s | ~0,1 cm | leichtes Wandern der letzten Stelle |
+| **5** | **6 s** | **~0,04 cm** | **steht im Stand still** |
+| 10 | 24 s | ~0,02 cm | steht ebenso still, folgt aber träger |
+
+**Wichtig für den Vergleich:** Oberhalb von etwa 3 wird die Anzeige nicht mehr
+sichtbar *ruhiger* — das Rauschen liegt dann schon unter der angezeigten
+Stelle. Was sich weiter ändert, ist die **Reaktionszeit**. Der Unterschied
+zwischen 5 und 10 zeigt sich deshalb nicht im Stillstand, sondern wenn du dich
+ans Fahrzeug lehnst: Bei 10 dauert es spürbar länger, bis die Anzeige folgt.
+Zum Ausprobieren also nach unten drehen, nicht nach oben.
 
 **Haltebereich** in Prozent, Vorgabe 125: Wie weit die Neigung über die
 Toleranz hinausgehen darf, bevor „eben" zurückgenommen wird. 100 % heißt
