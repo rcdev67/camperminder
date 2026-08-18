@@ -62,7 +62,7 @@ substitutions:
   # Ein Bindestrich macht die Nummer zur Vorabfassung: "2.0.4-rc1" statt
   # "2.0.4". Daran erkennen die Werkzeuge, dass dieser Stand NICHT
   # veröffentlicht werden soll - Einzelheiten in docs/firmware_update.md.
-  firmware_version: "3.2.0"
+  firmware_version: "3.2.1"
 
   # I2C-Pins (0,42"-OLED-Board): SDA=GPIO5, SCL=GPIO6
   i2c_sda_pin: GPIO5
@@ -105,6 +105,11 @@ substitutions:
   # auseinanderliefen.
   axis_pitch: "x"
   axis_roll: "y"
+
+  # Ab welcher Summe der drei Drehraten - gemessen ALS ABWEICHUNG VOM
+  # gelernten Nullpunkt, nicht als Absolutwert - Bewegung gilt. Bei einem
+  # ruhenden MPU6050 bleibt das Rauschen deutlich darunter.
+  motion_deg_s: "3.0"
 
   # --- Ruhige Anzeige: adaptive Glättung -----------------------------------
   #
@@ -433,6 +438,42 @@ globals:
   - id: ruhe_takte
     type: int
     initial_value: "0"
+
+  # --- Nullpunkt der Drehraten ----------------------------------------------
+  #
+  # Der Gyro eines MPU6050 zeigt im Stillstand NICHT null, sondern einen
+  # Versatz von oft mehreren Grad je Sekunde - je Achse und je Bauteil
+  # verschieden. Die erste Fassung addierte die Absolutwerte der drei Achsen
+  # und verglich mit 3 Grad/s; damit überschritt allein der Versatz die
+  # Schwelle, und "In Bewegung" klebte dauerhaft an.
+  #
+  # Das war nicht nur eine falsche Meldung: Die Glättung schaltet bei Bewegung
+  # auf flott, also war der Regler "Anzeigeruhe" wirkungslos, und die Ruhelage
+  # wurde nie nachgeführt, also meldete "Lageänderung" Daueralarm. Ein Fehler,
+  # drei Symptome.
+  #
+  # Diese drei Werte lernen den Versatz im Betrieb. Bewusst OHNE restore_value:
+  # Er wandert mit der Temperatur, ein gespeicherter Wert von gestern wäre
+  # schlechter als einer, der sich in einer Minute neu einstellt.
+  - id: gyro_null_x
+    type: float
+    initial_value: "0.0"
+  - id: gyro_null_y
+    type: float
+    initial_value: "0.0"
+  - id: gyro_null_z
+    type: float
+    initial_value: "0.0"
+  # Ob gerade wirklich Bewegung ist - gemessen als Abweichung VOM Versatz.
+  - id: bewegt_roh
+    type: bool
+    initial_value: "false"
+
+  # Der Wert, der in der Anweisung steht. Mit Gedächtnis, damit der Satz nicht
+  # im Sekundentakt wechselt - siehe interval-Block.
+  - id: anweisung_cm
+    type: float
+    initial_value: "0.0"
 
   # --- Zugangsdaten des MQTT-Brokers ----------------------------------------
   #
@@ -857,11 +898,17 @@ sensor:
           const float a_traege = 1.0f / (1.0f + ${calm_slow_faktor} * ruhe * ruhe);
           const float a_flott  = ${calm_fast_base} - ruhe * ${calm_fast_step};
 
+          /* Allein der Abstand zum geglaetteten Wert entscheidet.
+           *
+           * Hier stand zusaetzlich "wenn in_motion, dann flott". Das hat den
+           * Regler ausgehebelt: Wer im Fahrzeug sitzt, haelt den
+           * Bewegungssensor an, und dann galt die Anzeigeruhe nicht mehr.
+           * Gebraucht wird die Abkuerzung nicht - rollt das Fahrzeug, waechst
+           * der Abstand binnen Zehntelsekunden ueber die Rauschgrenze und die
+           * Glaettung folgt von selbst flott. */
           const float abstand = fabsf(x - id(pitch_smooth));
           float alpha = a_traege;
-          if (id(in_motion).has_state() && id(in_motion).state) {
-            alpha = a_flott;
-          } else if (abstand > rausch) {
+          if (abstand > rausch) {
             // bewegung > rausch ist durch calm_move_faktor > 1 gesichert -
             // hier kann nicht durch null geteilt werden.
             const float anteil = (abstand - rausch) / (bewegung - rausch);
@@ -925,11 +972,17 @@ sensor:
           const float a_traege = 1.0f / (1.0f + ${calm_slow_faktor} * ruhe * ruhe);
           const float a_flott  = ${calm_fast_base} - ruhe * ${calm_fast_step};
 
+          /* Allein der Abstand zum geglaetteten Wert entscheidet.
+           *
+           * Hier stand zusaetzlich "wenn in_motion, dann flott". Das hat den
+           * Regler ausgehebelt: Wer im Fahrzeug sitzt, haelt den
+           * Bewegungssensor an, und dann galt die Anzeigeruhe nicht mehr.
+           * Gebraucht wird die Abkuerzung nicht - rollt das Fahrzeug, waechst
+           * der Abstand binnen Zehntelsekunden ueber die Rauschgrenze und die
+           * Glaettung folgt von selbst flott. */
           const float abstand = fabsf(x - id(roll_smooth));
           float alpha = a_traege;
-          if (id(in_motion).has_state() && id(in_motion).state) {
-            alpha = a_flott;
-          } else if (abstand > rausch) {
+          if (abstand > rausch) {
             const float anteil = (abstand - rausch) / (bewegung - rausch);
             alpha += (a_flott - a_traege) * (anteil > 1.0f ? 1.0f : anteil);
           }
@@ -1084,6 +1137,30 @@ sensor:
 #  später ist immer noch schneller, als er den Keil zurechtlegen kann.
 # ============================================================================
 interval:
+  # --- Bewegung: Abweichung vom eigenen Nullpunkt ----------------------------
+  #
+  # 100 ms, weil der Gyro in diesem Takt liefert und eine Erschütterung kurz
+  # ist. Der Nullpunkt wird dabei ständig mitgelernt (Zeitkonstante rund 20 s),
+  # aber langsamer, während Bewegung erkannt ist - sonst lernte er die
+  # Bewegung selbst als neuen Nullpunkt und die Erkennung würde blind.
+  - interval: 100ms
+    then:
+      - lambda: |-
+          const float gx = id(gyro_x).state;
+          const float gy = id(gyro_y).state;
+          const float gz = id(gyro_z).state;
+          if (isnan(gx) || isnan(gy) || isnan(gz)) return;
+
+          const float tempo = id(bewegt_roh) ? 0.0005f : 0.005f;
+          id(gyro_null_x) += tempo * (gx - id(gyro_null_x));
+          id(gyro_null_y) += tempo * (gy - id(gyro_null_y));
+          id(gyro_null_z) += tempo * (gz - id(gyro_null_z));
+
+          const float ab = fabsf(gx - id(gyro_null_x))
+                         + fabsf(gy - id(gyro_null_y))
+                         + fabsf(gz - id(gyro_null_z));
+          id(bewegt_roh) = ab > ${motion_deg_s};
+
   - interval: 1s
     then:
       - lambda: |-
@@ -1157,18 +1234,36 @@ interval:
            * weder ein Keil legen noch eine Stütze stellen, und eine Anweisung,
            * die niemand ausführen kann, ist keine.
            */
+          /* Der Satz rastet auf halbe Zentimeter, die ANZEIGE nicht.
+           *
+           * Das ist kein Widerspruch, sondern die Trennung, die vorher fehlte:
+           * Die Anzeige soll jede Regung zeigen dürfen, ein Handgriff nicht.
+           * Feiner als einen halben Zentimeter legt niemand einen Keil, und
+           * ein Satz, der sich im Sekundentakt um ein Zehntel ändert, ist
+           * keine Anweisung - er ist Unruhe.
+           *
+           * Dazu Hysterese von 0,3 cm: Ohne sie kippt der gerundete Wert
+           * genau auf der Viertelgrenze hin und her.
+           */
+          auto ruhig = [](float neu, float alt) {
+            return fabsf(neu - alt) >= 0.3f ? roundf(neu * 2.0f) / 2.0f : alt;
+          };
+
           char text[160];
           if (wohnwagen) {
             // Reihenfolge ist Absicht: erst quer, dann längs. Das Auffahren
             // kippt den Wagen längs mit - eine vorher berechnete
             // Stützradhöhe wäre danach falsch.
             if (id(hub_hl) >= 1.0f) {
-              snprintf(text, sizeof(text), "Linkes Rad %.1f cm hoch", id(hub_hl));
+              id(anweisung_cm) = ruhig(id(hub_hl), id(anweisung_cm));
+              snprintf(text, sizeof(text), "Linkes Rad %.1f cm hoch", id(anweisung_cm));
             } else if (id(hub_hr) >= 1.0f) {
-              snprintf(text, sizeof(text), "Rechtes Rad %.1f cm hoch", id(hub_hr));
+              id(anweisung_cm) = ruhig(id(hub_hr), id(anweisung_cm));
+              snprintf(text, sizeof(text), "Rechtes Rad %.1f cm hoch", id(anweisung_cm));
             } else if (fabsf(id(stuetzrad)) >= 1.0f) {
+              id(anweisung_cm) = ruhig(fabsf(id(stuetzrad)), id(anweisung_cm));
               snprintf(text, sizeof(text), "Stützrad %.1f cm %s",
-                       fabsf(id(stuetzrad)), id(stuetzrad) > 0.0f ? "hoch" : "runter");
+                       id(anweisung_cm), id(stuetzrad) > 0.0f ? "hoch" : "runter");
             } else {
               snprintf(text, sizeof(text), "Steht eben - fertig");
             }
@@ -1187,12 +1282,14 @@ interval:
               // Mit Keilen eine Anweisung nach der anderen: Zwischen zwei
               // Versuchen muss das Fahrzeug bewegt werden, eine Liste aller
               // vier Räder wäre hier nicht hilfreich, sondern verwirrend.
+              id(anweisung_cm) = ruhig(werte[groesster], id(anweisung_cm));
               snprintf(text, sizeof(text), "%s %.1f cm hoch",
-                       namen[groesster], werte[groesster]);
+                       namen[groesster], id(anweisung_cm));
             } else {
               // Mit Hydraulik geht jede Ecke einzeln und gleichzeitig.
+              id(anweisung_cm) = ruhig(werte[groesster], id(anweisung_cm));
               snprintf(text, sizeof(text), "%s %.1f cm hoch, dazu %d weitere Ecke%s",
-                       namen[groesster], werte[groesster], offen - 1,
+                       namen[groesster], id(anweisung_cm), offen - 1,
                        offen - 1 == 1 ? "" : "n");
             }
           }
@@ -1341,17 +1438,19 @@ binary_sensor:
                               fabsf(id(roll).state - id(ruhe_roll)));
       return weg >= grenze;
 
-  # Bewegungserkennung über Gyro -> "steht" erst 20 s nach letzter Bewegung
+  # Erschütterung: jemand steigt ein, Wind, der Nachbar rangiert.
+  #
+  # KEIN Alarm - das ist Anwesenheit. Der Alarm ist "Lageänderung" darüber.
+  #
+  # Die Entscheidung fällt im 100-ms-Block weiter oben, weil sie den gelernten
+  # Nullpunkt der Drehraten braucht. Hier stand vorher die Summe der
+  # ABSOLUTWERTE gegen 3 Grad/s - und weil ein MPU6050 im Stillstand einen
+  # Versatz von mehreren Grad je Sekunde zeigt, war die Meldung dauerhaft an.
   - platform: template
     name: "In Bewegung"
     id: in_motion
     device_class: moving
-    lambda: |-
-      if (isnan(id(gyro_x).state) || isnan(id(gyro_y).state) || isnan(id(gyro_z).state)) {
-        return {};
-      }
-      const float g = fabsf(id(gyro_x).state) + fabsf(id(gyro_y).state) + fabsf(id(gyro_z).state);
-      return g > 3.0f;   // Summe der Drehraten (deg/s); Schwelle für "Bewegung"
+    lambda: 'return id(bewegt_roh);'
     filters:
       - delayed_off: 20s   # gilt erst 20 s nach der letzten Bewegung als "steht"
 
