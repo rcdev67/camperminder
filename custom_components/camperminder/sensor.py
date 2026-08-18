@@ -143,6 +143,11 @@ class CamperPhaseSensor(CamperEntity, SensorEntity):
             # etwas anderes sagt.
             "level_pitch": coordinator.level_pitch,
             "level_roll": coordinator.level_roll,
+            # Schräglagenwarnung. Sie gehört mit auf die Karte, weil sie einen
+            # anderen Anlass hat als der Rest: Der übrige Inhalt hilft beim
+            # Ausrichten, diese Angabe sagt, dass etwas Schaden nimmt.
+            "tilt_warning": coordinator.tilt_warning,
+            "tilt_limit": round(coordinator.tilt_limit, 1),
             "correction_pitch_cm": (
                 None
                 if coordinator.correction_pitch_cm is None
