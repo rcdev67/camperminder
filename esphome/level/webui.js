@@ -1504,12 +1504,24 @@
       var data;
       try { data = JSON.parse(ev.data); } catch (e) { return; }
       if (!data || !data.id) return;
-      /* name_id ist der REST-Pfad, den das Gerät selbst nennt - etwa
-       * "sensor/accel_z" für /sensor/accel_z. Genau so übernehmen, nicht
-       * aus dem Namen bilden: Beide bisherigen Versuche, ihn zu erraten,
-       * endeten in 404. Ein "name"-Feld gibt es in diesem Strom nicht. */
+      /* ZUSAMMENFÜHREN, NICHT ERSETZEN - und das ist der ganze Punkt.
+       *
+       * Das Gerät schickt beim Verbinden einen vollständigen Bericht MIT
+       * "name" und danach nur noch knappe Aktualisierungen OHNE. Wer den
+       * Eintrag bei jeder Aktualisierung neu anlegt, verliert den Namen mit
+       * dem ersten Messwert - und die Technik-Liste fiel auf prettify()
+       * zurück, das aus "wlan_signal" ein "Wlan signal" macht und aus
+       * "st__tzrad" ein "St tzrad". Was wie ein Haufen Tippfehler aussah,
+       * war genau das.
+       *
+       * name_id ist der REST-Pfad, den das Gerät selbst nennt - etwa
+       * "sensor/accel_z" für /sensor/accel_z. Genau so übernehmen, nicht aus
+       * dem Namen bilden: Beide bisherigen Versuche, ihn zu erraten, endeten
+       * in 404. Auch er kommt nur im ersten Bericht und muss bleiben. */
+      var bekannt = state.seen[data.id] || {};
       state.seen[data.id] = {
-        name_id: data.name_id || null,
+        name_id: data.name_id || bekannt.name_id || null,
+        name: data.name || bekannt.name || null,
         state: data.state
       };
 
