@@ -82,6 +82,8 @@ const TEXTS = {
   hintWedge: "Eine Anweisung nach der anderen – nach dem Auffahren neu messen.",
   hintLift: "Alle Stützen auf einmal, höchste zuerst. Das nicht genannte Rad bleibt stehen.",
   hintCaravan: "Erst das Rad auf den Keil, dann das Stützrad – das Auffahren kippt den Wagen längs mit.",
+  tiltWarn:
+    "Schräglage über {grenze}° – ein Absorberkühlschrank arbeitet so nicht mehr zuverlässig.",
   notFound:
     "Keine CamperMinder gefunden. Ist die Integration eingerichtet?",
 };
@@ -315,6 +317,17 @@ class CamperMinderCard extends HTMLElement {
         #imgSide { width: 100%; max-width: 313px; }
         #imgRear { width: 49.2%; max-width: 154px; }
 
+        /* Warnfläche: kräftig, aber nicht in der Farbe der
+           Nivellieranzeige. Rot dort heißt "noch weit weg", hier heißt es
+           "hier nimmt etwas Schaden" - zwei verschiedene Aussagen dürfen
+           nicht gleich aussehen. */
+        .warn {
+          background: #4a1d1d; border: 1px solid #b3564f; border-radius: 12px;
+          padding: 12px 14px; font-size: .95rem; line-height: 1.45;
+          color: #ffd9d6; font-weight: 600;
+        }
+        .warn[hidden] { display: none; }
+
         .plan { font-size: .95rem; line-height: 1.55; }
         .plan h2 { margin: 0 0 4px; font-size: 1.15rem; }
         .plan ul { margin: 6px 0 0; padding-left: 1.1rem; }
@@ -340,6 +353,8 @@ class CamperMinderCard extends HTMLElement {
       </style>
 
       <ha-card>
+        <div class="warn" id="tiltWarn" hidden></div>
+
         <div class="bar" id="barRoll">
           <div class="label">${TEXTS.across}</div>
           <div class="value" id="valRoll"></div>
@@ -575,6 +590,20 @@ class CamperMinderCard extends HTMLElement {
       : `${TEXTS.rear} — ⚠️`;
     capSide.style.background = CHIP[colPitch];
     capRear.style.background = CHIP[colRoll];
+
+    /* Schräglagenwarnung - ganz oben, weil sie einen anderen Anlass hat als
+       alles andere auf der Karte: Der Rest hilft beim Ausrichten und ist
+       erledigt, wenn es passt. Diese sagt, dass etwas Schaden nimmt.
+
+       Zustand und Grenze kommen aus dem Rechenkern, damit Karte, Geräteseite
+       und Automation dieselbe Aussage treffen. */
+    const warn = root.getElementById("tiltWarn");
+    const warnAktiv = available && a.tilt_warning === true;
+    warn.hidden = !warnAktiv;
+    if (warnAktiv) {
+      const grenze = Number(a.tilt_limit || 3).toFixed(1).replace(".", ",");
+      warn.textContent = `⚠️ ${TEXTS.tiltWarn.replace("{grenze}", grenze)}`;
+    }
 
     // --- Klartext ---
     this._renderPlan(root.getElementById("plan"), source, a, {

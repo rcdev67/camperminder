@@ -21,6 +21,7 @@ from homeassistant.helpers.event import async_track_state_change_event
 from .const import (
     CONF_LEVEL_HOLD,
     CONF_LEVEL_METHOD,
+    CONF_TILT_LIMIT,
     CONF_MOTION_SENSOR,
     CONF_NOTIFY_SERVICE,
     CONF_PITCH_SENSOR,
@@ -34,6 +35,7 @@ from .const import (
     CONF_WHEELBASE,
     DEFAULT_LEVEL_METHOD,
     DEFAULT_TOLERANCE_CM,
+    DEFAULT_TILT_LIMIT_DEG,
     DEFAULT_TOLERANCE_DEG,
     DEFAULT_TRACK,
     DEFAULT_WEDGE_STEP,
@@ -121,6 +123,7 @@ VALUE_DEFAULTS: dict[str, float | bool | str | None] = {
     CONF_WEDGE_STEP: DEFAULT_WEDGE_STEP,
     CONF_TOLERANCE_DEG: DEFAULT_TOLERANCE_DEG,
     CONF_LEVEL_HOLD: LEVEL_RELEASE * 100.0,
+    CONF_TILT_LIMIT: DEFAULT_TILT_LIMIT_DEG,
     CONF_LEVEL_METHOD: DEFAULT_LEVEL_METHOD,
     CONF_VEHICLE_TYPE: DEFAULT_VEHICLE_TYPE,
     CONF_NOTIFY_SERVICE: None,
@@ -136,6 +139,7 @@ NUMERIC_VALUES = (
     CONF_WEDGE_STEP,
     CONF_TOLERANCE_DEG,
     CONF_LEVEL_HOLD,
+    CONF_TILT_LIMIT,
 )
 
 
@@ -167,6 +171,8 @@ class CamperCoordinator:
 
         # Gedächtnis der Ebenheit je Achse - siehe _axis_level.
         self._level_hold: dict[str, bool] = {"pitch": False, "roll": False}
+        # Gedächtnis der Schräglagenwarnung - siehe tilt_warning.
+        self._tilt_hold: bool = False
 
         # Wird in async_start gefüllt, sobald die Entitätsregistrierung
         # befragt werden kann.
@@ -455,6 +461,39 @@ class CamperCoordinator:
         except (TypeError, ValueError):
             return LEVEL_RELEASE
         return faktor if faktor >= 1.0 else LEVEL_RELEASE
+
+    # -- Schräglagenwarnung -------------------------------------------------
+
+    @property
+    def tilt_limit(self) -> float:
+        """Ab welcher Neigung ein Absorberkühlschrank aussteigt, in Grad."""
+        try:
+            return float(self.get_value(CONF_TILT_LIMIT))
+        except (TypeError, ValueError):
+            return DEFAULT_TILT_LIMIT_DEG
+
+    @property
+    def tilt_warning(self) -> bool:
+        """Steht das Fahrzeug so schief, dass der Kühlschrank leidet?
+
+        Ausdrücklich NICHT dasselbe wie "nicht eben": Die Toleranz setzt der
+        Nutzer nach Geschmack, diese Grenze kommt aus der Technik. Wer acht
+        Zentimeter erlaubt, weil ihm das zum Schlafen reicht, soll trotzdem
+        erfahren, wenn sein Kühlschrank nicht mehr kühlt.
+
+        Dieselben 20 Prozent Hysterese wie in der Firmware: Ohne sie flattert
+        die Meldung genau an der Grenze, und eine Warnung, die im Minutentakt
+        kommt und geht, schaltet man ab.
+        """
+        if self.pitch is None or self.roll is None:
+            self._tilt_hold = False
+            return False
+        grenze = self.tilt_limit
+        abweichung = max(abs(self.pitch), abs(self.roll))
+        self._tilt_hold = (
+            abweichung > grenze * 0.8 if self._tilt_hold else abweichung > grenze
+        )
+        return self._tilt_hold
 
     @property
     def level_pitch(self) -> bool:

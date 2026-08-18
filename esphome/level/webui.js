@@ -60,6 +60,7 @@
   var cfg = {
     wheelbase: 3500, track: 1800, tolerance_cm: 5, wedge_step: 0,
     tolerance_deg: 0.4, precise: false, calm: 5, hold_percent: 125,
+    tilt_limit: 3,
     method: "keile", vehicle: "wohnmobil", mounting: "oben"
   };
 
@@ -86,7 +87,11 @@
      * „ä" werden zwei. Die Kennung lautet deshalb "pr__zisionsmodus". Der Rest
      * des Wortes ist eindeutig und überlebt jede Schreibweise, die ein
      * Umlaut sonst noch annehmen könnte. */
-    precise: "zisionsmodus"
+    precise: "zisionsmodus",
+    /* Der Grenzwert der Schraeglagenwarnung. Der Umlaut in "Schraeglage"
+     * wird zu zwei Unterstrichen - deshalb der Teilstring ab "glage",
+     * der jede Schreibweise ueberlebt. */
+    tilt_limit: "glage_grenzwert"
   };
 
   var METHOD_LIFT = "Hydraulik oder Luftkissen";
@@ -562,6 +567,11 @@
     '.plan{background:#1b2029;border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:14px;font-size:1rem;line-height:1.5}' +
     '.plan h2{margin:0 0 6px;font-size:1.2rem}.plan ul{margin:8px 0 0;padding-left:1.1rem}.plan li{margin:3px 0}' +
     '.muted{color:#9aa4b2;font-size:.85rem}' +
+    /* Warnfläche: kräftig, aber nicht in der Farbe der Nivellieranzeige.
+       Rot dort heißt "noch weit weg", hier heißt es "hier nimmt etwas
+       Schaden" - zwei verschiedene Aussagen dürfen nicht gleich aussehen. */
+    '.warn{background:#4a1d1d;border:1px solid #b3564f;border-radius:12px;' +
+    'padding:12px 14px;font-size:.95rem;line-height:1.45;color:#ffd9d6;font-weight:600}' +
     'button.act{width:100%;padding:14px;border:0;border-radius:12px;background:#2fb6c9;color:#08252a;font-size:1.05rem;font-weight:800}' +
     'button.act.ghost{background:#1c222b;color:#cfd6de}' +
     '.set{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.07)}' +
@@ -730,6 +740,27 @@
     var textP = !ok ? "⚠️ Kein Sensorwert"
       : levP ? "✅ EBEN – STOP"
         : (pitch > 0 ? "HECK hoch" : "FRONT hoch");
+
+    /* Schräglagenwarnung - GANZ OBEN und nicht als Zeile in einer Liste.
+     *
+     * Sie hat einen anderen Anlass als alles andere auf dieser Seite: Der
+     * Rest hilft beim Ausrichten und ist erledigt, wenn es passt. Diese
+     * Warnung sagt, dass etwas SCHADEN nimmt - ein Absorberkühlschrank
+     * arbeitet über etwa 3 Grad nicht mehr richtig, und das merkt niemand,
+     * bis das Essen warm ist.
+     *
+     * Deshalb steht sie über den Wasserwaagen: Wer nur kurz aufs Handy
+     * schaut, soll sie nicht suchen müssen.
+     *
+     * Den Zustand entscheidet das GERÄT, nicht diese Seite - der Binärsensor
+     * trägt die Hysterese. Hier wird er nur gelesen. Zwei Stellen, die
+     * dieselbe Schwelle auswerten, driften auseinander. */
+    if (ok && findStateOf("binary_sensor", "glage") === "ON") {
+      var warn = el('<div class="warn"></div>');
+      warn.textContent = "⚠️ Schräglage über " + cfg.tilt_limit.toFixed(1).replace(".", ",") +
+        "° – ein Absorberkühlschrank arbeitet so nicht mehr zuverlässig.";
+      target.appendChild(warn);
+    }
 
     target.appendChild(bar("QUER", roll, tolR, levR, textR));
     target.appendChild(bar("LÄNGS", pitch, tolP, levP, textP));
@@ -1539,6 +1570,7 @@
       else if (id.indexOf(IDS.tolerance_deg) >= 0) cfg.tolerance_deg = num(data.value);
       else if (id.indexOf(IDS.tolerance_cm) >= 0) cfg.tolerance_cm = num(data.value);
       else if (id.indexOf(IDS.wedge_step) >= 0) cfg.wedge_step = num(data.value);
+      else if (id.indexOf(IDS.tilt_limit) >= 0) cfg.tilt_limit = num(data.value);
       else if (id.indexOf(IDS.calm) >= 0) cfg.calm = num(data.value);
       else if (id.indexOf(IDS.hold_percent) >= 0) cfg.hold_percent = num(data.value);
       else if (id.indexOf(IDS.precise) >= 0) {

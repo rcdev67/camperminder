@@ -22,6 +22,7 @@ CONF_TOLERANCE_DEG: Final = "tolerance_deg"
 CONF_LEVEL_METHOD: Final = "level_method"
 CONF_PRECISE: Final = "precise"
 CONF_LEVEL_HOLD: Final = "level_hold_percent"
+CONF_TILT_LIMIT: Final = "tilt_limit"
 
 # --- Art des Ausrichtens ----------------------------------------------------
 # Der Unterschied ist grundsätzlich, nicht kosmetisch:
@@ -125,6 +126,10 @@ DEVICE_VALUE_ENTITIES: Final = {
     # Anzeige steht in beiden Betriebsarten. Führt kein Gerät den Wert - etwa
     # bei einem fremden Neigungssensor -, gilt LEVEL_RELEASE.
     CONF_LEVEL_HOLD: ("number", "Haltebereich"),
+    # Die Schwelle der Schräglagenwarnung. Auch sie führt das Gerät: Sie
+    # betrifft die Technik des Kühlschranks, nicht den Geschmack des
+    # Betrachters, und muss deshalb überall dieselbe sein.
+    CONF_TILT_LIMIT: ("number", "Schräglage Grenzwert"),
 }
 
 # Welche dieser Werte Schalter sind - ihr Zustand ist "on"/"off" und keine
@@ -149,6 +154,11 @@ DEFAULT_TRACK: Final = 1800.0  # mm
 DEFAULT_TOLERANCE_CM: Final = 5.0  # cm Höhenunterschied, der noch nicht stört
 DEFAULT_WEDGE_STEP: Final = 0.0  # cm pro Keilstufe, 0 = Ansage in Zentimetern
 DEFAULT_TOLERANCE_DEG: Final = 0.4  # nur im Präzisionsmodus
+
+# Ab hier arbeitet ein Absorberkühlschrank nicht mehr zuverlässig. Keine
+# gegriffene Zahl und nichts, was mit der Nivellier-Toleranz zu tun hat: Die
+# darf jeder nach Geschmack setzen, diese Grenze kommt aus der Technik.
+DEFAULT_TILT_LIMIT_DEG: Final = 3.0
 
 # --- Phasen -----------------------------------------------------------------
 # Bewusst grob gehalten: eine zappelnde cm-Zahl als Ansagegrundlage führt zu
