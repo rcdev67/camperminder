@@ -555,6 +555,14 @@
     /* Zielfeld, kein Kreis: Die Toleranz gilt je Achse. Der erlaubte Bereich
        ist damit ein Rechteck - bei einem Kreis läge die Blase mit beiden
        Achsen knapp innerhalb der Toleranz trotzdem außerhalb der Markierung. */
+    /* Eckwerte in der Draufsicht - die Zahl steht dort, wo der Keil hin muss.
+       Das ist der Unterschied zu einer Liste unter dem Bild: Man muss nicht
+       uebersetzen, welche Zeile welche Ecke meint. */
+    '.ecke{position:absolute;min-width:52px;text-align:center;padding:3px 6px;border-radius:8px;' +
+    'font-size:.82rem;font-weight:800;font-variant-numeric:tabular-nums;' +
+    'background:rgba(12,16,22,.82);border:1px solid rgba(255,255,255,.14);color:#cfd6de}' +
+    '.ecke.tun{background:#4a3410;border-color:#ffb020;color:#ffd48a}' +
+    '.ecke.fertig{color:#6f7885}' +
     '.ring{position:absolute;left:50%;top:50%;width:56px;height:56px;margin:-28px 0 0 -28px;' +
     'border-radius:14px;border:2px dashed rgba(127,127,127,.5)}' +
     '.top .bub{width:42px;height:42px;margin:-21px 0 0 -21px;top:auto;transition:all .3s}' +
@@ -833,6 +841,45 @@
       (centred(levP) ? 0 : deflect(pitch, tolP, TOP_TOLERANCE, TOP_FULL_Y)).toFixed(1) + "px)";
     bubTop.style.background = "radial-gradient(circle at 34% 30%,#fff," + overall + " 62%)";
     bubTop.style.boxShadow = "0 4px 12px rgba(0,0,0,.45),0 0 16px " + overall;
+    /* Vier Eckwerte, an ihrem Platz im Bild.
+     *
+     * Sie kommen aus dem Gerät (Hub-Sensoren), nicht aus einer zweiten
+     * Rechnung hier: Die Anweisung darunter und diese Zahlen müssen dasselbe
+     * sagen, sonst sucht der Nutzer den Unterschied.
+     *
+     * Beim Wohnwagen tragen die beiden hinteren Werte die Räder der einen
+     * Achse, und vorne steht mittig das Stützrad - deshalb dort nur ein Feld
+     * statt zweier. */
+    var hub = function (kennung) {
+      var w = parseFloat(findStateOf("sensor", kennung));
+      return isNaN(w) ? null : w;
+    };
+    var ecke = function (wert, oben, links, text) {
+      var e = el('<div class="ecke"></div>');
+      e.style.top = oben;
+      e.style.left = links;
+      e.style.transform = "translate(-50%,-50%)";
+      if (wert === null) { e.textContent = "–"; e.className = "ecke fertig"; }
+      else if (Math.abs(wert) < 1) { e.textContent = "0"; e.className = "ecke fertig"; }
+      else {
+        e.textContent = (text || "") + Math.abs(wert).toFixed(1).replace(".", ",");
+        e.className = "ecke tun";
+      }
+      top.appendChild(e);
+    };
+
+    if (isCaravan()) {
+      var st = hub("stuetzrad");
+      ecke(st, "16%", "50%", st !== null && st < 0 ? "▼ " : "▲ ");
+      ecke(hub("hub_hinten_links"), "78%", "22%");
+      ecke(hub("hub_hinten_rechts"), "78%", "78%");
+    } else {
+      ecke(hub("hub_vorne_links"), "20%", "22%");
+      ecke(hub("hub_vorne_rechts"), "20%", "78%");
+      ecke(hub("hub_hinten_links"), "80%", "22%");
+      ecke(hub("hub_hinten_rechts"), "80%", "78%");
+    }
+
     top.appendChild(bubTop);
     target.appendChild(top);
 
