@@ -62,7 +62,7 @@ substitutions:
   # Ein Bindestrich macht die Nummer zur Vorabfassung: "2.0.4-rc1" statt
   # "2.0.4". Daran erkennen die Werkzeuge, dass dieser Stand NICHT
   # veröffentlicht werden soll - Einzelheiten in docs/firmware_update.md.
-  firmware_version: "3.2.3"
+  firmware_version: "3.3.0"
 
   # I2C-Pins (0,42"-OLED-Board): SDA=GPIO5, SCL=GPIO6
   i2c_sda_pin: GPIO5
@@ -1651,25 +1651,47 @@ button:
     on_press:
       then:
         - lambda: |-
-            if (isnan(id(accel_${axis_pitch}).state) || isnan(id(accel_${axis_roll}).state) || isnan(id(accel_z).state)) {
-              ESP_LOGW("level", "Kalibrierung abgebrochen: MPU6050 liefert noch keine gültigen Werte.");
+            /* Den Nullpunkt aus dem GEGLAETTETEN Wert setzen, nicht aus
+             * einem einzelnen Messwert.
+             *
+             * Vorher stand hier eine Momentaufnahme der Beschleunigung. Ein
+             * Einzelwert rauscht um zwei bis drei Zehntelgrad - ueber 3500 mm
+             * Radstand sind das ein bis zwei Zentimeter. Bei 5 cm Toleranz
+             * faellt das nicht auf; im Praezisionsmodus mit 0,4 Grad stand
+             * danach "Heck 3 cm hoch", obwohl frisch kalibriert und die
+             * Wasserwaage eben zeigte. Genau so gemeldet worden.
+             *
+             * Der geglaettete Wert mittelt dagegen ueber Sekunden - bei
+             * Anzeigeruhe 5 rund sechs davon - und ist damit um etwa den
+             * Faktor zehn ruhiger als eine Momentaufnahme.
+             *
+             * Die Rechnung: angezeigt wird (roh - offset) * vorzeichen. Damit
+             * das null wird, muss offset um den angezeigten Wert wandern -
+             * mal Vorzeichen, weil der weiter unten angewandt wird. Das ist
+             * zugleich selbstkorrigierend: Zweimal druecken bringt es naeher
+             * an null, nicht weiter weg.
+             */
+            if (isnan(id(pitch).state) || isnan(id(roll).state)) {
+              ESP_LOGW("level", "Kalibrierung abgebrochen: noch keine gueltigen Messwerte.");
               return;
             }
-            // MUSS dieselbe Achszuordnung benutzen wie die Sensoren oben -
-            // deshalb ebenfalls über ${axis_pitch} / ${axis_roll}.
-            id(pitch_offset) = atan2f(
-              id(accel_${axis_pitch}).state,
-              sqrtf(powf(id(accel_${axis_roll}).state, 2) + powf(id(accel_z).state, 2))
-            ) * (180.0f / 3.14159265358979323846f);
-            // z_flip MUSS hier genauso stehen wie im Roll-Sensor oben, sonst
-            // rechnet der gespeicherte Offset in einer anderen Lage als die
-            // Anzeige - derselbe Fehler, den die Substitutionen für die
-            // Achszuordnung verhindern sollen.
-            id(roll_offset) = atan2f(
-              -id(accel_${axis_roll}).state * id(z_flip),
-              id(accel_z).state * id(z_flip)
-            ) * (180.0f / 3.14159265358979323846f);
-            ESP_LOGI("level", "Kalibrierung gespeichert: pitch_offset=%.2f, roll_offset=%.2f",
+            id(pitch_offset) += id(pitch).state * ${pitch_sign};
+            id(roll_offset)  += id(roll).state * ${roll_sign};
+
+            // Die Glaettung sofort mitziehen, sonst laeuft die Anzeige dem
+            // neuen Nullpunkt noch Sekunden hinterher und sieht aus, als
+            // haette der Knopf nicht gewirkt.
+            id(pitch_smooth) = 0.0f;
+            id(roll_smooth)  = 0.0f;
+
+            // Auch die Ruhelage der Diebstahlwarnung neu setzen - sonst meldet
+            // sie eine Lageaenderung, die nur aus dem verschobenen Nullpunkt
+            // stammt.
+            id(ruhe_pitch) = 0.0f;
+            id(ruhe_roll)  = 0.0f;
+            id(ruhe_takte) = 0;
+
+            ESP_LOGI("level", "Kalibrierung gespeichert: pitch_offset=%.3f, roll_offset=%.3f",
                      id(pitch_offset), id(roll_offset));
 
 # --- OLED: Libelle (Blase) links + exakte Zahlen rechts --------------------

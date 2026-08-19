@@ -276,6 +276,19 @@ class CamperMinderCard extends HTMLElement {
           margin: -28px 0 0 -28px; border-radius: 14px;
           border: 2px dashed rgba(127,127,127,.5);
         }
+        /* Eckwerte in der Draufsicht - die Zahl steht dort, wo der Keil
+           hin muss. Das ist der Unterschied zu einer Liste unter dem Bild:
+           Man muss nicht übersetzen, welche Zeile welche Ecke meint. */
+        .ecke {
+          position: absolute; min-width: 52px; text-align: center;
+          padding: 3px 6px; border-radius: 8px; transform: translate(-50%, -50%);
+          font-size: .82rem; font-weight: 800; font-variant-numeric: tabular-nums;
+          background: rgba(12,16,22,.82); border: 1px solid rgba(255,255,255,.14);
+          color: #cfd6de;
+        }
+        .ecke.tun { background: #4a3410; border-color: #ffb020; color: #ffd48a; }
+        .ecke.fertig { color: #6f7885; }
+
         .top .bubble { width: 42px; height: 42px; margin: -21px 0 0 -21px;
           transition: all .3s ease; }
 
@@ -375,6 +388,10 @@ class CamperMinderCard extends HTMLElement {
           <div class="caption">${TEXTS.front}</div>
           <img id="imgTop" src="${STATIC}/camper_top.svg" alt="">
           <div class="ring"></div>
+          <div class="ecke" id="eckeVL"></div>
+          <div class="ecke" id="eckeVR"></div>
+          <div class="ecke" id="eckeHL"></div>
+          <div class="ecke" id="eckeHR"></div>
           <div class="bubble" id="bubTop"></div>
         </div>
 
@@ -447,6 +464,7 @@ class CamperMinderCard extends HTMLElement {
     const a = source.attributes || {};
     const root = this.shadowRoot;
     this._setArtwork(a.vehicle_type === "wohnwagen" ? "caravan" : "camper");
+    const caravanTop = a.vehicle_type === "wohnwagen";
     const available = a.sensors_available !== false && a.pitch !== null &&
       a.roll !== null && a.pitch !== undefined && a.roll !== undefined;
     const implausible = source.state === "unbekannt" && available;
@@ -590,6 +608,44 @@ class CamperMinderCard extends HTMLElement {
       : `${TEXTS.rear} — ⚠️`;
     capSide.style.background = CHIP[colPitch];
     capRear.style.background = CHIP[colRoll];
+
+    /* Vier Eckwerte, an ihrem Platz im Bild.
+     *
+     * Aus demselben wheel_plan wie die Anweisung darunter - beide müssen
+     * dasselbe sagen, sonst sucht der Nutzer den Unterschied. Räder, die der
+     * Rechenkern nicht nennt, stehen auf 0 und damit auf "fertig".
+     *
+     * Beim Wohnwagen tragen die hinteren Felder die beiden Räder der einen
+     * Achse; vorne links zeigt das Stützrad, vorne rechts bleibt leer. */
+    const hub = {};
+    if (Array.isArray(a.wheel_plan)) {
+      for (const item of a.wheel_plan) hub[item.wheel] = item;
+    }
+    const setzeEcke = (id, schluessel, oben, links) => {
+      const e = root.getElementById(id);
+      e.style.top = oben;
+      e.style.left = links;
+      if (schluessel === null) { e.hidden = true; return; }
+      e.hidden = false;
+      const eintrag = hub[schluessel];
+      if (!available) { e.textContent = "–"; e.className = "ecke fertig"; return; }
+      if (!eintrag) { e.textContent = "0"; e.className = "ecke fertig"; return; }
+      const pfeil = eintrag.direction === "runter" ? "▼ " : "";
+      e.textContent = pfeil + Math.abs(Number(eintrag.cm)).toFixed(1).replace(".", ",");
+      e.className = "ecke tun";
+    };
+
+    if (caravanTop) {
+      setzeEcke("eckeVL", "stuetzrad", "16%", "50%");
+      setzeEcke("eckeVR", null, "20%", "78%");
+      setzeEcke("eckeHL", "hinten_links", "78%", "22%");
+      setzeEcke("eckeHR", "hinten_rechts", "78%", "78%");
+    } else {
+      setzeEcke("eckeVL", "vorne_links", "20%", "22%");
+      setzeEcke("eckeVR", "vorne_rechts", "20%", "78%");
+      setzeEcke("eckeHL", "hinten_links", "80%", "22%");
+      setzeEcke("eckeHR", "hinten_rechts", "80%", "78%");
+    }
 
     /* Schräglagenwarnung - ganz oben, weil sie einen anderen Anlass hat als
        alles andere auf der Karte: Der Rest hilft beim Ausrichten und ist
