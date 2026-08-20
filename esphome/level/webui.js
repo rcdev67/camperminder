@@ -61,6 +61,7 @@
     wheelbase: 3500, track: 1800, tolerance_cm: 5, wedge_step: 0,
     tolerance_deg: 0.4, precise: false, calm: 5, hold_percent: 125,
     tilt_limit: 3,
+    move_limit: 1,
     method: "keile", vehicle: "wohnmobil", mounting: "oben"
   };
 
@@ -91,7 +92,10 @@
     /* Der Grenzwert der Schraeglagenwarnung. Der Umlaut in "Schraeglage"
      * wird zu zwei Unterstrichen - deshalb der Teilstring ab "glage",
      * der jede Schreibweise ueberlebt. */
-    tilt_limit: "glage_grenzwert"
+    tilt_limit: "glage_grenzwert",
+    /* Ebenfalls mit Umlaut in der Kennung ("Lage__nderung") - deshalb
+     * der Teilstring ab "nderung". */
+    move_limit: "nderung_grenzwert"
   };
 
   var METHOD_LIFT = "Hydraulik oder Luftkissen";
@@ -558,6 +562,14 @@
     /* Eckwerte in der Draufsicht - die Zahl steht dort, wo der Keil hin muss.
        Das ist der Unterschied zu einer Liste unter dem Bild: Man muss nicht
        uebersetzen, welche Zeile welche Ecke meint. */
+    /* Zustandsleiste unter der Draufsicht: Bewegung und Lageaenderung.
+       Beides sind Aussagen ueber das Fahrzeug, nicht ueber die Ausrichtung -
+       deshalb eigene Zeile und nicht noch eine Farbe in der Anzeige. */
+    '.lage{display:flex;gap:8px;flex-wrap:wrap}' +
+    '.chip{flex:1;min-width:120px;text-align:center;padding:9px 10px;border-radius:12px;' +
+    'font-size:.9rem;font-weight:700;background:#1b2029;border:1px solid rgba(255,255,255,.08);color:#7d8794}' +
+    '.chip.an{background:#4a3410;border-color:#ffb020;color:#ffd48a}' +
+    '.chip.alarm{background:#4a1d1d;border-color:#b3564f;color:#ffd9d6}' +
     '.ecke{position:absolute;min-width:52px;text-align:center;padding:3px 6px;border-radius:8px;' +
     'font-size:.82rem;font-weight:800;font-variant-numeric:tabular-nums;' +
     'background:rgba(12,16,22,.82);border:1px solid rgba(255,255,255,.14);color:#cfd6de}' +
@@ -883,6 +895,28 @@
     top.appendChild(bubTop);
     target.appendChild(top);
 
+    /* Zustandsleiste: Was macht das Fahrzeug gerade?
+     *
+     * Zwei getrennte Aussagen, weil sie Verschiedenes bedeuten - so steht es
+     * auch im Gerät: "In Bewegung" ist eine Erschütterung und damit
+     * Anwesenheit, "Lageänderung" heißt, das Fahrzeug hat seine Ruhelage
+     * verlassen und ist nicht zurückgekommen. Nur das zweite ist ein Alarm,
+     * und nur das zweite ist rot.
+     *
+     * Beide Zustände entscheidet das GERÄT. Hier werden sie gelesen. */
+    var bewegt = findStateOf("binary_sensor", "in_bewegung") === "ON";
+    var verrueckt = findStateOf("binary_sensor", "nderung") === "ON";
+    var leiste = el('<div class="lage"></div>');
+    var chip = function (text, klasse) {
+      var c = el('<div class="chip"></div>');
+      c.textContent = text;
+      if (klasse) c.className = "chip " + klasse;
+      leiste.appendChild(c);
+    };
+    chip(bewegt ? "● in Bewegung" : "steht ruhig", bewegt ? "an" : null);
+    chip(verrueckt ? "⚠ Lageänderung" : "Lage unverändert", verrueckt ? "alarm" : null);
+    target.appendChild(leiste);
+
     /* Anders als die Blasen bleiben diese beiden am echten Winkel: Sie zeigen
      * das Fahrzeug, nicht eine Skala. Nur innerhalb der Toleranz stehen sie
      * waagerecht - sonst kippelte das Bild um Zehntelgrad weiter, während
@@ -1029,11 +1063,29 @@
       "der Grenze hin und her. Höher setzen, wenn genau das passiert." +
       "</div>"));
 
-    /* Drei Kästen, ein Rückgabewert: appendChild fügt bei einem Fragment alle
+    /* Warnungen - eigener Kasten, weil sie nichts mit dem Ausrichten zu tun
+     * haben. Der Rest dieser Seite hilft, gerade zu stehen; diese beiden
+     * melden, dass etwas Schaden nimmt oder jemand am Fahrzeug war. */
+    var warnungen = el('<div class="plan"><h2>Warnungen</h2></div>');
+    zahlZeile(warnungen, "tilt_limit", "Schräglage ab (°)");
+    warnungen.appendChild(el('<div class="muted" style="margin-bottom:10px">' +
+      "Ein Absorberkühlschrank arbeitet über etwa 3° nicht mehr zuverlässig. " +
+      "Das merkt niemand, bis das Essen warm ist – deshalb die eigene Warnung, " +
+      "unabhängig von deiner Toleranz beim Ausrichten." +
+      "</div>"));
+    zahlZeile(warnungen, "move_limit", "Lageänderung ab (°)");
+    warnungen.appendChild(el('<div class="muted">' +
+      "Ab welcher Abweichung von der Ruhelage gemeldet wird, dass das Fahrzeug " +
+      "bewegt wurde. Ein Grad sind bei 3500 mm Radstand rund 6 cm – Wind und " +
+      "Einsteigen bleiben darunter, Anheben und Abschleppen darüber." +
+      "</div>"));
+
+    /* Vier Kästen, ein Rückgabewert: appendChild fügt bei einem Fragment alle
      * Kinder ein, der Aufrufer bleibt unverändert. */
     var beide = document.createDocumentFragment();
     beide.appendChild(box);
     beide.appendChild(anzeige);
+    beide.appendChild(warnungen);
     beide.appendChild(geraet);
     return beide;
   }
@@ -1618,6 +1670,7 @@
       else if (id.indexOf(IDS.tolerance_cm) >= 0) cfg.tolerance_cm = num(data.value);
       else if (id.indexOf(IDS.wedge_step) >= 0) cfg.wedge_step = num(data.value);
       else if (id.indexOf(IDS.tilt_limit) >= 0) cfg.tilt_limit = num(data.value);
+      else if (id.indexOf(IDS.move_limit) >= 0) cfg.move_limit = num(data.value);
       else if (id.indexOf(IDS.calm) >= 0) cfg.calm = num(data.value);
       else if (id.indexOf(IDS.hold_percent) >= 0) cfg.hold_percent = num(data.value);
       else if (id.indexOf(IDS.precise) >= 0) {

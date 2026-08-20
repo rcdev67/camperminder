@@ -147,6 +147,7 @@ class CamperPhaseSensor(CamperEntity, SensorEntity):
             # anderen Anlass hat als der Rest: Der übrige Inhalt hilft beim
             # Ausrichten, diese Angabe sagt, dass etwas Schaden nimmt.
             "tilt_warning": coordinator.tilt_warning,
+            "position_changed": coordinator.position_changed,
             "tilt_limit": round(coordinator.tilt_limit, 1),
             "correction_pitch_cm": (
                 None

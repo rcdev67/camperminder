@@ -25,6 +25,7 @@ from .const import (
     CONF_MOTION_SENSOR,
     CONF_NOTIFY_SERVICE,
     CONF_PITCH_SENSOR,
+    CONF_POSITION_CHANGED,
     CONF_PRECISE,
     CONF_ROLL_SENSOR,
     CONF_TOLERANCE_CM,
@@ -42,6 +43,7 @@ from .const import (
     DEFAULT_VEHICLE_TYPE,
     DEFAULT_WHEELBASE,
     DEVICE_METHOD_MAP,
+    DEVICE_BINARY_VALUES,
     DEVICE_SWITCH_VALUES,
     DEVICE_VALUE_ENTITIES,
     DEVICE_VEHICLE_MAP,
@@ -129,6 +131,7 @@ VALUE_DEFAULTS: dict[str, float | bool | str | None] = {
     CONF_NOTIFY_SERVICE: None,
     "voice": False,  # Sprachansage - neue Verhaltenserweiterungen starten aus
     CONF_PRECISE: False,  # Präzisionsmodus, sofern das Gerät ihn nicht führt
+    CONF_POSITION_CHANGED: False,  # nur, wenn das Gerät sie meldet
 }
 
 # Diese Werte sind Zahlen, alle übrigen nicht.
@@ -344,7 +347,7 @@ class CamperCoordinator:
                 STATE_UNKNOWN,
                 STATE_UNAVAILABLE,
             ):
-                if key in DEVICE_SWITCH_VALUES:
+                if key in DEVICE_SWITCH_VALUES or key in DEVICE_BINARY_VALUES:
                     return state.state == STATE_ON
                 if key == CONF_LEVEL_METHOD:
                     return DEVICE_METHOD_MAP.get(state.state, DEFAULT_LEVEL_METHOD)
@@ -384,6 +387,16 @@ class CamperCoordinator:
     @property
     def precise(self) -> bool:
         return bool(self.get_value(CONF_PRECISE))
+
+    @property
+    def position_changed(self) -> bool:
+        """Hat das Fahrzeug seine Ruhelage verlassen?
+
+        Kommt aus dem Gerät und nicht aus einer Rechnung hier: Der Bezugspunkt
+        muss über Stunden gelten, und Home Assistant darf in der Zeit neu
+        starten dürfen, ohne dass die Überwachung von vorn beginnt.
+        """
+        return bool(self.get_value(CONF_POSITION_CHANGED))
 
     @property
     def voice(self) -> bool:
