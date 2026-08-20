@@ -82,6 +82,10 @@ const TEXTS = {
   hintWedge: "Eine Anweisung nach der anderen – nach dem Auffahren neu messen.",
   hintLift: "Alle Stützen auf einmal, höchste zuerst. Das nicht genannte Rad bleibt stehen.",
   hintCaravan: "Erst das Rad auf den Keil, dann das Stützrad – das Auffahren kippt den Wagen längs mit.",
+  moving: "● in Bewegung",
+  still: "steht ruhig",
+  moved: "⚠ Lageänderung",
+  notMoved: "Lage unverändert",
   tiltWarn:
     "Schräglage über {grenze}° – ein Absorberkühlschrank arbeitet so nicht mehr zuverlässig.",
   notFound:
@@ -279,6 +283,20 @@ class CamperMinderCard extends HTMLElement {
         /* Eckwerte in der Draufsicht - die Zahl steht dort, wo der Keil
            hin muss. Das ist der Unterschied zu einer Liste unter dem Bild:
            Man muss nicht übersetzen, welche Zeile welche Ecke meint. */
+        /* Zustandsleiste unter der Draufsicht - dieselbe Aussage und
+           dieselbe Farbgebung wie auf der Geräteseite. Beides sind Aussagen
+           über das Fahrzeug, nicht über die Ausrichtung. */
+        .lage { display: flex; gap: 8px; flex-wrap: wrap; }
+        .chip {
+          flex: 1; min-width: 120px; text-align: center; padding: 9px 10px;
+          border-radius: 12px; font-size: .9rem; font-weight: 700;
+          background: var(--card-background-color, #1b2029);
+          border: 1px solid var(--divider-color, rgba(255,255,255,.08));
+          color: #7d8794;
+        }
+        .chip.an { background: #4a3410; border-color: #ffb020; color: #ffd48a; }
+        .chip.alarm { background: #4a1d1d; border-color: #b3564f; color: #ffd9d6; }
+
         .ecke {
           position: absolute; min-width: 52px; text-align: center;
           padding: 3px 6px; border-radius: 8px; transform: translate(-50%, -50%);
@@ -393,6 +411,11 @@ class CamperMinderCard extends HTMLElement {
           <div class="ecke" id="eckeHL"></div>
           <div class="ecke" id="eckeHR"></div>
           <div class="bubble" id="bubTop"></div>
+        </div>
+
+        <div class="lage">
+          <div class="chip" id="chipBewegung"></div>
+          <div class="chip" id="chipLage"></div>
         </div>
 
         <div class="views">
@@ -579,6 +602,23 @@ class CamperMinderCard extends HTMLElement {
     bubTop.style.background =
       `radial-gradient(circle at 34% 30%, #fff, ${overall} 62%)`;
     bubTop.style.boxShadow = `0 4px 12px rgba(0,0,0,.45), 0 0 16px ${overall}`;
+
+    /* Zustandsleiste: Was macht das Fahrzeug gerade?
+     *
+     * Zwei getrennte Aussagen, weil sie Verschiedenes bedeuten - so steht es
+     * auch im Gerät: "in Bewegung" ist eine Erschütterung und damit
+     * Anwesenheit, "Lageänderung" heißt, das Fahrzeug hat seine Ruhelage
+     * verlassen und ist nicht zurückgekommen. Nur das zweite ist ein Alarm,
+     * und nur das zweite ist rot. */
+    const setzeChip = (id, an, textAn, textAus, klasse) => {
+      const c = root.getElementById(id);
+      c.textContent = an ? textAn : textAus;
+      c.className = an ? `chip ${klasse}` : "chip";
+    };
+    setzeChip("chipBewegung", a.in_motion === true,
+              TEXTS.moving, TEXTS.still, "an");
+    setzeChip("chipLage", a.position_changed === true,
+              TEXTS.moved, TEXTS.notMoved, "alarm");
 
     // --- Seiten- und Heckansicht, 1:1 geneigt ---
     //

@@ -23,6 +23,7 @@ CONF_LEVEL_METHOD: Final = "level_method"
 CONF_PRECISE: Final = "precise"
 CONF_LEVEL_HOLD: Final = "level_hold_percent"
 CONF_TILT_LIMIT: Final = "tilt_limit"
+CONF_POSITION_CHANGED: Final = "position_changed"
 
 # --- Art des Ausrichtens ----------------------------------------------------
 # Der Unterschied ist grundsätzlich, nicht kosmetisch:
@@ -130,11 +131,19 @@ DEVICE_VALUE_ENTITIES: Final = {
     # betrifft die Technik des Kühlschranks, nicht den Geschmack des
     # Betrachters, und muss deshalb überall dieselbe sein.
     CONF_TILT_LIMIT: ("number", "Schräglage Grenzwert"),
+    # Die Diebstahlmeldung. Sie entsteht im Gerät, weil sie eine Ruhelage
+    # braucht, die über Stunden gilt - Home Assistant kann neu starten, das
+    # Gerät läuft weiter.
+    CONF_POSITION_CHANGED: ("binary_sensor", "Lageänderung"),
 }
 
 # Welche dieser Werte Schalter sind - ihr Zustand ist "on"/"off" und keine
 # Zahl, die sich in eine Gleitkommazahl wandeln ließe.
 DEVICE_SWITCH_VALUES: Final = (CONF_PRECISE,)
+
+# Welche davon Binärsensoren sind - "on"/"off" statt einer Zahl, aber im
+# Gegensatz zu einem Schalter nichts, was sich setzen ließe.
+DEVICE_BINARY_VALUES: Final = (CONF_POSITION_CHANGED,)
 
 # Wie die Firmware ihre Ausrichtart benennt - sie spricht Klartext, wir
 # intern Schlüssel.
