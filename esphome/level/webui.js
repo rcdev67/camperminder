@@ -562,14 +562,22 @@
     /* Eckwerte in der Draufsicht - die Zahl steht dort, wo der Keil hin muss.
        Das ist der Unterschied zu einer Liste unter dem Bild: Man muss nicht
        uebersetzen, welche Zeile welche Ecke meint. */
-    /* Zustandsleiste unter der Draufsicht: Bewegung und Lageaenderung.
-       Beides sind Aussagen ueber das Fahrzeug, nicht ueber die Ausrichtung -
-       deshalb eigene Zeile und nicht noch eine Farbe in der Anzeige. */
-    '.lage{display:flex;gap:8px;flex-wrap:wrap}' +
-    '.chip{flex:1;min-width:120px;text-align:center;padding:9px 10px;border-radius:12px;' +
-    'font-size:.9rem;font-weight:700;background:#1b2029;border:1px solid rgba(255,255,255,.08);color:#7d8794}' +
-    '.chip.an{background:#4a3410;border-color:#ffb020;color:#ffd48a}' +
-    '.chip.alarm{background:#4a1d1d;border-color:#b3564f;color:#ffd9d6}' +
+    /* Drei Badges: Neigung, Bewegung, Lage.
+       Drei Themen, die NICHT das Ausrichten betreffen und deshalb eine eigene
+       Zeile bekommen - und drei Farben, die auf einen Blick sagen, ob etwas
+       zu tun ist. Bewusst andere Farbwerte als die Nivellieranzeige: Dort
+       heisst Gruen "innerhalb der Toleranz", hier "alles in Ordnung". */
+    '.badges{display:flex;gap:8px}' +
+    '.badge{flex:1;min-width:0;padding:9px 8px;border-radius:12px;text-align:center;' +
+    'background:#1b2029;border:1px solid rgba(255,255,255,.10)}' +
+    '.badge .bt{font-size:.66rem;letter-spacing:.14em;font-weight:800;opacity:.75;' +
+    'text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}' +
+    '.badge .bs{margin-top:3px;font-size:.9rem;font-weight:800;' +
+    'white-space:nowrap;overflow:hidden;text-overflow:ellipsis}' +
+    '.badge.ok{background:#1e3326;border-color:#2f6b45}.badge.ok .bs{color:#9fe3b8}' +
+    '.badge.achtung{background:#4a3410;border-color:#ffb020}.badge.achtung .bs{color:#ffd48a}' +
+    '.badge.alarm{background:#4a1d1d;border-color:#b3564f}.badge.alarm .bs{color:#ffd9d6}' +
+    '.badge.aus .bs{color:#6f7885}' +
     '.ecke{position:absolute;min-width:52px;text-align:center;padding:3px 6px;border-radius:8px;' +
     'font-size:.82rem;font-weight:800;font-variant-numeric:tabular-nums;' +
     'background:rgba(12,16,22,.82);border:1px solid rgba(255,255,255,.14);color:#cfd6de}' +
@@ -761,27 +769,6 @@
       : levP ? "✅ EBEN – STOP"
         : (pitch > 0 ? "HECK hoch" : "FRONT hoch");
 
-    /* Schräglagenwarnung - GANZ OBEN und nicht als Zeile in einer Liste.
-     *
-     * Sie hat einen anderen Anlass als alles andere auf dieser Seite: Der
-     * Rest hilft beim Ausrichten und ist erledigt, wenn es passt. Diese
-     * Warnung sagt, dass etwas SCHADEN nimmt - ein Absorberkühlschrank
-     * arbeitet über etwa 3 Grad nicht mehr richtig, und das merkt niemand,
-     * bis das Essen warm ist.
-     *
-     * Deshalb steht sie über den Wasserwaagen: Wer nur kurz aufs Handy
-     * schaut, soll sie nicht suchen müssen.
-     *
-     * Den Zustand entscheidet das GERÄT, nicht diese Seite - der Binärsensor
-     * trägt die Hysterese. Hier wird er nur gelesen. Zwei Stellen, die
-     * dieselbe Schwelle auswerten, driften auseinander. */
-    if (ok && findStateOf("binary_sensor", "glage") === "ON") {
-      var warn = el('<div class="warn"></div>');
-      warn.textContent = "⚠️ Schräglage über " + cfg.tilt_limit.toFixed(1).replace(".", ",") +
-        "° – ein Absorberkühlschrank arbeitet so nicht mehr zuverlässig.";
-      target.appendChild(warn);
-    }
-
     target.appendChild(bar("QUER", roll, tolR, levR, textR));
     target.appendChild(bar("LÄNGS", pitch, tolP, levP, textP));
 
@@ -895,27 +882,51 @@
     top.appendChild(bubTop);
     target.appendChild(top);
 
-    /* Zustandsleiste: Was macht das Fahrzeug gerade?
+    /* Drei Badges: Neigung, Bewegung, Lage.
      *
-     * Zwei getrennte Aussagen, weil sie Verschiedenes bedeuten - so steht es
-     * auch im Gerät: "In Bewegung" ist eine Erschütterung und damit
-     * Anwesenheit, "Lageänderung" heißt, das Fahrzeug hat seine Ruhelage
-     * verlassen und ist nicht zurückgekommen. Nur das zweite ist ein Alarm,
-     * und nur das zweite ist rot.
+     * Sie beantworten drei Fragen, die mit dem Ausrichten nichts zu tun haben
+     * und die man sonst aus einer Liste zusammensuchen müsste: Leidet der
+     * Kühlschrank? Ist gerade jemand am Fahrzeug? Steht es noch, wo es stand?
      *
-     * Beide Zustände entscheidet das GERÄT. Hier werden sie gelesen. */
+     * Alle drei Zustände entscheidet das GERÄT - hier werden sie nur gelesen.
+     * Die Schwellen tragen dort ihre Hysterese; zwei Stellen, die dieselbe
+     * Grenze auswerten, driften auseinander. */
+    var schraeg = findStateOf("binary_sensor", "glage") === "ON";
     var bewegt = findStateOf("binary_sensor", "in_bewegung") === "ON";
     var verrueckt = findStateOf("binary_sensor", "nderung") === "ON";
-    var leiste = el('<div class="lage"></div>');
-    var chip = function (text, klasse) {
-      var c = el('<div class="chip"></div>');
-      c.textContent = text;
-      if (klasse) c.className = "chip " + klasse;
-      leiste.appendChild(c);
+    var schiefste = Math.max(Math.abs(degP), Math.abs(degR));
+
+    var badges = el('<div class="badges"></div>');
+    var badge = function (titel, text, klasse, hinweis) {
+      var b = el('<div class="badge ' + klasse + '"><div class="bt"></div><div class="bs"></div></div>');
+      b.querySelector(".bt").textContent = titel;
+      b.querySelector(".bs").textContent = text;
+      if (hinweis) b.title = hinweis;
+      badges.appendChild(b);
     };
-    chip(bewegt ? "● in Bewegung" : "steht ruhig", bewegt ? "an" : null);
-    chip(verrueckt ? "⚠ Lageänderung" : "Lage unverändert", verrueckt ? "alarm" : null);
-    target.appendChild(leiste);
+
+    if (!ok) {
+      badge("Neigung", "–", "aus");
+      badge("Bewegung", "–", "aus");
+      badge("Lage", "–", "aus");
+    } else {
+      badge("Neigung",
+        schiefste.toFixed(1).replace(".", ",") + "° · " + (schraeg ? "Kühlschrank!" : "ok"),
+        schraeg ? "alarm" : "ok",
+        schraeg
+          ? "Über " + cfg.tilt_limit.toFixed(1).replace(".", ",") +
+            "° arbeitet ein Absorberkühlschrank nicht mehr zuverlässig."
+          : "Unter " + cfg.tilt_limit.toFixed(1).replace(".", ",") +
+            "° – der Absorberkühlschrank arbeitet zuverlässig.");
+      badge("Bewegung", bewegt ? "in Bewegung" : "steht ruhig",
+        bewegt ? "achtung" : "ok",
+        "Erschütterung – jemand steigt ein, Wind, der Nachbar rangiert. Kein Alarm.");
+      badge("Lage", verrueckt ? "verändert!" : "unverändert",
+        verrueckt ? "alarm" : "ok",
+        "Weicht die Neigung um mehr als " + cfg.move_limit.toFixed(1).replace(".", ",") +
+        "° von der Ruhelage ab, wurde das Fahrzeug bewegt.");
+    }
+    target.appendChild(badges);
 
     /* Anders als die Blasen bleiben diese beiden am echten Winkel: Sie zeigen
      * das Fahrzeug, nicht eine Skala. Nur innerhalb der Toleranz stehen sie
