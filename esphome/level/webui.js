@@ -961,6 +961,9 @@
   var mountingSelect = null;
   var preciseBox = null;
   var mqttNote = null;
+  var mqttBroker = null;
+  var mqttUser = null;
+  var mqttPort = null;
   var settingsNote = null;
 
   /* Eine Zahlenzeile. Der Verweis auf das Eingabefeld bleibt in
@@ -1124,6 +1127,22 @@
     // der Zustand die Meldung "Gespeichert, das Geraet startet neu".
     if (mqttNote && !mqttNote.style.fontWeight) {
       mqttNote.textContent = findStateOf("text_sensor", "mqtt") || "";
+    }
+    /* Broker, Benutzer und Port zeigen, was im Gerät steht.
+     *
+     * Leere Felder bei laufender Verbindung sahen nicht nur nach "nichts
+     * eingerichtet" aus, sie waren gefährlich: Wer nur den Benutzer ändern
+     * wollte und speicherte, schickte ein leeres Brokerfeld mit - und leer
+     * schaltet MQTT ab. Das Passwortfeld bleibt leer, dort heißt leer beim
+     * Speichern "unverändert". */
+    if (mqttBroker && mqttBroker !== focused) {
+      mqttBroker.value = findStateOf("text", "mqtt_broker") || "";
+    }
+    if (mqttUser && mqttUser !== focused) {
+      mqttUser.value = findStateOf("text", "mqtt_benutzer") || "";
+    }
+    if (mqttPort && mqttPort !== focused) {
+      mqttPort.value = findStateOf("number", "mqtt_port") || "";
     }
     if (settingsNote) {
       settingsNote.textContent = writeError ? writeError
@@ -1466,7 +1485,7 @@
     var mBroker = el('<input type="text" placeholder="Broker, z. B. 192.168.1.10 (leer = aus)" style="width:100%;margin-top:10px">');
     var mPort = el('<input type="number" placeholder="Port" style="width:100%;margin-top:8px">');
     var mUser = el('<input type="text" placeholder="Benutzer (optional)" style="width:100%;margin-top:8px">');
-    var mPass = el('<input type="password" placeholder="Passwort (optional)" style="width:100%;margin-top:8px">');
+    var mPass = el('<input type="password" placeholder="Passwort (leer = unverändert)" style="width:100%;margin-top:8px">');
     var mBtn = el('<button class="act ghost" style="margin-top:8px">MQTT speichern</button>');
     var mNote = el('<div class="muted" style="margin-top:10px;line-height:1.5;white-space:pre-line"></div>');
 
@@ -1483,6 +1502,9 @@
      * jeder Meldung des Geräts nachziehen kann: Nach dem Speichern und
      * Neustart soll dort von selbst "verbunden" erscheinen. */
     mqttNote = mNote;
+    mqttBroker = mBroker;
+    mqttUser = mUser;
+    mqttPort = mPort;
     mSay(findStateOf("text_sensor", "mqtt") || "");
 
     mBtn.onclick = function () {
