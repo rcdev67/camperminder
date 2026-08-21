@@ -82,12 +82,21 @@ const TEXTS = {
   hintWedge: "Eine Anweisung nach der anderen – nach dem Auffahren neu messen.",
   hintLift: "Alle Stützen auf einmal, höchste zuerst. Das nicht genannte Rad bleibt stehen.",
   hintCaravan: "Erst das Rad auf den Keil, dann das Stützrad – das Auffahren kippt den Wagen längs mit.",
-  moving: "● in Bewegung",
+  bTilt: "Neigung",
+  bMotion: "Bewegung",
+  bPos: "Lage",
+  bOk: "ok",
+  bFridge: "Kühlschrank!",
+  bTiltHint:
+    "Über {grenze}° arbeitet ein Absorberkühlschrank nicht mehr zuverlässig.",
+  bMotionHint:
+    "Erschütterung – jemand steigt ein, Wind, der Nachbar rangiert. Kein Alarm.",
+  bPosHint:
+    "Weicht die Neigung von der Ruhelage ab, wurde das Fahrzeug bewegt.",
+  moving: "in Bewegung",
   still: "steht ruhig",
-  moved: "⚠ Lageänderung",
-  notMoved: "Lage unverändert",
-  tiltWarn:
-    "Schräglage über {grenze}° – ein Absorberkühlschrank arbeitet so nicht mehr zuverlässig.",
+  moved: "verändert!",
+  notMoved: "unverändert",
   notFound:
     "Keine CamperMinder gefunden. Ist die Integration eingerichtet?",
 };
@@ -283,19 +292,39 @@ class CamperMinderCard extends HTMLElement {
         /* Eckwerte in der Draufsicht - die Zahl steht dort, wo der Keil
            hin muss. Das ist der Unterschied zu einer Liste unter dem Bild:
            Man muss nicht übersetzen, welche Zeile welche Ecke meint. */
-        /* Zustandsleiste unter der Draufsicht - dieselbe Aussage und
-           dieselbe Farbgebung wie auf der Geräteseite. Beides sind Aussagen
-           über das Fahrzeug, nicht über die Ausrichtung. */
-        .lage { display: flex; gap: 8px; flex-wrap: wrap; }
-        .chip {
-          flex: 1; min-width: 120px; text-align: center; padding: 9px 10px;
-          border-radius: 12px; font-size: .9rem; font-weight: 700;
+        /* Drei Badges: Neigung, Bewegung, Lage.
+
+           Drei Themen, die NICHT das Ausrichten betreffen und deshalb eine
+           eigene Zeile bekommen - mit drei Farben, die auf einen Blick sagen,
+           ob etwas zu tun ist.
+
+           Bewusst andere Farbwerte als die Nivellieranzeige: Dort heißt Grün
+           "innerhalb der Toleranz", hier "alles in Ordnung". Gleiche Farbe für
+           zwei verschiedene Aussagen wäre genau die Verwechslung, die eine
+           Warnung wertlos macht. Wortgleich zur Geräteseite. */
+        .badges { display: flex; gap: 8px; }
+        .badge {
+          flex: 1; min-width: 0; padding: 9px 8px; border-radius: 12px;
+          text-align: center;
           background: var(--card-background-color, #1b2029);
-          border: 1px solid var(--divider-color, rgba(255,255,255,.08));
-          color: #7d8794;
+          border: 1px solid var(--divider-color, rgba(255,255,255,.10));
         }
-        .chip.an { background: #4a3410; border-color: #ffb020; color: #ffd48a; }
-        .chip.alarm { background: #4a1d1d; border-color: #b3564f; color: #ffd9d6; }
+        .badge .bt {
+          font-size: .66rem; letter-spacing: .14em; font-weight: 800;
+          opacity: .75; text-transform: uppercase;
+          white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        .badge .bs {
+          margin-top: 3px; font-size: .9rem; font-weight: 800;
+          white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        .badge.ok { background: #1e3326; border-color: #2f6b45; }
+        .badge.ok .bs { color: #9fe3b8; }
+        .badge.achtung { background: #4a3410; border-color: #ffb020; }
+        .badge.achtung .bs { color: #ffd48a; }
+        .badge.alarm { background: #4a1d1d; border-color: #b3564f; }
+        .badge.alarm .bs { color: #ffd9d6; }
+        .badge.aus .bs { color: #6f7885; }
 
         .ecke {
           position: absolute; min-width: 52px; text-align: center;
@@ -348,16 +377,6 @@ class CamperMinderCard extends HTMLElement {
         #imgSide { width: 100%; max-width: 313px; }
         #imgRear { width: 49.2%; max-width: 154px; }
 
-        /* Warnfläche: kräftig, aber nicht in der Farbe der
-           Nivellieranzeige. Rot dort heißt "noch weit weg", hier heißt es
-           "hier nimmt etwas Schaden" - zwei verschiedene Aussagen dürfen
-           nicht gleich aussehen. */
-        .warn {
-          background: #4a1d1d; border: 1px solid #b3564f; border-radius: 12px;
-          padding: 12px 14px; font-size: .95rem; line-height: 1.45;
-          color: #ffd9d6; font-weight: 600;
-        }
-        .warn[hidden] { display: none; }
 
         .plan { font-size: .95rem; line-height: 1.55; }
         .plan h2 { margin: 0 0 4px; font-size: 1.15rem; }
@@ -384,8 +403,6 @@ class CamperMinderCard extends HTMLElement {
       </style>
 
       <ha-card>
-        <div class="warn" id="tiltWarn" hidden></div>
-
         <div class="bar" id="barRoll">
           <div class="label">${TEXTS.across}</div>
           <div class="value" id="valRoll"></div>
@@ -413,9 +430,10 @@ class CamperMinderCard extends HTMLElement {
           <div class="bubble" id="bubTop"></div>
         </div>
 
-        <div class="lage">
-          <div class="chip" id="chipBewegung"></div>
-          <div class="chip" id="chipLage"></div>
+        <div class="badges">
+          <div class="badge" id="badgeNeigung"><div class="bt"></div><div class="bs"></div></div>
+          <div class="badge" id="badgeBewegung"><div class="bt"></div><div class="bs"></div></div>
+          <div class="badge" id="badgeLage"><div class="bt"></div><div class="bs"></div></div>
         </div>
 
         <div class="views">
@@ -603,23 +621,6 @@ class CamperMinderCard extends HTMLElement {
       `radial-gradient(circle at 34% 30%, #fff, ${overall} 62%)`;
     bubTop.style.boxShadow = `0 4px 12px rgba(0,0,0,.45), 0 0 16px ${overall}`;
 
-    /* Zustandsleiste: Was macht das Fahrzeug gerade?
-     *
-     * Zwei getrennte Aussagen, weil sie Verschiedenes bedeuten - so steht es
-     * auch im Gerät: "in Bewegung" ist eine Erschütterung und damit
-     * Anwesenheit, "Lageänderung" heißt, das Fahrzeug hat seine Ruhelage
-     * verlassen und ist nicht zurückgekommen. Nur das zweite ist ein Alarm,
-     * und nur das zweite ist rot. */
-    const setzeChip = (id, an, textAn, textAus, klasse) => {
-      const c = root.getElementById(id);
-      c.textContent = an ? textAn : textAus;
-      c.className = an ? `chip ${klasse}` : "chip";
-    };
-    setzeChip("chipBewegung", a.in_motion === true,
-              TEXTS.moving, TEXTS.still, "an");
-    setzeChip("chipLage", a.position_changed === true,
-              TEXTS.moved, TEXTS.notMoved, "alarm");
-
     // --- Seiten- und Heckansicht, 1:1 geneigt ---
     //
     // Anders als die Blasen bleiben diese beiden am echten Winkel: Sie zeigen
@@ -628,6 +629,55 @@ class CamperMinderCard extends HTMLElement {
     // daneben "EBEN - STOP" steht.
     const degSide = deg("pitch_deg", pitch);
     const degRear = deg("roll_deg", roll);
+
+    /* Drei Badges: Neigung, Bewegung, Lage.
+     *
+     * Sie beantworten drei Fragen, die mit dem Ausrichten nichts zu tun haben
+     * und die man sonst aus einer Liste zusammensuchen müsste: Leidet der
+     * Kühlschrank? Ist gerade jemand am Fahrzeug? Steht es noch, wo es stand?
+     *
+     * Alle drei Zustände kommen aus dem Rechenkern, damit Karte, Geräteseite
+     * und Automation dieselbe Aussage treffen. Sie stehen hier und nicht
+     * weiter oben, weil sie die gerasteten Winkel von eben brauchen. */
+    const setzeBadge = (id, titel, text, klasse, hinweis) => {
+      const b = root.getElementById(id);
+      b.className = `badge ${klasse}`;
+      b.querySelector(".bt").textContent = titel;
+      b.querySelector(".bs").textContent = text;
+      b.title = hinweis || "";
+    };
+    const zahl = (wert) => wert.toFixed(1).replace(".", ",");
+
+    if (!available) {
+      setzeBadge("badgeNeigung", TEXTS.bTilt, "–", "aus");
+      setzeBadge("badgeBewegung", TEXTS.bMotion, "–", "aus");
+      setzeBadge("badgeLage", TEXTS.bPos, "–", "aus");
+    } else {
+      const schraeg = a.tilt_warning === true;
+      const schiefste = Math.max(Math.abs(degSide), Math.abs(degRear));
+      setzeBadge(
+        "badgeNeigung",
+        TEXTS.bTilt,
+        `${zahl(schiefste)}° · ${schraeg ? TEXTS.bFridge : TEXTS.bOk}`,
+        schraeg ? "alarm" : "ok",
+        TEXTS.bTiltHint.replace("{grenze}", zahl(Number(a.tilt_limit || 3)))
+      );
+      setzeBadge(
+        "badgeBewegung",
+        TEXTS.bMotion,
+        a.in_motion === true ? TEXTS.moving : TEXTS.still,
+        a.in_motion === true ? "achtung" : "ok",
+        TEXTS.bMotionHint
+      );
+      setzeBadge(
+        "badgeLage",
+        TEXTS.bPos,
+        a.position_changed === true ? TEXTS.moved : TEXTS.notMoved,
+        a.position_changed === true ? "alarm" : "ok",
+        TEXTS.bPosHint
+      );
+    }
+
     const tilt = (value, level) =>
       !available || centred(level) ? 0 : clamp(value, 30);
     const side = root.getElementById("imgSide");
@@ -685,20 +735,6 @@ class CamperMinderCard extends HTMLElement {
       setzeEcke("eckeVR", "vorne_rechts", "20%", "78%");
       setzeEcke("eckeHL", "hinten_links", "80%", "22%");
       setzeEcke("eckeHR", "hinten_rechts", "80%", "78%");
-    }
-
-    /* Schräglagenwarnung - ganz oben, weil sie einen anderen Anlass hat als
-       alles andere auf der Karte: Der Rest hilft beim Ausrichten und ist
-       erledigt, wenn es passt. Diese sagt, dass etwas Schaden nimmt.
-
-       Zustand und Grenze kommen aus dem Rechenkern, damit Karte, Geräteseite
-       und Automation dieselbe Aussage treffen. */
-    const warn = root.getElementById("tiltWarn");
-    const warnAktiv = available && a.tilt_warning === true;
-    warn.hidden = !warnAktiv;
-    if (warnAktiv) {
-      const grenze = Number(a.tilt_limit || 3).toFixed(1).replace(".", ",");
-      warn.textContent = `⚠️ ${TEXTS.tiltWarn.replace("{grenze}", grenze)}`;
     }
 
     // --- Klartext ---
