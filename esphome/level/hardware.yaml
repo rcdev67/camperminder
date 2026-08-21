@@ -62,7 +62,7 @@ substitutions:
   # Ein Bindestrich macht die Nummer zur Vorabfassung: "2.0.4-rc1" statt
   # "2.0.4". Daran erkennen die Werkzeuge, dass dieser Stand NICHT
   # veröffentlicht werden soll - Einzelheiten in docs/firmware_update.md.
-  firmware_version: "3.5.0"
+  firmware_version: "3.5.1"
 
   # I2C-Pins (0,42"-OLED-Board): SDA=GPIO5, SCL=GPIO6
   i2c_sda_pin: GPIO5
@@ -235,23 +235,44 @@ esphome:
     - priority: 600
       then:
         - lambda: |-
-            // Kein Broker eingetragen? Dann bleibt MQTT aus. Ohne diesen Zweig
-            // liefe der Client gegen den Platzhalter 0.0.0.0 und schriebe im
-            // Sekundentakt Fehler ins Log - bei jedem Kunden, der MQTT gar
-            // nicht benutzt.
+            // Kein Broker eingetragen? Dann bleibt MQTT aus. Mit
+            // enable_on_boot: false startet der Client von sich aus nicht,
+            // ein disable() braucht es dafuer nicht mehr.
             if (strlen(id(mqtt_broker)) == 0) {
-              mqtt::global_mqtt_client->disable();
               ESP_LOGI("mqtt", "Kein Broker eingetragen - MQTT bleibt aus.");
               return;
             }
 
+            /* NUR die Zugangsdaten setzen - NICHT verbinden.
+             *
+             * Hier stand ein enable(). Das war ein Fehler mit Ansage: Der
+             * Client startet im Zustand DISABLED, enable() greift also
+             * wirklich und ruft sofort start_dnslookup_() samt LwIP-Sperre
+             * auf. Dieser Block laeuft aber mit Prioritaet 600, das WLAN
+             * richtet sich erst bei 250 ein - es gab also noch keinen
+             * Netzwerkstapel, den man haette fragen koennen. Ergebnis: Das
+             * Geraet blieb beim Start haengen, sobald ein Broker eingetragen
+             * war. Ohne Broker fiel es nie auf, weil disable() bei bereits
+             * deaktiviertem Client sofort zurueckkehrt.
+             *
+             * Verbunden wird weiter unten mit Prioritaet -100, wenn alle
+             * Komponenten eingerichtet sind. Das ist genau der Zeitpunkt, an
+             * dem setup() es sonst selbst getan haette. */
             const float port = id(mqtt_port_num).state;
             mqtt::global_mqtt_client->set_broker_address(id(mqtt_broker));
             mqtt::global_mqtt_client->set_broker_port(isnan(port) ? 1883 : (uint16_t) port);
             mqtt::global_mqtt_client->set_username(id(mqtt_user));
             mqtt::global_mqtt_client->set_password(id(mqtt_pass));
+            ESP_LOGI("mqtt", "Broker %s:%d vorgemerkt", id(mqtt_broker),
+                     isnan(port) ? 1883 : (int) port);
+    # Ganz zum Schluss: Jetzt steht der Netzwerkstapel, jetzt darf verbunden
+    # werden. Ohne eingetragenen Broker passiert nichts - der Client bleibt
+    # aus, und niemand ohne MQTT merkt etwas davon.
+    - priority: -100
+      then:
+        - lambda: |-
+            if (strlen(id(mqtt_broker)) == 0) return;
             mqtt::global_mqtt_client->enable();
-            ESP_LOGI("mqtt", "Broker %s:%d", id(mqtt_broker), isnan(port) ? 1883 : (int) port);
 
 
 # --- MQTT: die Tür zu fremden Systemen --------------------------------------
@@ -292,6 +313,9 @@ esphome:
 # vergisst man.
 mqtt:
   broker: "0.0.0.0"
+  # Der Client startet NICHT von selbst. Er wird erst eingeschaltet, wenn ein
+  # Broker eingetragen ist - und erst, wenn der Netzwerkstapel steht.
+  enable_on_boot: false
   topic_prefix: camperminder/level
   discovery: false
   reboot_timeout: 0s
