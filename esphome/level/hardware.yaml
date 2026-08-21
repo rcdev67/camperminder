@@ -62,7 +62,7 @@ substitutions:
   # Ein Bindestrich macht die Nummer zur Vorabfassung: "2.0.4-rc1" statt
   # "2.0.4". Daran erkennen die Werkzeuge, dass dieser Stand NICHT
   # veröffentlicht werden soll - Einzelheiten in docs/firmware_update.md.
-  firmware_version: "3.5.1"
+  firmware_version: "3.5.2"
 
   # I2C-Pins (0,42"-OLED-Board): SDA=GPIO5, SCL=GPIO6
   i2c_sda_pin: GPIO5
@@ -271,6 +271,22 @@ esphome:
     - priority: -100
       then:
         - lambda: |-
+            /* Zuerst die Eingabefelder fuellen: Sie sollen zeigen, was
+             * gespeichert ist.
+             *
+             * Vorher standen sie nach jedem Neustart leer, obwohl das Geraet
+             * verbunden war. Das war nicht nur verwirrend, es war eine Falle:
+             * Wer nur den Benutzer aendern wollte und das Brokerfeld leer
+             * liess, schrieb beim Speichern einen LEEREN Broker zurueck - und
+             * leer heisst "MQTT aus". Ein Klick, und die Verbindung war weg.
+             *
+             * Das Passwort bleibt bewusst aussen vor. Es stuende sonst im
+             * Klartext im Ereignisstrom, den jeder lesen kann, der die
+             * Geraeteseite erreicht. Der Speicherknopf behandelt ein leeres
+             * Passwortfeld deshalb als "unveraendert". */
+            id(mqtt_broker_input).publish_state(id(mqtt_broker));
+            id(mqtt_user_input).publish_state(id(mqtt_user));
+
             if (strlen(id(mqtt_broker)) == 0) return;
             mqtt::global_mqtt_client->enable();
 
@@ -1654,12 +1670,26 @@ button:
     entity_category: config
     on_press:
       - lambda: |-
-          strncpy(id(mqtt_broker), id(mqtt_broker_input).state.c_str(), sizeof(id(mqtt_broker)) - 1);
-          id(mqtt_broker)[sizeof(id(mqtt_broker)) - 1] = '\0';
-          strncpy(id(mqtt_user), id(mqtt_user_input).state.c_str(), sizeof(id(mqtt_user)) - 1);
-          id(mqtt_user)[sizeof(id(mqtt_user)) - 1] = '\0';
-          strncpy(id(mqtt_pass), id(mqtt_pass_input).state.c_str(), sizeof(id(mqtt_pass)) - 1);
-          id(mqtt_pass)[sizeof(id(mqtt_pass)) - 1] = '\0';
+          /* Der Broker ist der Schalter: leer heisst aus. Weil das Feld beim
+           * Start wieder gefuellt wird, ist ein leeres Feld hier auch wirklich
+           * als "abschalten" gemeint - und nicht bloss nie ausgefuellt worden.
+           *
+           * Das Passwortfeld dagegen startet immer leer, im Klartext
+           * zurueckzugeben waere es nicht wert. Leer heisst deshalb: das
+           * gespeicherte behalten. Nur bei einem ANDEREN Broker faengt alles
+           * von vorn an - dann gehoert ein leeres Feld als "kein Passwort"
+           * verstanden, sonst kaeme man von einem Broker mit Anmeldung nie zu
+           * einem ohne. */
+          auto uebernimm = [](char *ziel, size_t platz, const std::string &quelle) {
+            strncpy(ziel, quelle.c_str(), platz - 1);
+            ziel[platz - 1] = '\0';
+          };
+          const std::string neuer_broker = id(mqtt_broker_input).state;
+          const bool wechsel = neuer_broker != std::string(id(mqtt_broker));
+          uebernimm(id(mqtt_broker), sizeof(id(mqtt_broker)), neuer_broker);
+          uebernimm(id(mqtt_user), sizeof(id(mqtt_user)), id(mqtt_user_input).state);
+          if (wechsel || !id(mqtt_pass_input).state.empty())
+            uebernimm(id(mqtt_pass), sizeof(id(mqtt_pass)), id(mqtt_pass_input).state);
           ESP_LOGI("mqtt", "%s. Neustart.",
                    strlen(id(mqtt_broker)) == 0 ? "Broker geloescht - MQTT aus" : "Broker gespeichert");
       # Fünf Sekunden wie bei den anderen Speicherknöpfen: Die Geräteseite
