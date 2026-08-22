@@ -25,6 +25,15 @@ CONF_LEVEL_HOLD: Final = "level_hold_percent"
 CONF_TILT_LIMIT: Final = "tilt_limit"
 CONF_POSITION_CHANGED: Final = "position_changed"
 
+# --- Kühlschrank-Zeitkonto ---------------------------------------------------
+# Was einen Absorberkühlschrank beschädigt, ist nicht der Winkel, sondern der
+# Winkel mal der Zeit. Die Stufe entscheidet deshalb das Gerät, das die Zeit
+# ununterbrochen mitzählt - Home Assistant darf zwischendurch neu starten.
+CONF_FRIDGE_WARNING: Final = "fridge_warning"
+CONF_FRIDGE_TEXT: Final = "fridge_text"
+CONF_TILT_MINUTES: Final = "tilt_minutes"
+CONF_FRIDGE_MINUTES: Final = "fridge_minutes"
+
 # --- Wächter ----------------------------------------------------------------
 # Er wohnt vollständig im Gerät. Das ist keine Bequemlichkeit, sondern die
 # Bedingung dafür, dass er etwas taugt: Ein Wachdienst, der ausfällt, sobald
@@ -153,6 +162,11 @@ DEVICE_VALUE_ENTITIES: Final = {
     # Ein Textsensor der Firmware landet in Home Assistant in der Domäne
     # "sensor". Der Schalter heißt genauso wie der Textsensor; gesucht wird
     # über das Paar aus Domäne und Name, deshalb stören sie sich nicht.
+    # --- Kühlschrank-Zeitkonto ---------------------------------------------
+    CONF_FRIDGE_WARNING: ("binary_sensor", "Kühlschrank Warnung"),
+    CONF_FRIDGE_TEXT: ("sensor", "Kühlschrank"),
+    CONF_TILT_MINUTES: ("sensor", "Schräglage Dauer"),
+    CONF_FRIDGE_MINUTES: ("number", "Kühlschrank kritisch nach"),
     CONF_GUARD: ("switch", "Wächter"),
     CONF_GUARD_ALARM: ("binary_sensor", "Wächter Alarm"),
     CONF_GUARD_STATUS: ("sensor", "Wächter"),
@@ -166,7 +180,11 @@ DEVICE_SWITCH_VALUES: Final = (CONF_PRECISE, CONF_GUARD)
 
 # Welche davon Binärsensoren sind - "on"/"off" statt einer Zahl, aber im
 # Gegensatz zu einem Schalter nichts, was sich setzen ließe.
-DEVICE_BINARY_VALUES: Final = (CONF_POSITION_CHANGED, CONF_GUARD_ALARM)
+DEVICE_BINARY_VALUES: Final = (
+    CONF_POSITION_CHANGED,
+    CONF_GUARD_ALARM,
+    CONF_FRIDGE_WARNING,
+)
 
 # Und welche Klartext liefern. Ohne diese Liste versuchte get_value, "scharf
 # seit 2 h 10 min" in eine Zahl zu wandeln, scheiterte still und gäbe den
@@ -175,7 +193,12 @@ DEVICE_BINARY_VALUES: Final = (CONF_POSITION_CHANGED, CONF_GUARD_ALARM)
 # Der Quittierknopf steht mit in der Liste: Sein Zustand ist ein Zeitstempel,
 # den niemand braucht. Gebraucht wird nur seine Entitätskennung, damit die
 # Karte ihn drücken kann.
-DEVICE_TEXT_VALUES: Final = (CONF_GUARD_STATUS, CONF_LAST_MOTION, CONF_GUARD_ACK)
+DEVICE_TEXT_VALUES: Final = (
+    CONF_GUARD_STATUS,
+    CONF_LAST_MOTION,
+    CONF_GUARD_ACK,
+    CONF_FRIDGE_TEXT,
+)
 
 # Wie die Firmware ihre Ausrichtart benennt - sie spricht Klartext, wir
 # intern Schlüssel.

@@ -147,6 +147,13 @@ class CamperPhaseSensor(CamperEntity, SensorEntity):
             # anderen Anlass hat als der Rest: Der übrige Inhalt hilft beim
             # Ausrichten, diese Angabe sagt, dass etwas Schaden nimmt.
             "tilt_warning": coordinator.tilt_warning,
+            # Der Winkel MAL DER ZEIT. tilt_warning meldet den Winkel und
+            # springt beim Rangieren an; diese hier meldet erst, wenn es lange
+            # genug schief steht, um dem Kühlschrank zu schaden.
+            "fridge_warning": coordinator.fridge_warning,
+            "fridge_text": coordinator.fridge_text,
+            "tilt_minutes": coordinator.tilt_minutes,
+            "fridge_minutes": coordinator.fridge_minutes,
             "position_changed": coordinator.position_changed,
             "tilt_limit": round(coordinator.tilt_limit, 1),
             "correction_pitch_cm": (

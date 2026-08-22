@@ -73,6 +73,24 @@ nachrechnen und braucht die Fahrzeugmaße nicht zu kennen.
 drückt oder der Nachbar rangiert. Der Alarm ist `lageaenderung` — das Fahrzeug
 hat seine Lage verlassen und ist nicht zurückgekommen.
 
+### Kühlschrank-Zeitkonto
+
+`schraeglage` meldet den **Winkel**. Was einen Absorberkühlschrank beschädigt,
+ist aber der Winkel **mal der Zeit** — kurz schief beim Rangieren ist
+folgenlos. Wer eine Benachrichtigung schalten will, nimmt deshalb
+`kuehlschrank_warnung` und nicht `schraeglage`.
+
+| Thema | Inhalt |
+|---|---|
+| `camperminder/level/binary_sensor/kuehlschrank_warnung/state` | `ON` = lange genug schief, dass der Kühlschrank leidet |
+| `camperminder/level/sensor/schraeglage_dauer/state` | Minuten über dem Grenzwert, `0` wenn gerade nicht |
+| `camperminder/level/text_sensor/kuehlschrank/state` | `arbeitet normal`, `3.4° schief seit 42 min - die Kühlleistung fällt ab` |
+| `camperminder/level/number/kuehlschrank_kritisch_nach/…` | 5 – 240 Minuten |
+
+Drei Stufen, abgeleitet aus einem einzigen Regler: Hinweis ab dem
+Überschreiten des Winkels, Warnung nach einem Drittel der eingestellten Zeit,
+dringend nach der vollen Zeit.
+
 ### Wächter
 
 `lageaenderung` ist ein Messwert: Kommt das Fahrzeug in seine Lage zurück, geht
