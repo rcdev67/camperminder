@@ -314,6 +314,44 @@ einfahren" wäre ein hübsches Argument. Wind ist von Menschen im Fahrzeug aber
 schwer zu unterscheiden — erst angehen, wenn der LSM6DS3TR-C läuft und echte
 Aufzeichnungen vorliegen.
 
+### Fernalarm — entschieden am 22. August 2026
+
+Der Wächter hat einen blinden Fleck: **Er erreicht den Kunden nur, solange
+dieser sein Netz erreicht.** Wer am Strand steht, während das Fahrzeug
+aufgebockt wird, findet den eingerasteten Alarm erst bei der Rückkehr — das
+Gegenteil dessen, wofür er da ist.
+
+Erwogen wurde ein **eigener Server mit Konten pro Kunde**. Zurückgestellt, und
+zwar aus demselben Rechenweg, der schon die Basisstation gekippt hat: Der
+Server kostet fünf Euro im Monat, alles daran hängende nicht.
+
+- **Cyber Resilience Act** — heute ist Level ein Gerät im LAN ohne offenen
+  Dienst. Mit Konten, Token und öffentlichem Endpunkt wächst die
+  Angriffsfläche um Größenordnungen, und die Meldepflichten wachsen mit.
+- **DSGVO** — Daten pro Account sind personenbezogene Daten. Löschkonzept,
+  Auskunftsersuchen, 72-Stunden-Meldung. Dauerhafte Arbeit, kein einmaliger
+  Aufwand.
+- **Die Haftung kippt** — ein Alarm, der wegen eines ausgefallenen Servers
+  nicht ankam, ist ein Versagen des eigenen Produkts, nicht der Einrichtung
+  des Kunden. Das ist eine Verfügbarkeitszusage.
+- **Ewigkeitsverpflichtung** — 300 verkaufte Geräte binden den Dienst
+  dauerhaft, auch wenn der Verkauf endet.
+
+**Eine Plattform ist ein Geschäft, kein Merkmal.**
+
+Stattdessen der abgestufte Weg:
+
+| Stufe | Inhalt | Kosten und Pflichten |
+|---|---|---|
+| 1 | MQTT auf einen aus dem Internet erreichbaren Broker — **geht heute schon** | keine, aber **TLS fehlt**, siehe offene Punkte |
+| 2 | **Feld für einen Push-Dienst** (ntfy, Gotify, Pushover, Telegram): Der Kunde trägt sein eigenes Ziel ein, wie beim MQTT-Broker | keine Konten, keine Datenhaltung, keine Verfügbarkeitszusage |
+| 3 | Konten, Verlauf über Reisen, Flottenansicht für Vermieter | Geschäftsmodell mit Abo |
+
+**Beschlossen: Stufe 2, aber später.** Sie ist reine Firmware — keine
+Platinenänderung, keine neue Zulassung — und lässt sich jederzeit über OTA
+nachliefern, auch an bereits verkaufte Geräte. Sie gehört deshalb **nicht auf
+den kritischen Pfad** vor der ersten Serie.
+
 ## Offene Punkte
 
 1. ~~MQTT ergänzen~~ — erledigt in 3.2.0, Fehler behoben in 3.5.1/3.5.2. Die
@@ -326,6 +364,13 @@ Aufzeichnungen vorliegen.
 5. Prüflabor ansprechen, Paketpreis erfragen.
 6. Seriengröße festlegen — sie entscheidet über die Zulassungskosten je Stück.
 7. Grenzwinkel und kritische Dauer für den Absorberkühlschrank belegen.
+8. **TLS für den MQTT-Client.** Der Client ist ohne Verschlüsselung
+   konfiguriert (kein `certificate_authority` in `hardware.yaml`). Im
+   Heimnetz ist das vertretbar; wer den Broker aber ins Internet legt — der
+   Weg zum Fernalarm, siehe oben —, schickt Passwort und Daten im Klartext.
+   Vor jeder Empfehlung in diese Richtung nachzurüsten, und dabei gegen den
+   Flash-Verbrauch zu prüfen: Stand 3.9.0 sind 71,7 % belegt.
+9. Push-Dienst als Fernalarm (Stufe 2), nach dem Verkaufsstart.
 
 ## Marktumfeld, zur Einordnung
 
