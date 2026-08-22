@@ -326,6 +326,31 @@ class CamperMinderCard extends HTMLElement {
         .badge.alarm .bs { color: #ffd9d6; }
         .badge.aus .bs { color: #6f7885; }
 
+        /* Wächterleiste. Sie steht ganz oben, aber nur, wenn es etwas zu
+           sagen gibt: Wer den Wächter nicht benutzt, sieht die Karte
+           unverändert. Scharf ohne Alarm bleibt bewusst zurückhaltend - eine
+           Dauermeldung in Alarmfarbe gewöhnt man sich ab, und dann übersieht
+           man den echten Fall. */
+        .wache {
+          display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+          margin-bottom: 10px; padding: 9px 12px; border-radius: 12px;
+          font-size: .88rem; font-weight: 700;
+          background: var(--card-background-color, #1b2029);
+          border: 1px solid var(--divider-color, rgba(255,255,255,.10));
+          color: var(--secondary-text-color);
+        }
+        .wache[hidden] { display: none; }
+        .wache .satz { flex: 1; min-width: 0; }
+        .wache.alarm {
+          background: #4a1d1d; border-color: #b3564f; color: #ffd9d6;
+          font-size: .95rem;
+        }
+        .wache button {
+          border: 0; border-radius: 8px; padding: 7px 12px;
+          font-size: .82rem; font-weight: 800; cursor: pointer;
+          background: rgba(255,255,255,.14); color: inherit;
+        }
+
         .ecke {
           position: absolute; min-width: 52px; text-align: center;
           padding: 3px 6px; border-radius: 8px; transform: translate(-50%, -50%);
@@ -403,6 +428,8 @@ class CamperMinderCard extends HTMLElement {
       </style>
 
       <ha-card>
+        <div class="wache" id="wache" hidden></div>
+
         <div class="bar" id="barRoll">
           <div class="label">${TEXTS.across}</div>
           <div class="value" id="valRoll"></div>
@@ -667,7 +694,12 @@ class CamperMinderCard extends HTMLElement {
         TEXTS.bMotion,
         a.in_motion === true ? TEXTS.moving : TEXTS.still,
         a.in_motion === true ? "achtung" : "ok",
-        TEXTS.bMotionHint
+        // Wann zuletzt jemand am Fahrzeug war, gehört zu genau dieser Frage -
+        // und in den Hinweis statt in die Kachel, weil die Kachel den JETZIGEN
+        // Zustand zeigt und für zwei Aussagen zu schmal ist.
+        a.last_motion
+          ? `${TEXTS.bMotionHint} Zuletzt: ${a.last_motion}.`
+          : TEXTS.bMotionHint
       );
       setzeBadge(
         "badgeLage",
@@ -751,8 +783,58 @@ class CamperMinderCard extends HTMLElement {
       cm,
     });
 
+    this._renderWache(root.getElementById("wache"), hass, a);
+
     if (this._config.show_controls) {
       this._renderControls(root.getElementById("controls"), hass, a);
+    }
+  }
+
+  /* Die Wächterleiste.
+   *
+   * Sie zeigt den Satz des GERÄTS, nicht einen eigenen. Beim Zeitpunkt einer
+   * Meldung wäre eine zweite Formulierung kein Schönheitsfehler: Stünde auf
+   * der Geräteseite "03:14" und hier "vor 4 Stunden", wüsste niemand, welcher
+   * Angabe er trauen soll.
+   *
+   * Unscharf und ohne Alarm bleibt die Leiste leer und unsichtbar - die Karte
+   * sieht dann aus wie bisher. */
+  _renderWache(node, hass, a) {
+    if (!node) return;
+    const alarm = a.guard_alarm === true;
+    const scharf = a.guard === true;
+
+    if (!alarm && !scharf) {
+      node.hidden = true;
+      node.dataset.signature = "";
+      return;
+    }
+
+    const satz = a.guard_status || (alarm ? "ALARM" : "scharf");
+    const signature = [alarm, scharf, satz, a.guard_ack_entity].join("|");
+    if (node.dataset.signature === signature) return;
+    node.dataset.signature = signature;
+
+    node.hidden = false;
+    node.className = alarm ? "wache alarm" : "wache";
+    node.innerHTML = "";
+
+    const zeile = document.createElement("div");
+    zeile.className = "satz";
+    zeile.textContent = (alarm ? "🚨 " : "🛡 ") + satz;
+    node.appendChild(zeile);
+
+    // Quittieren drückt den Knopf des GERÄTS. Eine eigene Nachbildung in Home
+    // Assistant hätte den Alarm nur hier gelöscht - auf der Geräteseite stünde
+    // er weiter, und der Wächter meldete ihn beim nächsten Takt erneut.
+    if (alarm && a.guard_ack_entity && hass.states[a.guard_ack_entity]) {
+      const knopf = document.createElement("button");
+      knopf.textContent = "Quittieren";
+      knopf.addEventListener("click", () => {
+        knopf.disabled = true;
+        hass.callService("button", "press", { entity_id: a.guard_ack_entity });
+      });
+      node.appendChild(knopf);
     }
   }
 
@@ -862,12 +944,25 @@ class CamperMinderCard extends HTMLElement {
       (a.precise_entity && hass.states[a.precise_entity]
         ? { entityId: a.precise_entity, state: hass.states[a.precise_entity] }
         : null);
-    if (!voice && !precise) {
+    /* Der Wächter wohnt ausschließlich im Gerät - es gibt dafür keine eigene
+       Entität in dieser Integration, also auch keine Rolle zum Suchen. Sein
+       Schalter steht hier bei den anderen, weil er dasselbe ist: ein Kippen,
+       kein Messwert. */
+    const wache =
+      a.guard_entity && hass.states[a.guard_entity]
+        ? { entityId: a.guard_entity, state: hass.states[a.guard_entity] }
+        : null;
+
+    if (!voice && !precise && !wache) {
       node.innerHTML = "";
       return;
     }
 
-    const signature = [voice && voice.state.state, precise && precise.state.state].join("|");
+    const signature = [
+      voice && voice.state.state,
+      precise && precise.state.state,
+      wache && wache.state.state,
+    ].join("|");
     if (node.dataset.signature === signature) return;
     node.dataset.signature = signature;
 
@@ -875,6 +970,7 @@ class CamperMinderCard extends HTMLElement {
     for (const [item, label] of [
       [voice, "Sprachansage"],
       [precise, "Präzisionsmodus"],
+      [wache, "Wächter"],
     ]) {
       if (!item) continue;
       const wrapper = document.createElement("label");

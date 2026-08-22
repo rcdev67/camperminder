@@ -205,17 +205,100 @@ bei 120–190 Geräten.
 **Der Schluss daraus ist die heutige Strategie:** Diese Systeme ergänzen statt
 gegen sie antreten. Deshalb MQTT.
 
+## Der Ausbau — beschlossen am 22. August 2026
+
+Die vier Punkte aus dem Abschnitt „Was noch in die Firmware muss" sind seit
+3.5.2 erledigt. Die Frage war also, was danach kommt. Maßstab ist ein einziger
+Prüfstein, der sich aus der Positionierung von selbst ergibt:
+
+> **Könnte ein Knopfzellengerät mit Bluetooth das auch?**
+> Wenn ja, ist es kein Unterscheidungsmerkmal, sondern Aufholen.
+
+Der Prüfstein schließt aus, was naheliegt und nichts einbringt: mehr
+Nachkommastellen, eine eigene Telefon-App, Bluetooth-Nähe. EasyLevel kann das
+für 70 €; auf diesem Feld ist nichts zu gewinnen.
+
+### 1. Wächtermodus
+
+Level ist heute ein Gerät, das **fünf Minuten pro Reise** benutzt wird. Das
+rechtfertigt keine 129 €. Scharf geschaltet meldet es dagegen rund um die Uhr,
+wenn sich an der Lage etwas tut — angehoben, abgeschleppt, aufgebockt.
+
+- scharf/unscharf mit Karenzzeit, damit der eigene Ausstieg nicht auslöst
+- zwei Stufen: **Bewegung am Fahrzeug** (Anwesenheit) und **Lageänderung**
+  (Alarm). Die Trennung stand schon oben, hier wird sie zum Produkt
+- Ereignis mit Zeitstempel, nicht nur ein Zustand — damit morgens sichtbar ist,
+  dass nachts um drei etwas war
+
+Ein Batteriegerät kann das prinzipiell nicht: Es schläft und redet nur mit
+einem Telefon in Reichweite.
+
+### 2. Kühlschrank-Zeitkonto
+
+Die Schräglagenwarnung ist bisher eine Wasserwaage mit Grenzwert. Was den
+Absorber beschädigt, ist aber nicht der Winkel, sondern **Winkel mal Zeit**.
+Kurz schräg beim Rangieren ist folgenlos, drei Stunden schräg im Betrieb nicht.
+
+- Dauer über dem Grenzwert als eigener Wert
+- Eskalation statt An/Aus: Hinweis, Warnung, dringend
+- Zähler über die ganze Standzeit
+
+Nur ein Gerät, das die ganze Zeit hinsieht, kann das. Es beseitigt zugleich die
+Fehlalarme beim Rangieren, die eine harte Grenze zwangsläufig erzeugt.
+
+**Offen:** Grenzwinkel und kritische Dauer vor dem Druck aus den Handbüchern
+von Dometic und Thetford belegen, nicht aus Forenwissen übernehmen.
+
+### 3. Zielprofile statt „eben"
+
+Der begriffliche Bruch mit der Wasserwaage. Die kennt **ein** Ziel: null.
+
+| Profil | Ziel |
+|---|---|
+| Ausrichten | eben |
+| Schlafen | Kopfende ein bis zwei Zentimeter höher |
+| Ablassen | bewusst zur Ablassseite geneigt, damit Boiler und Tank leerlaufen |
+| Kühlschrank | enger Grenzwert, Vorrang für die Querneigung |
+
+Technisch eine Sollneigung je Achse in der Anzeigerechnung; Anweisung und
+Ecken-Zentimeter laufen unverändert weiter.
+
+### 4. Selbstüberwachung
+
+Ein fest verbautes Gerät kann sich selbst beobachten, ein Handgerät nicht.
+
+- Driftwarnung, aufbauend auf `docs/drift_messung.md`: „Kalibrierung
+  empfohlen", bevor der Kunde falschen Werten vertraut
+- gelöste Montage erkennen — springt der Wert im Stand um Grade, ist nicht das
+  Fahrzeug schief, sondern das Gerät locker. Sonst begegnet einem dieses
+  Fehlerbild als „misst falsch" in einer Rezension
+- Temperatur für eine Frostwarnung; für Genauigkeit taugt sie nicht, das gehört
+  dazugesagt
+
+### Zurückgestellt
+
+**Ausgabe für Hydraulik und Luftfederung.** Zielwerte je Ecke über MQTT
+bereitstellen passt zur Ergänzungsstrategie — **selbst ansteuern nicht.** Wer
+Stützen fahren lässt, haftet für ein absackendes Fahrzeug. Werte liefern ja,
+Ventile schalten nein.
+
+**Windwarnung.** Der Kreisel sieht das Schwingen des Aufbaus, „Markise
+einfahren" wäre ein hübsches Argument. Wind ist von Menschen im Fahrzeug aber
+schwer zu unterscheiden — erst angehen, wenn der LSM6DS3TR-C läuft und echte
+Aufzeichnungen vorliegen.
+
 ## Offene Punkte
 
-1. MQTT ergänzen und gegen einen Cerbo GX mit Node-RED gegenprobieren — das ist
-   der Nachweis für das wichtigste Verkaufsargument.
-2. Zentimeterrechnung ins Gerät verlagern, Fahrzeugtyp Wohnmobil/Wohnwagen
-   trennen.
-3. Bewegungserkennung und Schräglagenwarnung ergänzen.
+1. ~~MQTT ergänzen~~ — erledigt in 3.2.0, Fehler behoben in 3.5.1/3.5.2. Die
+   Gegenprobe an einem Cerbo GX mit Node-RED steht noch aus; sie ist der
+   Nachweis für das wichtigste Verkaufsargument.
+2. ~~Zentimeterrechnung ins Gerät~~ — erledigt, Fahrzeugtyp getrennt.
+3. ~~Bewegungserkennung und Schräglagenwarnung~~ — erledigt, Ausbau siehe oben.
 4. Verkaufstext ohne die zwei widerlegbaren Behauptungen (cm-Anzeige,
    Wohnwagen) fassen.
 5. Prüflabor ansprechen, Paketpreis erfragen.
 6. Seriengröße festlegen — sie entscheidet über die Zulassungskosten je Stück.
+7. Grenzwinkel und kritische Dauer für den Absorberkühlschrank belegen.
 
 ## Marktumfeld, zur Einordnung
 

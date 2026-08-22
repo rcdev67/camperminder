@@ -62,7 +62,7 @@ substitutions:
   # Ein Bindestrich macht die Nummer zur Vorabfassung: "2.0.4-rc1" statt
   # "2.0.4". Daran erkennen die Werkzeuge, dass dieser Stand NICHT
   # veröffentlicht werden soll - Einzelheiten in docs/firmware_update.md.
-  firmware_version: "3.5.2"
+  firmware_version: "3.6.0"
 
   # I2C-Pins (0,42"-OLED-Board): SDA=GPIO5, SCL=GPIO6
   i2c_sda_pin: GPIO5
@@ -364,6 +364,19 @@ i2c:
   sda_pullup_enabled: true
   scl_pullup_enabled: true
 
+# --- Uhr ---------------------------------------------------------------------
+#
+# Nur für den Wächter. "ALARM um 03:14" ist eine andere Auskunft als "ALARM vor
+# fünf Stunden" - die erste sagt einem, ob man die Polizei rufen sollte.
+#
+# Ohne Internet bleibt die Uhr ungültig. Das ist auf einem Stellplatz der
+# Normalfall und keine Störung: Dann meldet das Gerät die Zeitspanne statt der
+# Uhrzeit. Beides steht im selben Satz, der Kunde merkt den Unterschied nur
+# daran, dass eine Uhrzeit fehlt.
+time:
+  - platform: sntp
+    id: uhr
+
 globals:
   - id: pitch_offset
     type: float
@@ -508,6 +521,50 @@ globals:
   - id: bewegt_roh
     type: bool
     initial_value: "false"
+
+  # --- Wächtermodus ---------------------------------------------------------
+  #
+  # Der Alarm RASTET EIN. Das ist der ganze Sinn: Wer nachts schläft, verpasst
+  # eine Meldung, die nach zwei Minuten wieder verschwindet. Gelöscht wird er
+  # nur von Hand - über den Knopf oder durch Unscharfschalten.
+  #
+  # Mit restore_value, damit er einen Stromausfall übersteht. Wer die
+  # Versorgung kappt, soll damit nicht den Alarm löschen.
+  - id: wache_alarm
+    type: bool
+    initial_value: "false"
+    restore_value: true
+  # Unixzeit der Auslösung. 0 heißt: Es gab keine gültige Uhr.
+  - id: wache_alarm_uhr
+    type: uint32_t
+    initial_value: "0"
+    restore_value: true
+  # Laufzeit in Sekunden bei der Auslösung. BEWUSST ohne restore_value - nach
+  # einem Neustart beginnt die Laufzeit von vorn, ein gespeicherter Wert wäre
+  # schlicht falsch. Steht hier 0 und in der Uhrzeit auch, meldet das Gerät
+  # ehrlich "Zeitpunkt unbekannt".
+  - id: wache_alarm_lauf
+    type: uint32_t
+    initial_value: "0"
+  # Laufzeit beim Scharfschalten - Bezug für die Karenzzeit.
+  - id: wache_scharf_lauf
+    type: uint32_t
+    initial_value: "0"
+
+  # --- Anwesenheit ----------------------------------------------------------
+  #
+  # Wann zuletzt jemand am Fahrzeug war. Wird IMMER mitgeschrieben, auch
+  # unscharf: Die Frage "war jemand da?" stellt sich unabhängig davon, ob man
+  # den Wächter eingeschaltet hatte.
+  - id: bewegung_je
+    type: bool
+    initial_value: "false"
+  - id: bewegung_uhr
+    type: uint32_t
+    initial_value: "0"
+  - id: bewegung_lauf
+    type: uint32_t
+    initial_value: "0"
 
   # Der Wert, der in der Anweisung steht. Mit Gedächtnis, damit der Satz nicht
   # im Sekundentakt wechselt - siehe interval-Block.
@@ -714,6 +771,30 @@ number:
     optimistic: true
     mode: box
 
+  # Wie lange nach dem Scharfschalten nichts gemeldet wird.
+  #
+  # Ohne diese Spanne löst der eigene Ausstieg den Alarm aus - man schaltet
+  # scharf, steigt aus, und das Fahrzeug wippt. Zwei Minuten reichen dafür
+  # bequem und sind kurz genug, dass niemand sie als Lücke ausnutzen kann.
+  #
+  # Sie gilt auch nach einem Neustart, denn beim Hochlaufen braucht der Sensor
+  # ohnehin einen Moment, bis sein Wert steht.
+  - platform: template
+    name: "Wächter Karenzzeit"
+    id: wache_karenz
+    state_topic: camperminder/level/number/waechter_karenzzeit/state
+    command_topic: camperminder/level/number/waechter_karenzzeit/command
+    unit_of_measurement: s
+    icon: mdi:timer-sand
+    entity_category: config
+    min_value: 0
+    max_value: 600
+    step: 10
+    initial_value: 120
+    restore_value: true
+    optimistic: true
+    mode: box
+
   # 0 bedeutet: in Zentimetern rechnen statt in Stufen. Wer Hydraulik hat,
   # lässt den Wert ohnehin auf 0.
   - platform: template
@@ -830,6 +911,47 @@ switch:
     # Verhaltenserweiterung soll niemanden überraschen, der das Gerät gerade
     # erst auspackt.
     restore_mode: RESTORE_DEFAULT_OFF
+
+  # --- Wächter ---------------------------------------------------------------
+  #
+  # Das Gerät hängt fest am Bordnetz und ist immer an. Genau daraus entsteht
+  # der Unterschied zu einer Wasserwaage mit Batterie: Scharf geschaltet meldet
+  # es rund um die Uhr, wenn sich an der Lage etwas tut - angehoben,
+  # abgeschleppt, aufgebockt.
+  #
+  # Beim Scharfschalten wird die aktuelle Lage zum Bezugspunkt. Das ist der
+  # richtige Moment dafür: Man schaltet scharf, wenn man fertig ausgerichtet
+  # hat und geht.
+  - platform: template
+    name: "Wächter"
+    id: wache
+    state_topic: camperminder/level/switch/waechter/state
+    command_topic: camperminder/level/switch/waechter/command
+    icon: mdi:shield-home
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_OFF
+    on_turn_on:
+      - lambda: |-
+          /* Die Lage von JETZT ist ab sofort die richtige. Ohne das würde ein
+           * Bezugspunkt von vorhin gelten, und wer nach dem Ausrichten scharf
+           * schaltet, bekäme den Alarm sofort mitgeliefert. */
+          if (!isnan(id(pitch).state) && !isnan(id(roll).state)) {
+            id(ruhe_pitch) = id(pitch).state;
+            id(ruhe_roll)  = id(roll).state;
+            id(ruhe_gesetzt) = true;
+            id(ruhe_takte) = 0;
+          }
+          id(wache_scharf_lauf) = millis() / 1000;
+          id(wache_alarm) = false;
+          id(wache_alarm_uhr) = 0;
+          id(wache_alarm_lauf) = 0;
+          ESP_LOGI("wache", "Scharf. Lage gemerkt.");
+    on_turn_off:
+      # Unscharfschalten quittiert den Alarm mit. Wer heimkommt und ausschaltet,
+      # hat ihn gesehen - ein zweiter Handgriff wäre reine Schikane.
+      - lambda: |-
+          id(wache_alarm) = false;
+          ESP_LOGI("wache", "Unscharf.");
 
 # --- Schriften fürs OLED (lädt sich beim Kompilieren automatisch) --------
 font:
@@ -1368,11 +1490,77 @@ interval:
               id(ruhe_pitch) = p_roh;
               id(ruhe_roll)  = r_roh;
             }
-            if (id(ruhe_takte) >= 300) {
+            /* Die Übernahme nach fünf ruhigen Minuten gilt NICHT, solange der
+             * Wächter scharf ist. Sonst hätte man ihn genau um das gebracht,
+             * wofür er da ist: Jemand hebt das Fahrzeug an, wartet fünf
+             * Minuten, und das Gerät erklärt die neue Lage zur normalen.
+             *
+             * Scharf geschaltet gilt die Lage vom Scharfschalten, Punkt. Die
+             * Driftnachführung eine Zeile darüber läuft weiter - sie bewegt
+             * sich nur INNERHALB der Schwelle und kann keinen Alarm
+             * verschlucken. */
+            if (id(ruhe_takte) >= 300 && !id(wache).state) {
               id(ruhe_pitch) = p_roh;
               id(ruhe_roll)  = r_roh;
               id(ruhe_takte) = 0;
             }
+          }
+
+  # --- Wächter und Anwesenheit -----------------------------------------------
+  #
+  # Bewusst ein eigener Takt und nicht im Block darüber: Jener steigt aus,
+  # sobald ein Fahrzeugmaß fehlt. Ein Wachdienst, der wegen einer nicht
+  # eingetragenen Spurweite schweigt, wäre ein schlechter Wachdienst.
+  - interval: 1s
+    then:
+      - lambda: |-
+          const uint32_t jetzt = millis() / 1000;
+          const bool uhr_gilt = id(uhr).now().is_valid();
+
+          /* Anwesenheit mitschreiben - unabhängig vom Wächter. Die Frage "war
+           * jemand am Fahrzeug?" stellt sich auch, wenn man nicht scharf
+           * geschaltet hatte. */
+          if (id(in_motion).has_state() && id(in_motion).state) {
+            id(bewegung_je) = true;
+            id(bewegung_lauf) = jetzt;
+            if (uhr_gilt) id(bewegung_uhr) = id(uhr).now().timestamp;
+          }
+
+          if (!id(wache).state) return;
+
+          /* Karenzzeit. Nach einem Neustart läuft sie ab dem Hochfahren, weil
+           * wache_scharf_lauf dann 0 ist - genau richtig, der Sensor braucht
+           * ohnehin einen Moment, bis sein Wert steht.
+           *
+           * Während der Karenz wandert der Bezugspunkt MIT. Das ist wichtiger,
+           * als es aussieht: Wer scharf schaltet und dann aussteigt, verändert
+           * die Lage dabei selbst - ein Mensch, der einen Wohnwagen verlässt,
+           * bewegt ihn um mehr als ein Grad. Ohne das Mitwandern wäre der
+           * Bezugspunkt die Lage MIT Person an Bord, und der Alarm käme in der
+           * Sekunde, in der die Karenz abläuft.
+           *
+           * So gilt am Ende die Lage, in der das Fahrzeug tatsächlich
+           * zurückbleibt. */
+          const float karenz = id(wache_karenz).state;
+          if (isnan(karenz)) return;
+          if (jetzt - id(wache_scharf_lauf) < (uint32_t) karenz) {
+            if (!isnan(id(pitch).state) && !isnan(id(roll).state)) {
+              id(ruhe_pitch) = id(pitch).state;
+              id(ruhe_roll)  = id(roll).state;
+              id(ruhe_gesetzt) = true;
+              id(ruhe_takte) = 0;
+            }
+            return;
+          }
+
+          // Rastet ein und bleibt. Ein zweiter Alarm überschreibt den ersten
+          // nicht - der erste ist der interessante.
+          if (id(wache_alarm)) return;
+          if (id(lageaenderung).has_state() && id(lageaenderung).state) {
+            id(wache_alarm) = true;
+            id(wache_alarm_lauf) = jetzt;
+            id(wache_alarm_uhr) = uhr_gilt ? id(uhr).now().timestamp : 0;
+            ESP_LOGW("wache", "ALARM - die Lage hat sich veraendert.");
           }
 
 binary_sensor:
@@ -1494,6 +1682,23 @@ binary_sensor:
     filters:
       - delayed_off: 20s   # gilt erst 20 s nach der letzten Bewegung als "steht"
 
+  # --- Wächter Alarm ---------------------------------------------------------
+  #
+  # Der eingerastete Zustand, nicht die Momentaufnahme. "Lageänderung" darüber
+  # geht wieder aus, sobald das Fahrzeug zurückkommt - das ist als Messwert
+  # richtig und als Alarm unbrauchbar. Wer um sieben aufsteht, will sehen, dass
+  # um drei etwas war.
+  #
+  # device_class safety, damit Home Assistant es als Sicherheitsmeldung führt
+  # und nicht als Störung eines Geräts.
+  - platform: template
+    name: "Wächter Alarm"
+    id: wache_alarm_sensor
+    state_topic: camperminder/level/binary_sensor/waechter_alarm/state
+    device_class: safety
+    icon: mdi:shield-alert
+    lambda: 'return id(wache_alarm);'
+
 text_sensor:
   # Unsere eigene Fassung, nicht die von ESPHome. Muss mit der Version in
   # esphome.project und im Update-Manifest übereinstimmen: Die Update-
@@ -1525,6 +1730,112 @@ text_sensor:
     filters:
       # Nur weitergeben, was sich geändert hat: Sonst stünde derselbe Satz
       # sekündlich in der Datenbank.
+      - lambda: |-
+          static std::string letzter;
+          if (x == letzter) return {};
+          letzter = x;
+          return x;
+
+  # --- Wächter im Klartext ---------------------------------------------------
+  #
+  # Ein Satz statt dreier Zustände. Wer auf die Geräteseite schaut, will nicht
+  # aus "Wächter an", "Alarm ja" und einer Laufzeit selbst zusammenreimen, was
+  # los ist.
+  #
+  # Uhrzeit, wenn eine gültige Uhr da ist, sonst die Zeitspanne. Beides ist
+  # brauchbar, nur unterschiedlich genau - und die Zeitspanne ist immer noch
+  # besser als ein Zeitpunkt, den das Gerät sich ausgedacht hat.
+  - platform: template
+    name: "Wächter"
+    id: wache_text
+    state_topic: camperminder/level/text_sensor/waechter/state
+    icon: mdi:shield-home
+    update_interval: 1s
+    lambda: |-
+      char text[112];
+      char spanne[28];
+      const uint32_t jetzt = millis() / 1000;
+
+      /* Steht auch im Sensor darunter noch einmal. Ausgelagert wäre er eine
+       * zweite Datei, die beim Einrichten mitkopiert werden muss - für sechs
+       * Zeilen ein schlechter Tausch. */
+      auto spanne_text = [](uint32_t s, char *aus, size_t platz) {
+        if (s < 60)         snprintf(aus, platz, "%u s", (unsigned) s);
+        else if (s < 3600)  snprintf(aus, platz, "%u min", (unsigned) (s / 60));
+        else if (s < 86400) snprintf(aus, platz, "%u h %u min",
+                                     (unsigned) (s / 3600), (unsigned) ((s % 3600) / 60));
+        else                snprintf(aus, platz, "%u d %u h",
+                                     (unsigned) (s / 86400), (unsigned) ((s % 86400) / 3600));
+      };
+
+      if (id(wache_alarm)) {
+        if (id(wache_alarm_uhr) > 0) {
+          auto t = ESPTime::from_epoch_local(id(wache_alarm_uhr));
+          snprintf(text, sizeof(text), "ALARM - Lage verändert am %s",
+                   t.strftime("%d.%m. um %H:%M").c_str());
+        } else if (id(wache_alarm_lauf) > 0) {
+          spanne_text(jetzt - id(wache_alarm_lauf), spanne, sizeof(spanne));
+          snprintf(text, sizeof(text), "ALARM - Lage verändert vor %s", spanne);
+        } else {
+          // Alarm aus der Zeit vor einem Neustart. Lieber ehrlich als eine
+          // erfundene Uhrzeit.
+          snprintf(text, sizeof(text), "ALARM - Zeitpunkt unbekannt");
+        }
+      } else if (!id(wache).state) {
+        snprintf(text, sizeof(text), "aus");
+      } else {
+        const float karenz = isnan(id(wache_karenz).state) ? 0.0f : id(wache_karenz).state;
+        const uint32_t seit = jetzt - id(wache_scharf_lauf);
+        if (seit < (uint32_t) karenz) {
+          snprintf(text, sizeof(text), "scharf in %u s",
+                   (unsigned) ((uint32_t) karenz - seit));
+        } else {
+          spanne_text(seit, spanne, sizeof(spanne));
+          snprintf(text, sizeof(text), "scharf seit %s", spanne);
+        }
+      }
+      return {std::string(text)};
+    filters:
+      - lambda: |-
+          static std::string letzter;
+          if (x == letzter) return {};
+          letzter = x;
+          return x;
+
+  # --- Anwesenheit -----------------------------------------------------------
+  #
+  # "In Bewegung" sagt, ob GERADE jemand da ist. Diese Zeile sagt, wann zuletzt
+  # jemand da war - die Frage, die man nach der Rückkehr stellt.
+  - platform: template
+    name: "Letzte Bewegung"
+    id: bewegung_text
+    state_topic: camperminder/level/text_sensor/letzte_bewegung/state
+    icon: mdi:motion-sensor
+    update_interval: 1s
+    lambda: |-
+      if (!id(bewegung_je)) return {std::string("seit dem Einschalten nichts")};
+      if (id(in_motion).has_state() && id(in_motion).state) {
+        return {std::string("gerade jetzt")};
+      }
+      char text[96];
+      char spanne[28];
+      auto spanne_text = [](uint32_t s, char *aus, size_t platz) {
+        if (s < 60)         snprintf(aus, platz, "%u s", (unsigned) s);
+        else if (s < 3600)  snprintf(aus, platz, "%u min", (unsigned) (s / 60));
+        else if (s < 86400) snprintf(aus, platz, "%u h %u min",
+                                     (unsigned) (s / 3600), (unsigned) ((s % 3600) / 60));
+        else                snprintf(aus, platz, "%u d %u h",
+                                     (unsigned) (s / 86400), (unsigned) ((s % 86400) / 3600));
+      };
+      if (id(bewegung_uhr) > 0) {
+        auto t = ESPTime::from_epoch_local(id(bewegung_uhr));
+        snprintf(text, sizeof(text), "%s", t.strftime("%d.%m. um %H:%M").c_str());
+      } else {
+        spanne_text(millis() / 1000 - id(bewegung_lauf), spanne, sizeof(spanne));
+        snprintf(text, sizeof(text), "vor %s", spanne);
+      }
+      return {std::string(text)};
+    filters:
       - lambda: |-
           static std::string letzter;
           if (x == letzter) return {};
@@ -1627,6 +1938,32 @@ text:
     optimistic: true
 
 button:
+  # --- Alarm quittieren ------------------------------------------------------
+  #
+  # Löscht den eingerasteten Alarm, OHNE den Wächter abzuschalten. Der Fall,
+  # für den es das braucht: Man sieht aus der Ferne, dass der Nachbar nur den
+  # Keil verschoben hat - dann will man quittieren und weiter bewacht bleiben.
+  #
+  # Der Bezugspunkt wandert dabei auf die jetzige Lage. Sonst stünde die
+  # Abweichung weiter über der Schwelle und der Alarm käme in der nächsten
+  # Sekunde wieder.
+  - platform: template
+    name: "Alarm quittieren"
+    id: wache_quittieren
+    icon: mdi:shield-check
+    on_press:
+      - lambda: |-
+          id(wache_alarm) = false;
+          id(wache_alarm_uhr) = 0;
+          id(wache_alarm_lauf) = 0;
+          if (!isnan(id(pitch).state) && !isnan(id(roll).state)) {
+            id(ruhe_pitch) = id(pitch).state;
+            id(ruhe_roll)  = id(roll).state;
+            id(ruhe_gesetzt) = true;
+            id(ruhe_takte) = 0;
+          }
+          ESP_LOGI("wache", "Alarm quittiert, Lage neu gemerkt.");
+
   # Übernimmt, was im Feld darüber steht. Leer bedeutet: Netz wieder öffnen.
   #
   # Neustart danach, weil ein laufendes Netz sein Passwort nicht wechseln kann
@@ -1779,6 +2116,30 @@ display:
         return;
       }
 
+      /* Ein eingerasteter Alarm verdrängt alles andere.
+       *
+       * Genau hier ist das Feld im Vorteil: Wer zum Fahrzeug zurückkommt,
+       * sieht es beim Aufschliessen - ohne Handy, ohne Netz, ohne App. Die
+       * Adresse darunter kann warten, die steht auch noch nach dem
+       * Quittieren da.
+       *
+       * Nur ASCII: Der Zeichensatz der Schrift kennt keine Umlaute, ein "ä"
+       * bliebe schlicht leer. */
+      if (id(wache_alarm)) {
+        it.print(0,  0, id(font_zeile), "ALARM");
+        it.print(0, 14, id(font_klein), "Lage veraendert");
+        if (id(wache_alarm_uhr) > 0) {
+          auto t = ESPTime::from_epoch_local(id(wache_alarm_uhr));
+          it.print(0, 26, id(font_klein), t.strftime("%d.%m. %H:%M").c_str());
+        } else if (id(wache_alarm_lauf) > 0) {
+          const uint32_t s = millis() / 1000 - id(wache_alarm_lauf);
+          if (s < 3600) it.printf(0, 26, id(font_klein), "vor %u min", (unsigned) (s / 60));
+          else if (s < 86400) it.printf(0, 26, id(font_klein), "vor %u h", (unsigned) (s / 3600));
+          else it.printf(0, 26, id(font_klein), "vor %u d", (unsigned) (s / 86400));
+        }
+        return;
+      }
+
       const std::string ip   = id(ip_adresse).state;
       const std::string netz = id(wlan_name).state;
 
@@ -1798,6 +2159,9 @@ display:
         it.print (0, 12, id(font_zeile), "192.168.4.1");
       }
 
-      // Fußzeile: eigene Version, dazu ein Kürzel, wenn eine Zentrale mithört.
-      it.printf(0, 28, id(font_klein), "v${firmware_version}%s",
-                id(zentrale_verbunden).state ? "  HA" : "");
+      // Fußzeile: eigene Version, dazu je ein Kürzel, wenn eine Zentrale
+      // mithört und wenn der Wächter scharf ist. Beides ohne Alarm - der hat
+      // oben schon die ganze Fläche bekommen.
+      it.printf(0, 28, id(font_klein), "v${firmware_version}%s%s",
+                id(zentrale_verbunden).state ? "  HA" : "",
+                id(wache).state ? "  W" : "");

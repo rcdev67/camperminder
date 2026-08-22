@@ -73,6 +73,29 @@ nachrechnen und braucht die Fahrzeugmaße nicht zu kennen.
 drückt oder der Nachbar rangiert. Der Alarm ist `lageaenderung` — das Fahrzeug
 hat seine Lage verlassen und ist nicht zurückgekommen.
 
+### Wächter
+
+`lageaenderung` ist ein Messwert: Kommt das Fahrzeug in seine Lage zurück, geht
+es wieder aus. Als Alarm taugt das nicht — wer schläft, verpasst ihn. Der
+Wächter macht daraus einen Zustand, der **einrastet** und stehen bleibt, bis er
+quittiert wird.
+
+| Thema | Inhalt |
+|---|---|
+| `camperminder/level/binary_sensor/waechter_alarm/state` | `ON` = hat ausgelöst und ist nicht quittiert |
+| `camperminder/level/text_sensor/waechter/state` | `aus`, `scharf in 45 s`, `scharf seit 2 h 10 min`, `ALARM - Lage verändert am 22.08. um 03:14` |
+| `camperminder/level/text_sensor/letzte_bewegung/state` | `gerade jetzt`, `22.08. um 21:40`, `vor 3 h 12 min` |
+| `camperminder/level/switch/waechter/…` | `ON` / `OFF` — scharf schalten |
+| `camperminder/level/number/waechter_karenzzeit/…` | 0 – 600 s |
+
+Der Alarm übersteht einen Stromausfall: Wer die Versorgung kappt, löscht ihn
+damit nicht. Fehlte beim Auslösen eine gültige Uhr — auf einem Stellplatz ohne
+Internet der Normalfall —, nennt der Text eine Zeitspanne statt einer Uhrzeit.
+
+Quittiert wird über `camperminder/level/button/alarm_quittieren/command`. Das
+löscht den Alarm, **ohne** den Wächter abzuschalten, und nimmt die jetzige Lage
+als neuen Bezugspunkt.
+
 ### Einstellbar über MQTT
 
 Diese Themen nehmen auch Befehle entgegen (`…/command`):
@@ -81,7 +104,9 @@ Diese Themen nehmen auch Befehle entgegen (`…/command`):
 |---|---|
 | `camperminder/level/number/schraeglage_grenzwert/…` | 1 – 10 Grad |
 | `camperminder/level/number/lageaenderung_grenzwert/…` | 0,2 – 5 Grad |
+| `camperminder/level/number/waechter_karenzzeit/…` | 0 – 600 Sekunden |
 | `camperminder/level/switch/praezisionsmodus/…` | `ON` / `OFF` |
+| `camperminder/level/switch/waechter/…` | `ON` / `OFF` |
 
 Fahrzeugmaße, Toleranz und Keilstufe erscheinen ebenfalls als `number` bzw.
 `select` unter ihren jeweiligen Namen.
@@ -93,9 +118,9 @@ einem Grund: Neue Entitäten erscheinen von selbst am richtigen Platz. Ein von
 Hand gepflegtes Thema vergisst man beim Hinzufügen — und dann fehlt es
 ausgerechnet dem, der sich darauf verlassen hat.
 
-Ausdrücklich festgelegt sind nur sechs Themen, nämlich die von Entitäten mit
-Umlaut im Namen: Aus „Stützrad" würde sonst `st__tzrad`, aus „Schräglage"
-`schr__glage`. Der Anzeigename bleibt deutsch, das Thema wird lesbar.
+Ausdrücklich festgelegt sind nur die Themen von Entitäten mit Umlaut im Namen:
+Aus „Stützrad" würde sonst `st__tzrad`, aus „Schräglage" `schr__glage`, aus
+„Wächter" `w__chter`. Der Anzeigename bleibt deutsch, das Thema wird lesbar.
 
 ## Erkennung ist ausgeschaltet
 

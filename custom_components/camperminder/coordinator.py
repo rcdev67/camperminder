@@ -27,6 +27,11 @@ from .const import (
     CONF_PITCH_SENSOR,
     CONF_POSITION_CHANGED,
     CONF_PRECISE,
+    CONF_GUARD,
+    CONF_GUARD_ACK,
+    CONF_GUARD_ALARM,
+    CONF_GUARD_STATUS,
+    CONF_LAST_MOTION,
     CONF_ROLL_SENSOR,
     CONF_TOLERANCE_CM,
     CONF_TOLERANCE_DEG,
@@ -45,6 +50,7 @@ from .const import (
     DEVICE_METHOD_MAP,
     DEVICE_BINARY_VALUES,
     DEVICE_SWITCH_VALUES,
+    DEVICE_TEXT_VALUES,
     DEVICE_VALUE_ENTITIES,
     DEVICE_VEHICLE_MAP,
     DIRECTION_DOWN,
@@ -349,6 +355,8 @@ class CamperCoordinator:
             ):
                 if key in DEVICE_SWITCH_VALUES or key in DEVICE_BINARY_VALUES:
                     return state.state == STATE_ON
+                if key in DEVICE_TEXT_VALUES:
+                    return state.state
                 if key == CONF_LEVEL_METHOD:
                     return DEVICE_METHOD_MAP.get(state.state, DEFAULT_LEVEL_METHOD)
                 if key == CONF_VEHICLE_TYPE:
@@ -397,6 +405,53 @@ class CamperCoordinator:
         starten dürfen, ohne dass die Überwachung von vorn beginnt.
         """
         return bool(self.get_value(CONF_POSITION_CHANGED))
+
+    # -- Wächter ------------------------------------------------------------
+    #
+    # Alles davon kommt aus dem Gerät, nichts wird hier nachgerechnet. Der
+    # Grund ist derselbe wie bei der Lageänderung, nur schärfer: Ein
+    # Wachdienst, der ausfällt, sobald Home Assistant neu startet, ist keiner.
+    # Hier stehen nur die Durchreichen, damit die Karte einen Ort zum Fragen
+    # hat.
+
+    @property
+    def guard(self) -> bool:
+        """Ist der Wächter scharf?"""
+        return bool(self.get_value(CONF_GUARD))
+
+    @property
+    def guard_alarm(self) -> bool:
+        """Hat er ausgelöst? Rastet im Gerät ein und bleibt bis zum
+        Quittieren stehen - deshalb ist das hier kein Ereignis, sondern ein
+        Zustand, den man auch Stunden später noch sieht."""
+        return bool(self.get_value(CONF_GUARD_ALARM))
+
+    @property
+    def guard_status(self) -> str | None:
+        """Der Klartextsatz des Geräts - "scharf seit 2 h" oder "ALARM ...".
+
+        Bewusst der Satz des Geräts und keine eigene Formulierung: Sonst
+        stünde auf der Geräteseite etwas anderes als auf der Karte, und beim
+        Zeitpunkt einer Meldung ist das kein Schönheitsfehler.
+        """
+        wert = self.get_value(CONF_GUARD_STATUS)
+        return wert if isinstance(wert, str) else None
+
+    @property
+    def last_motion(self) -> str | None:
+        """Wann zuletzt jemand am Fahrzeug war."""
+        wert = self.get_value(CONF_LAST_MOTION)
+        return wert if isinstance(wert, str) else None
+
+    @property
+    def guard_entity(self) -> str | None:
+        """Der Schalter des Geräts, damit die Karte ihn bedienen kann."""
+        return self._device_sources.get(CONF_GUARD)
+
+    @property
+    def guard_ack_entity(self) -> str | None:
+        """Der Quittierknopf des Geräts."""
+        return self._device_sources.get(CONF_GUARD_ACK)
 
     @property
     def voice(self) -> bool:
