@@ -170,6 +170,15 @@ class CamperPhaseSensor(CamperEntity, SensorEntity):
             "vehicle_type": coordinator.vehicle_type,
             "wheel_plan": coordinator.wheel_plan,
             "in_motion": coordinator.in_motion,
+            # Der Wächter. Er gehört mit in dieses Bündel, weil die Karte
+            # sonst vier weitere Entitäten selbst suchen müsste - und sie
+            # findet sie nur, wenn das Gerät sie führt.
+            "guard": coordinator.guard,
+            "guard_alarm": coordinator.guard_alarm,
+            "guard_status": coordinator.guard_status,
+            "guard_entity": coordinator.guard_entity,
+            "guard_ack_entity": coordinator.guard_ack_entity,
+            "last_motion": coordinator.last_motion,
             "precise": coordinator.precise,
             # Führt das Gerät den Präzisionsmodus selbst, gibt es dafür keinen
             # eigenen Schalter in dieser Integration - dann muss die Karte den

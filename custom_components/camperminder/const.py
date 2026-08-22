@@ -25,6 +25,20 @@ CONF_LEVEL_HOLD: Final = "level_hold_percent"
 CONF_TILT_LIMIT: Final = "tilt_limit"
 CONF_POSITION_CHANGED: Final = "position_changed"
 
+# --- Wächter ----------------------------------------------------------------
+# Er wohnt vollständig im Gerät. Das ist keine Bequemlichkeit, sondern die
+# Bedingung dafür, dass er etwas taugt: Ein Wachdienst, der ausfällt, sobald
+# Home Assistant neu startet oder der Router aus ist, bewacht nichts.
+#
+# Die Integration liest ihn nur - und reicht die Entitätskennungen an die
+# Karte weiter, damit die den Schalter und den Quittierknopf des GERÄTS
+# bedienen kann statt eigene danebenzustellen.
+CONF_GUARD: Final = "guard"
+CONF_GUARD_ALARM: Final = "guard_alarm"
+CONF_GUARD_STATUS: Final = "guard_status"
+CONF_GUARD_ACK: Final = "guard_ack"
+CONF_LAST_MOTION: Final = "last_motion"
+
 # --- Art des Ausrichtens ----------------------------------------------------
 # Der Unterschied ist grundsätzlich, nicht kosmetisch:
 #
@@ -135,15 +149,33 @@ DEVICE_VALUE_ENTITIES: Final = {
     # braucht, die über Stunden gilt - Home Assistant kann neu starten, das
     # Gerät läuft weiter.
     CONF_POSITION_CHANGED: ("binary_sensor", "Lageänderung"),
+    # --- Wächter -----------------------------------------------------------
+    # Ein Textsensor der Firmware landet in Home Assistant in der Domäne
+    # "sensor". Der Schalter heißt genauso wie der Textsensor; gesucht wird
+    # über das Paar aus Domäne und Name, deshalb stören sie sich nicht.
+    CONF_GUARD: ("switch", "Wächter"),
+    CONF_GUARD_ALARM: ("binary_sensor", "Wächter Alarm"),
+    CONF_GUARD_STATUS: ("sensor", "Wächter"),
+    CONF_GUARD_ACK: ("button", "Alarm quittieren"),
+    CONF_LAST_MOTION: ("sensor", "Letzte Bewegung"),
 }
 
 # Welche dieser Werte Schalter sind - ihr Zustand ist "on"/"off" und keine
 # Zahl, die sich in eine Gleitkommazahl wandeln ließe.
-DEVICE_SWITCH_VALUES: Final = (CONF_PRECISE,)
+DEVICE_SWITCH_VALUES: Final = (CONF_PRECISE, CONF_GUARD)
 
 # Welche davon Binärsensoren sind - "on"/"off" statt einer Zahl, aber im
 # Gegensatz zu einem Schalter nichts, was sich setzen ließe.
-DEVICE_BINARY_VALUES: Final = (CONF_POSITION_CHANGED,)
+DEVICE_BINARY_VALUES: Final = (CONF_POSITION_CHANGED, CONF_GUARD_ALARM)
+
+# Und welche Klartext liefern. Ohne diese Liste versuchte get_value, "scharf
+# seit 2 h 10 min" in eine Zahl zu wandeln, scheiterte still und gäbe den
+# Rückfallwert zurück - die Karte zeigte dann dauerhaft nichts.
+#
+# Der Quittierknopf steht mit in der Liste: Sein Zustand ist ein Zeitstempel,
+# den niemand braucht. Gebraucht wird nur seine Entitätskennung, damit die
+# Karte ihn drücken kann.
+DEVICE_TEXT_VALUES: Final = (CONF_GUARD_STATUS, CONF_LAST_MOTION, CONF_GUARD_ACK)
 
 # Wie die Firmware ihre Ausrichtart benennt - sie spricht Klartext, wir
 # intern Schlüssel.

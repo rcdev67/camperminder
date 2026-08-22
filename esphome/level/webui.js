@@ -62,6 +62,7 @@
     tolerance_deg: 0.4, precise: false, calm: 5, hold_percent: 125,
     tilt_limit: 3,
     move_limit: 1,
+    guard_grace: 120,
     method: "keile", vehicle: "wohnmobil", mounting: "oben"
   };
 
@@ -95,7 +96,15 @@
     tilt_limit: "glage_grenzwert",
     /* Ebenfalls mit Umlaut in der Kennung ("Lage__nderung") - deshalb
      * der Teilstring ab "nderung". */
-    move_limit: "nderung_grenzwert"
+    move_limit: "nderung_grenzwert",
+    /* Der Waechter. "W__chter" - derselbe Umlaut, dieselbe Loesung. Das
+     * Teilstueck ab "chter" ist in jedem Bereich eindeutig: Im Schalter- wie
+     * im Textbereich gibt es nur diese eine Entitaet, die darauf endet. */
+    guard: "chter",
+    guard_alarm: "chter_alarm",
+    guard_grace: "chter_karenzzeit",
+    guard_ack: "quittieren",
+    last_motion: "letzte_bewegung"
   };
 
   var METHOD_LIFT = "Hydraulik oder Luftkissen";
@@ -703,6 +712,9 @@
   function update() {
     if (!liveEl) return;
     liveEl.innerHTML = "";
+    // Vor allem anderen und auf JEDEM Reiter: Ein Alarm, den man erst nach
+    // einem Reiterwechsel sieht, ist ein halber Alarm.
+    waechterAlarm(liveEl);
     if (page === "technik") renderTechTable(liveEl);
     else renderMain(liveEl);
     syncSettings();
@@ -951,6 +963,79 @@
       });
     };
     target.appendChild(cal);
+
+    waechterBox(target);
+  }
+
+  /* Der Wächter.
+   *
+   * Steht bewusst UNTER dem Ausrichten und nicht dazwischen: Beim Ankommen
+   * geht es ums Geradestehen, der Wächter ist der Handgriff danach. Die
+   * Ausnahme ist der Alarm - der steht ganz oben, siehe waechterAlarm().
+   *
+   * Alles hier liest nur ab und drückt Knöpfe des Geräts. Es gibt bewusst
+   * keine zweite Zustandshaltung auf dieser Seite: Ein Wachdienst, dessen
+   * Anzeige etwas anderes behauptet als das Gerät, ist schlimmer als keiner. */
+  function waechterBox(target) {
+    var pfad = pathFor("switch", IDS.guard);
+    if (!pfad) return;   // ältere Firmware ohne Wächter - dann fehlt der Kasten
+
+    var scharf = findStateOf("switch", IDS.guard) === "ON";
+    var alarm = findStateOf("binary_sensor", IDS.guard_alarm) === "ON";
+    var satz = findStateOf("text_sensor", IDS.guard) || "";
+    var zuletzt = findStateOf("text_sensor", IDS.last_motion) || "";
+
+    var box = el('<div class="plan" style="margin-top:12px"><h2>Wächter</h2></div>');
+
+    var zeile = el('<div class="set" style="border-bottom:0"><span></span></div>');
+    zeile.firstChild.textContent = satz || (scharf ? "scharf" : "aus");
+    zeile.firstChild.style.fontWeight = "800";
+    if (alarm) zeile.firstChild.style.color = "#ffd9d6";
+    box.appendChild(zeile);
+
+    var knopf = el('<button class="act' + (scharf ? " ghost" : "") + '"></button>');
+    knopf.textContent = scharf ? "Unscharf schalten" : "Scharf schalten";
+    knopf.onclick = function () {
+      knopf.disabled = true;
+      post(pfad + (scharf ? "/turn_off" : "/turn_on"), check(pfad));
+    };
+    box.appendChild(knopf);
+
+    if (alarm) {
+      var quitt = el('<button class="act ghost" style="margin-top:8px">Alarm quittieren</button>');
+      quitt.onclick = function () {
+        quitt.disabled = true;
+        press(IDS.guard_ack);
+      };
+      box.appendChild(quitt);
+    }
+
+    box.appendChild(el('<div class="muted" style="margin-top:10px;line-height:1.5">' +
+      (scharf
+        ? "Scharf gilt die Lage vom Einschalten. Wird das Fahrzeug angehoben, " +
+          "abgeschleppt oder aufgebockt, rastet der Alarm ein und bleibt " +
+          "stehen, bis du ihn quittierst – auch wenn längst wieder Ruhe ist."
+        : "Beim Einschalten merkt sich das Gerät die jetzige Lage. Ab dann " +
+          "meldet es, wenn das Fahrzeug sie verlässt. Eine Erschütterung – " +
+          "jemand steigt ein, Wind – löst nichts aus, die steht unter " +
+          "„Bewegung“.") +
+      (zuletzt ? "<br><br>Letzte Bewegung am Fahrzeug: <b>" + zuletzt + "</b>" : "") +
+      "</div>"));
+
+    target.appendChild(box);
+  }
+
+  /* Der Alarm gehört an den Anfang der Seite, nicht ans Ende.
+   *
+   * Wer morgens aufs Telefon schaut, soll ihn sehen, bevor er irgendetwas
+   * anderes liest - und ohne zu scrollen. Solange nichts ist, entsteht hier
+   * auch nichts: Die gewohnte Anzeige bleibt unverändert. */
+  function waechterAlarm(target) {
+    if (findStateOf("binary_sensor", IDS.guard_alarm) !== "ON") return;
+    var satz = findStateOf("text_sensor", IDS.guard) || "ALARM";
+    var w = el('<div class="warn" style="margin-bottom:12px"></div>');
+    w.textContent = "🚨 " + satz;
+    target.appendChild(w);
   }
 
   /* Wird einmal je Reiterwechsel aufgebaut. Die Verweise bleiben erhalten,
@@ -1088,10 +1173,16 @@
       "unabhängig von deiner Toleranz beim Ausrichten." +
       "</div>"));
     zahlZeile(warnungen, "move_limit", "Lageänderung ab (°)");
-    warnungen.appendChild(el('<div class="muted">' +
+    warnungen.appendChild(el('<div class="muted" style="margin-bottom:10px">' +
       "Ab welcher Abweichung von der Ruhelage gemeldet wird, dass das Fahrzeug " +
       "bewegt wurde. Ein Grad sind bei 3500 mm Radstand rund 6 cm – Wind und " +
       "Einsteigen bleiben darunter, Anheben und Abschleppen darüber." +
+      "</div>"));
+    zahlZeile(warnungen, "guard_grace", "Karenzzeit Wächter (s)");
+    warnungen.appendChild(el('<div class="muted">' +
+      "So lange nach dem Scharfschalten meldet der Wächter nichts – Zeit zum " +
+      "Aussteigen. Sie gilt auch nach einem Neustart, denn dann braucht der " +
+      "Sensor ohnehin einen Moment, bis sein Wert steht." +
       "</div>"));
 
     /* Vier Kästen, ein Rückgabewert: appendChild fügt bei einem Fragment alle
@@ -1704,6 +1795,7 @@
       else if (id.indexOf(IDS.wedge_step) >= 0) cfg.wedge_step = num(data.value);
       else if (id.indexOf(IDS.tilt_limit) >= 0) cfg.tilt_limit = num(data.value);
       else if (id.indexOf(IDS.move_limit) >= 0) cfg.move_limit = num(data.value);
+      else if (id.indexOf(IDS.guard_grace) >= 0) cfg.guard_grace = num(data.value);
       else if (id.indexOf(IDS.calm) >= 0) cfg.calm = num(data.value);
       else if (id.indexOf(IDS.hold_percent) >= 0) cfg.hold_percent = num(data.value);
       else if (id.indexOf(IDS.precise) >= 0) {
