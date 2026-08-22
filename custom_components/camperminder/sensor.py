@@ -201,6 +201,14 @@ class CamperPhaseSensor(CamperEntity, SensorEntity):
             # des Geräts bedienen und braucht dessen Entity-ID. Steht hier
             # None, findet sie ihren eigenen über die Rollenkennung.
             "precise_entity": coordinator.device_sources.get(CONF_PRECISE),
+            # Selbstüberwachung. Sie sagt "traue der Anzeige gerade nicht"
+            # und gehört deshalb sichtbar auf die Karte, nicht in eine
+            # Diagnoseliste, die niemand öffnet.
+            "calibration_check": coordinator.calibration_check,
+            "calibration_text": coordinator.calibration_text,
+            "mount_check": coordinator.mount_check,
+            "frost": coordinator.frost,
+            "indoor_temp": coordinator.indoor_temp,
             "sensors_available": coordinator.available,
         }
 

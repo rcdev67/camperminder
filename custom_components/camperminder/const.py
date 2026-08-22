@@ -45,6 +45,17 @@ CONF_FRIDGE_MINUTES: Final = "fridge_minutes"
 # Die geltende Zielneigung liest die Integration als fertigen Zentimeterwert
 # vom Gerät, statt sie aus Profil und drei Reglern selbst abzuleiten. Sonst
 # gäbe es dieselbe Entscheidung an drei Stellen.
+# --- Selbstüberwachung -------------------------------------------------------
+# Ein fest verbautes Gerät kann sich selbst beobachten, ein Handgerät nicht.
+# Alles davon entsteht im Gerät: Es kennt die Temperatur bei der letzten
+# Kalibrierung und zählt ununterbrochen mit, auch wenn Home Assistant neu
+# startet.
+CONF_CALIBRATION_CHECK: Final = "calibration_check"
+CONF_CALIBRATION_TEXT: Final = "calibration_text"
+CONF_MOUNT_CHECK: Final = "mount_check"
+CONF_FROST: Final = "frost"
+CONF_INDOOR_TEMP: Final = "indoor_temp"
+
 CONF_PROFILE: Final = "profile"
 CONF_TARGET_LONG: Final = "target_long"
 CONF_TARGET_LAT: Final = "target_lat"
@@ -177,6 +188,12 @@ DEVICE_VALUE_ENTITIES: Final = {
     # Ein Textsensor der Firmware landet in Home Assistant in der Domäne
     # "sensor". Der Schalter heißt genauso wie der Textsensor; gesucht wird
     # über das Paar aus Domäne und Name, deshalb stören sie sich nicht.
+    # --- Selbstüberwachung -------------------------------------------------
+    CONF_CALIBRATION_CHECK: ("binary_sensor", "Kalibrierung prüfen"),
+    CONF_CALIBRATION_TEXT: ("sensor", "Kalibrierung"),
+    CONF_MOUNT_CHECK: ("binary_sensor", "Montage prüfen"),
+    CONF_FROST: ("binary_sensor", "Frostgefahr"),
+    CONF_INDOOR_TEMP: ("sensor", "Innentemperatur"),
     # --- Zielprofile -------------------------------------------------------
     CONF_PROFILE: ("select", "Zielprofil"),
     CONF_TARGET_LONG: ("sensor", "Ziel längs"),
@@ -200,6 +217,9 @@ DEVICE_SWITCH_VALUES: Final = (CONF_PRECISE, CONF_GUARD)
 # Welche davon Binärsensoren sind - "on"/"off" statt einer Zahl, aber im
 # Gegensatz zu einem Schalter nichts, was sich setzen ließe.
 DEVICE_BINARY_VALUES: Final = (
+    CONF_CALIBRATION_CHECK,
+    CONF_MOUNT_CHECK,
+    CONF_FROST,
     CONF_POSITION_CHANGED,
     CONF_GUARD_ALARM,
     CONF_FRIDGE_WARNING,
@@ -213,6 +233,7 @@ DEVICE_BINARY_VALUES: Final = (
 # den niemand braucht. Gebraucht wird nur seine Entitätskennung, damit die
 # Karte ihn drücken kann.
 DEVICE_TEXT_VALUES: Final = (
+    CONF_CALIBRATION_TEXT,
     CONF_PROFILE,
     CONF_GUARD_STATUS,
     CONF_LAST_MOTION,

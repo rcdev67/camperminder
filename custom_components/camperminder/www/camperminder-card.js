@@ -346,6 +346,12 @@ class CamperMinderCard extends HTMLElement {
           background: #4a1d1d; border-color: #b3564f; color: #ffd9d6;
           font-size: .95rem;
         }
+        /* Selbstüberwachung: gelb, nicht rot. Hier nimmt nichts Schaden, hier
+           stimmt nur eine Zahl womöglich nicht mehr. Rot bleibt dem
+           Wächteralarm vorbehalten - sonst gewöhnt man sich an Rot. */
+        .wache.hinweis {
+          background: #4a3410; border-color: #ffb020; color: #ffd48a;
+        }
         .wache button {
           border: 0; border-radius: 8px; padding: 7px 12px;
           font-size: .82rem; font-weight: 800; cursor: pointer;
@@ -433,6 +439,7 @@ class CamperMinderCard extends HTMLElement {
       </style>
 
       <ha-card>
+        <div class="wache hinweis" id="hinweis" hidden></div>
         <div class="wache" id="wache" hidden></div>
 
         <div class="bar" id="barRoll">
@@ -825,11 +832,43 @@ class CamperMinderCard extends HTMLElement {
       cm,
     });
 
+    this._renderHinweis(root.getElementById("hinweis"), a);
     this._renderWache(root.getElementById("wache"), hass, a);
 
     if (this._config.show_controls) {
       this._renderControls(root.getElementById("controls"), hass, a);
     }
+  }
+
+  /* Selbstüberwachung.
+   *
+   * Meldungen, die sagen "traue der Anzeige gerade nicht". Die gehören nach
+   * oben und nicht in eine Diagnoseliste, die niemand öffnet: Wer einer
+   * verschobenen Kalibrierung vertraut, richtet sein Fahrzeug falsch aus und
+   * merkt es nie. Eine Wasserwaage sagt einem nicht, dass sie lügt.
+   *
+   * Die Montage geht vor: Wenn der Sensor gar nicht mehr richtig sitzt, ist
+   * die Frage nach der Kalibrierung zweitrangig. */
+  _renderHinweis(node, a) {
+    if (!node) return;
+    const montage = a.mount_check === true;
+    const kalib = a.calibration_check === true;
+
+    if (!montage && !kalib) {
+      node.hidden = true;
+      node.dataset.signature = "";
+      return;
+    }
+
+    const text = montage
+      ? "Der Sensor liefert unglaubwürdige Werte – sitzt das Gehäuse noch " +
+        "fest? Solange das so ist, stimmt die Anzeige nicht."
+      : `Kalibrierung: ${a.calibration_text || "bitte prüfen"}`;
+
+    if (node.dataset.signature === text) return;
+    node.dataset.signature = text;
+    node.hidden = false;
+    node.textContent = `⚠️ ${text}`;
   }
 
   /* Die Wächterleiste.

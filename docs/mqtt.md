@@ -73,6 +73,30 @@ nachrechnen und braucht die Fahrzeugmaße nicht zu kennen.
 drückt oder der Nachbar rangiert. Der Alarm ist `lageaenderung` — das Fahrzeug
 hat seine Lage verlassen und ist nicht zurückgekommen.
 
+### Selbstüberwachung
+
+Ein fest verbautes Gerät kann sich selbst beobachten, ein Handgerät nicht.
+
+| Thema | Inhalt |
+|---|---|
+| `camperminder/level/binary_sensor/kalibrierung_pruefen/state` | `ON` = Temperatur oder Sensorbetrag weit weg von der Kalibrierung |
+| `camperminder/level/text_sensor/kalibrierung/state` | `am 22.08.2026 bei 21 °C` — mit Zusatz, wenn zu prüfen |
+| `camperminder/level/binary_sensor/montage_pruefen/state` | `ON` = der Sensor liefert Unsinn, Gehäuse lose? |
+| `camperminder/level/binary_sensor/frostgefahr/state` | `ON` = unter dem Grenzwert |
+| `camperminder/level/sensor/innentemperatur/state` | °C, Chiptemperatur plus Abgleich |
+| `camperminder/level/number/driftwarnung_ab/…` | 5 – 50 Kelvin, Vorgabe 20 |
+| `camperminder/level/number/temperatur_abgleich/…` | −20 … 20 Kelvin |
+| `camperminder/level/number/frostwarnung_unter/…` | −10 … 15 °C, Vorgabe 3 |
+
+Nicht die Zeit verschiebt den Nullpunkt eines Neigungsmessers, sondern die
+**Temperatur** — siehe `drift_messung.md`. Das Gerät merkt sich deshalb beim
+Kalibrieren die Chiptemperatur und den Betrag des Beschleunigungsvektors und
+vergleicht laufend dagegen.
+
+**Die Innentemperatur ist kein Thermometer.** Der Chip erwärmt sich selbst und
+sitzt dort, wo das Gehäuse klebt. Für eine Frostwarnung reicht sie, für eine
+Klimaregelung nicht.
+
 ### Zielprofile
 
 Eine Wasserwaage kennt ein Ziel: null. Dieses Gerät kennt Ziele — und richtet
