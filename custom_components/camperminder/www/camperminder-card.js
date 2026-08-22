@@ -416,6 +416,10 @@ class CamperMinderCard extends HTMLElement {
           padding-top: 10px; }
         .controls label { display: flex; align-items: center; gap: 6px;
           font-size: .9rem; cursor: pointer; }
+        .controls select { padding: 5px 8px; border-radius: 8px; font-size: .9rem;
+          border: 1px solid var(--divider-color, rgba(255,255,255,.2));
+          background: var(--card-background-color, #1b2029);
+          color: var(--primary-text-color, #e8ecf1); }
 
         /* Fußzeile: bewusst zurückhaltend. Sie soll im Betrieb nicht
            auffallen, im Supportfall aber ohne Nachfragen die Version zeigen. */
@@ -538,8 +542,17 @@ class CamperMinderCard extends HTMLElement {
       a.roll !== null && a.pitch !== undefined && a.roll !== undefined;
     const implausible = source.state === "unbekannt" && available;
 
-    const pitch = available ? Number(a.pitch) : 0;
-    const roll = available ? Number(a.roll) : 0;
+    /* Die ABWEICHUNG vom Ziel des Profils - das ist es, was noch zu tun ist
+       und was die Anzeige zeigt. Bei "Ausrichten" ist das Ziel null und alles
+       wie zuvor.
+
+       Der ECHTE Winkel bleibt in a.pitch/a.roll und wird weiter unten für die
+       Neigungskachel gebraucht: Ein Absorberkühlschrank interessiert sich
+       nicht dafür, wie jemand schlafen möchte. */
+    const zielP = Number(a.target_pitch) || 0;
+    const zielR = Number(a.target_roll) || 0;
+    const pitch = available ? Number(a.pitch) - zielP : 0;
+    const roll = available ? Number(a.roll) - zielR : 0;
     const tolP = Number(a.tolerance_pitch) || 0.82;
     const tolR = Number(a.tolerance_roll) || 1.59;
     const precise = a.precise === true;
@@ -691,7 +704,12 @@ class CamperMinderCard extends HTMLElement {
        * zieht das Gerät, das die Zeit ununterbrochen mitzählt. */
       const schraeg = a.tilt_warning === true;
       const kuehlWarn = a.fridge_warning === true;
-      const schiefste = Math.max(Math.abs(degSide), Math.abs(degRear));
+      // Der ECHTE Winkel, nicht die Abweichung vom Ziel: Im Schlafprofil
+      // steht das Fahrzeug absichtlich schief, und genau das muss die Kachel
+      // zeigen - der Kühlschrank kennt kein Schlafprofil.
+      const schiefste = available
+        ? Math.max(Math.abs(Number(a.pitch)), Math.abs(Number(a.roll)))
+        : 0;
       const min = Number(a.tilt_minutes);
       const wieLang = !Number.isFinite(min) || !schraeg
         ? ""
@@ -862,6 +880,21 @@ class CamperMinderCard extends HTMLElement {
     }
   }
 
+  /* Welches Ziel gerade gilt, als ein Satz. Leer bei "Ausrichten" - dann ist
+     das Ziel eben, und darüber muss man kein Wort verlieren. */
+  _zielSatz(a) {
+    if (!a.profile || a.profile === "Ausrichten") return "";
+    const laengs = Number(a.target_long_cm) || 0;
+    const quer = Number(a.target_lat_cm) || 0;
+    const zahl = (w) => Math.abs(w).toFixed(1).replace(".", ",");
+    const teile = [];
+    if (laengs) teile.push(`${laengs > 0 ? "Front" : "Heck"} ${zahl(laengs)} cm höher`);
+    if (quer) teile.push(`${quer > 0 ? "rechts" : "links"} ${zahl(quer)} cm höher`);
+    return teile.length
+      ? `Profil <b>${a.profile}</b> – Ziel: ${teile.join(", ")}`
+      : `Profil <b>${a.profile}</b> – Ziel: eben`;
+  }
+
   _distance(attributes, centimetres, steps) {
     if (centimetres === null || centimetres === undefined) return "–";
     if (attributes.wedge_step > 0 && steps) {
@@ -895,9 +928,16 @@ class CamperMinderCard extends HTMLElement {
           ? this._liftRows(a, ctx)
           : this._wedgeRows(a, ctx);
 
+    /* Läuft ein Zielprofil, MUSS das hier stehen.
+       Die Anzeige darüber rechnet dann gegen das Ziel - ohne diesen Satz
+       stünde "EBEN – STOP", während das Fahrzeug sichtbar mit dem Heck hoch
+       steht, und der Nutzer hielte das Gerät für kaputt. */
+    const zielSatz = this._zielSatz(a);
+
     node.innerHTML = `
       <h2>${heading}</h2>
       <div class="muted">Längs ${ctx.pitch.toFixed(ctx.places)}° · Quer ${ctx.roll.toFixed(ctx.places)}°</div>
+      ${zielSatz ? `<div class="muted hint">${zielSatz}</div>` : ""}
       ${rows.length ? `<ul>${rows.join("")}</ul>` : ""}
       ${rows.length ? `<div class="muted hint">${
         caravan
@@ -977,7 +1017,7 @@ class CamperMinderCard extends HTMLElement {
         ? { entityId: a.guard_entity, state: hass.states[a.guard_entity] }
         : null;
 
-    if (!voice && !precise && !wache) {
+    if (!voice && !precise && !wache && !a.profile_entity) {
       node.innerHTML = "";
       return;
     }
@@ -986,6 +1026,7 @@ class CamperMinderCard extends HTMLElement {
       voice && voice.state.state,
       precise && precise.state.state,
       wache && wache.state.state,
+      a.profile,
     ].join("|");
     if (node.dataset.signature === signature) return;
     node.dataset.signature = signature;
@@ -1007,6 +1048,31 @@ class CamperMinderCard extends HTMLElement {
       });
       wrapper.appendChild(toggle);
       wrapper.appendChild(document.createTextNode(label));
+      node.appendChild(wrapper);
+    }
+
+    /* Das Zielprofil als Auswahl - dieselbe Bedienung wie auf der
+       Geräteseite. Sie schaltet die Auswahl DES GERÄTS; eine eigene daneben
+       hätte zwei Wahrheiten ergeben. */
+    if (a.profile_entity && hass.states[a.profile_entity]) {
+      const zustand = hass.states[a.profile_entity];
+      const wrapper = document.createElement("label");
+      wrapper.appendChild(document.createTextNode("Ziel"));
+      const auswahl = document.createElement("select");
+      for (const option of zustand.attributes.options || []) {
+        const o = document.createElement("option");
+        o.value = option;
+        o.textContent = option;
+        auswahl.appendChild(o);
+      }
+      auswahl.value = zustand.state;
+      auswahl.addEventListener("change", () => {
+        hass.callService("select", "select_option", {
+          entity_id: a.profile_entity,
+          option: auswahl.value,
+        });
+      });
+      wrapper.appendChild(auswahl);
       node.appendChild(wrapper);
     }
   }

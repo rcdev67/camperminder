@@ -73,6 +73,29 @@ nachrechnen und braucht die Fahrzeugmaße nicht zu kennen.
 drückt oder der Nachbar rangiert. Der Alarm ist `lageaenderung` — das Fahrzeug
 hat seine Lage verlassen und ist nicht zurückgekommen.
 
+### Zielprofile
+
+Eine Wasserwaage kennt ein Ziel: null. Dieses Gerät kennt Ziele — und richtet
+danach aus. Das Profil wirkt **ausschließlich** auf das Ausrichten;
+Schräglagenwarnung und Wächter rechnen weiter mit der echten Neigung.
+
+| Thema | Inhalt |
+|---|---|
+| `camperminder/level/select/zielprofil/…` | `Ausrichten`, `Schlafen`, `Ablassen` |
+| `camperminder/level/sensor/ziel_laengs/state` | geltende Zielneigung längs in cm |
+| `camperminder/level/sensor/ziel_quer/state` | geltende Zielneigung quer in cm |
+| `camperminder/level/number/schlafen_laengs/…` | −15 … 15 cm, Vorgabe −2 |
+| `camperminder/level/number/ablassen_laengs/…` | −15 … 15 cm, Vorgabe 5 |
+| `camperminder/level/number/ablassen_quer/…` | −15 … 15 cm, Vorgabe 0 |
+
+Vorzeichen wie überall im Gerät: **längs plus = Front höher**, **quer plus =
+rechte Seite höher**.
+
+Die beiden `ziel_*`-Sensoren sind der bequeme Weg für ein anbindendes System:
+Sie liefern fertig, was das gewählte Profil verlangt, ohne dass man die drei
+Regler selbst auswerten muss. Die Hubhöhen je Ecke berücksichtigen das Ziel
+bereits.
+
 ### Kühlschrank-Zeitkonto
 
 `schraeglage` meldet den **Winkel**. Was einen Absorberkühlschrank beschädigt,
