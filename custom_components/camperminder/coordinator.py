@@ -26,6 +26,7 @@ from .const import (
     CONF_NOTIFY_SERVICE,
     CONF_PITCH_SENSOR,
     CONF_POSITION_CHANGED,
+    CONF_PROFILE,
     CONF_PRECISE,
     CONF_FRIDGE_MINUTES,
     CONF_FRIDGE_TEXT,
@@ -36,6 +37,8 @@ from .const import (
     CONF_GUARD_STATUS,
     CONF_LAST_MOTION,
     CONF_ROLL_SENSOR,
+    CONF_TARGET_LAT,
+    CONF_TARGET_LONG,
     CONF_TILT_MINUTES,
     CONF_TOLERANCE_CM,
     CONF_TOLERANCE_DEG,
@@ -410,6 +413,77 @@ class CamperCoordinator:
         """
         return bool(self.get_value(CONF_POSITION_CHANGED))
 
+    # -- Zielprofile ---------------------------------------------------------
+
+    def _target_deg(self, key: str, dimension_mm: float) -> float:
+        """Die Zielneigung einer Achse in Grad.
+
+        Dieselbe Umrechnung wie bei der Toleranz und wie im Gerät: Der
+        Zentimeterwert gilt am jeweiligen Fahrzeugmaß. Führt das Gerät keine
+        Profile - alte Firmware -, ist das Ziel null und alles bleibt, wie es
+        war.
+        """
+        if key not in self._device_sources:
+            return 0.0
+        try:
+            zentimeter = float(self.get_value(key))
+        except (TypeError, ValueError):
+            return 0.0
+        if not zentimeter:
+            return 0.0
+        return math.degrees(math.atan(zentimeter * 10.0 / dimension_mm))
+
+    @property
+    def target_pitch(self) -> float:
+        return self._target_deg(CONF_TARGET_LONG, self.wheelbase)
+
+    @property
+    def target_roll(self) -> float:
+        return self._target_deg(CONF_TARGET_LAT, self.track)
+
+    @property
+    def profile(self) -> str | None:
+        """Welches Zielprofil gilt - "Ausrichten", "Schlafen", "Ablassen"."""
+        wert = self.get_value(CONF_PROFILE)
+        return wert if isinstance(wert, str) else None
+
+    @property
+    def profile_entity(self) -> str | None:
+        """Die Auswahl im Gerät, damit die Karte sie bedienen kann statt eine
+        zweite danebenzustellen."""
+        return self._device_sources.get(CONF_PROFILE)
+
+    def _target_cm(self, key: str) -> float:
+        """Die Zielneigung in Zentimetern - für die Anzeige, nicht zum
+        Rechnen. Gerechnet wird in Grad, siehe _target_deg."""
+        if key not in self._device_sources:
+            return 0.0
+        try:
+            return round(float(self.get_value(key)), 1)
+        except (TypeError, ValueError):
+            return 0.0
+
+    @property
+    def target_long_cm(self) -> float:
+        return self._target_cm(CONF_TARGET_LONG)
+
+    @property
+    def target_lat_cm(self) -> float:
+        return self._target_cm(CONF_TARGET_LAT)
+
+    @property
+    def deviation_pitch(self) -> float | None:
+        """Was noch zu tun ist: Neigung minus Ziel.
+
+        Hierauf rechnet alles, was mit dem AUSRICHTEN zu tun hat. Der echte
+        Winkel bleibt in pitch - den braucht die Schräglagenwarnung.
+        """
+        return None if self.pitch is None else self.pitch - self.target_pitch
+
+    @property
+    def deviation_roll(self) -> float | None:
+        return None if self.roll is None else self.roll - self.target_roll
+
     # -- Kühlschrank-Zeitkonto ----------------------------------------------
 
     @property
@@ -613,31 +687,41 @@ class CamperCoordinator:
 
     @property
     def level_pitch(self) -> bool:
-        """Längsachse innerhalb der Toleranz."""
-        return self._axis_level("pitch", self.pitch, self.tolerance_pitch)
+        """Längsachse innerhalb der Toleranz - gemessen am ZIEL des Profils."""
+        return self._axis_level("pitch", self.deviation_pitch, self.tolerance_pitch)
 
     @property
     def level_roll(self) -> bool:
-        """Querachse innerhalb der Toleranz."""
-        return self._axis_level("roll", self.roll, self.tolerance_roll)
+        """Querachse innerhalb der Toleranz - gemessen am ZIEL des Profils."""
+        return self._axis_level("roll", self.deviation_roll, self.tolerance_roll)
 
     @property
     def correction_pitch_cm(self) -> float | None:
-        """Wie hoch die Front bzw. das Heck müsste, in cm."""
-        if self.pitch is None:
+        """Wie hoch die Front bzw. das Heck noch müsste, in cm.
+
+        Gegen das Ziel des Profils, nicht gegen die Waagerechte: Im
+        Schlafprofil sind die letzten zwei Zentimeter Heckhöhe kein
+        Korrekturbedarf, sondern die Absicht.
+        """
+        if self.deviation_pitch is None:
             return None
-        return self.wheelbase * math.tan(math.radians(abs(self.pitch))) / 10.0
+        return self.wheelbase * math.tan(math.radians(abs(self.deviation_pitch))) / 10.0
 
     @property
     def correction_roll_cm(self) -> float | None:
-        if self.roll is None:
+        if self.deviation_roll is None:
             return None
-        return self.track * math.tan(math.radians(abs(self.roll))) / 10.0
+        return self.track * math.tan(math.radians(abs(self.deviation_roll))) / 10.0
 
     @property
     def phase(self) -> str:
-        """Grobe Lage als ein Wort - Grundlage für Ansagen und Karte."""
-        pitch, roll = self.pitch, self.roll
+        """Grobe Lage als ein Wort - Grundlage für Ansagen und Karte.
+
+        Gegen das Ziel des Profils gerechnet: Die Phase treibt die Ansage, und
+        die soll nicht "Heck hoch" sagen, wenn das Heck genau so hoch steht,
+        wie es im Schlafprofil soll.
+        """
+        pitch, roll = self.deviation_pitch, self.deviation_roll
         if pitch is None or roll is None:
             return PHASE_UNKNOWN
         if abs(pitch) > IMPLAUSIBLE_DEG or abs(roll) > IMPLAUSIBLE_DEG:
@@ -734,8 +818,11 @@ class CamperCoordinator:
         # entscheidet. Damit kann die Anweisung nichts verlangen, was die
         # Phasenanzeige bereits als erledigt ausweist - vorher konnte sie genau
         # das.
-        pitch = 0.0 if self.level_pitch else self.pitch
-        roll = 0.0 if self.level_roll else self.roll
+        # Gegen das ZIEL des Profils, nicht gegen die Waagerechte - siehe
+        # deviation_pitch. Bei "Ausrichten" ist das Ziel null und die Rechnung
+        # unverändert.
+        pitch = 0.0 if self.level_pitch else self.deviation_pitch
+        roll = 0.0 if self.level_roll else self.deviation_roll
 
         half_long = self.wheelbase * math.tan(math.radians(pitch)) / 20.0
         half_lat = self.track * math.tan(math.radians(roll)) / 20.0
@@ -788,12 +875,18 @@ class CamperCoordinator:
         across_cm = (
             0.0
             if self.level_roll
-            else round(self.track * math.tan(math.radians(abs(self.roll))) / 10.0, 1)
+            else round(
+                self.track * math.tan(math.radians(abs(self.deviation_roll))) / 10.0, 1
+            )
         )
         if across_cm >= WHEEL_LIFT_IGNORE_CM:
             plan.append(
                 {
-                    "wheel": WHEEL_REAR_LEFT if self.roll > 0 else WHEEL_REAR_RIGHT,
+                    "wheel": (
+                        WHEEL_REAR_LEFT
+                        if self.deviation_roll > 0
+                        else WHEEL_REAR_RIGHT
+                    ),
                     "cm": across_cm,
                     "steps": self.wedge_steps_for(across_cm),
                     "direction": DIRECTION_UP,
@@ -805,7 +898,10 @@ class CamperCoordinator:
             0.0
             if self.level_pitch
             else round(
-                self.wheelbase * math.tan(math.radians(abs(self.pitch))) / 10.0, 1
+                self.wheelbase
+                * math.tan(math.radians(abs(self.deviation_pitch)))
+                / 10.0,
+                1,
             )
         )
         if along_cm >= WHEEL_LIFT_IGNORE_CM:
@@ -816,7 +912,9 @@ class CamperCoordinator:
                     # Gekurbelt wird stufenlos - eine Keilstufe wäre hier
                     # eine Angabe, die niemand umsetzen kann.
                     "steps": None,
-                    "direction": DIRECTION_DOWN if self.pitch > 0 else DIRECTION_UP,
+                    "direction": (
+                        DIRECTION_DOWN if self.deviation_pitch > 0 else DIRECTION_UP
+                    ),
                 }
             )
         return plan

@@ -64,6 +64,9 @@
     move_limit: 1,
     fridge_minutes: 30,
     guard_grace: 120,
+    profile: "Ausrichten",
+    target_long: 0, target_lat: 0,
+    sleep_long: -2, drain_long: 5, drain_lat: 0,
     method: "keile", vehicle: "wohnmobil", mounting: "oben"
   };
 
@@ -101,6 +104,16 @@
     /* Das Zeitkonto des Kuehlschranks. "K__hlschrank kritisch nach" - der
      * Umlaut steht am Anfang, deshalb hier das Teilstueck ab "hlschrank". */
     fridge_minutes: "hlschrank_kritisch_nach",
+    /* Zielprofile. Die geltende Zielneigung liest die Seite als fertigen
+     * Wert vom Geraet - sie wertet das Profil NICHT selbst aus. Zwei Stellen,
+     * die aus Profil und drei Reglern dieselbe Zahl ableiten, laufen
+     * auseinander, sobald ein Profil dazukommt. */
+    profile: "zielprofil",
+    target_long: "ziel_l",
+    target_lat: "ziel_quer",
+    sleep_long: "schlafen_l",
+    drain_long: "ablassen_l",
+    drain_lat: "ablassen_quer",
     /* Der Waechter. "W__chter" - derselbe Umlaut, dieselbe Loesung. Das
      * Teilstueck ab "chter" ist in jedem Bereich eindeutig: Im Schalter- wie
      * im Textbereich gibt es nur diese eine Entitaet, die darauf endet. */
@@ -229,6 +242,26 @@
     return Math.max(deg, MIN_TOLERANCE_DEG);
   }
 
+  /* Die Zielneigung in Grad. Dieselbe Umrechnung wie tolerance() darueber -
+   * und wie im Geraet. Bei "Ausrichten" ist sie null, dann ist alles wie
+   * frueher.
+   *
+   * Der Zentimeterwert kommt fertig vom Geraet; hier wird nur noch ueber das
+   * Fahrzeugmass in einen Winkel gerechnet. */
+  function zielGradP() {
+    return Math.atan((cfg.target_long * 10) / cfg.wheelbase) * 180 / Math.PI;
+  }
+  function zielGradR() {
+    return Math.atan((cfg.target_lat * 10) / cfg.track) * 180 / Math.PI;
+  }
+
+  /* Die ABWEICHUNG vom Ziel - das ist es, was die Anzeige zeigt und was noch
+   * zu tun ist. Der echte Winkel bleibt in state.pitch/state.roll: Die
+   * Kuehlschrankwarnung braucht ihn, und die interessiert sich nicht dafuer,
+   * wie jemand schlafen moechte. */
+  function abwP() { return state.pitch === null ? null : state.pitch - zielGradP(); }
+  function abwR() { return state.roll === null ? null : state.roll - zielGradR(); }
+
   function available() {
     return state.pitch !== null && state.roll !== null &&
       Math.abs(state.pitch) <= IMPLAUSIBLE_DEG && Math.abs(state.roll) <= IMPLAUSIBLE_DEG;
@@ -258,8 +291,8 @@
     return hold[key];
   }
 
-  function levelPitch() { return axisLevel("pitch", state.pitch, tolerance(cfg.wheelbase)); }
-  function levelRoll() { return axisLevel("roll", state.roll, tolerance(cfg.track)); }
+  function levelPitch() { return axisLevel("pitch", abwP(), tolerance(cfg.wheelbase)); }
+  function levelRoll() { return axisLevel("roll", abwR(), tolerance(cfg.track)); }
 
   /* Der Maßstab der Anzeige ist die TOLERANZ, nicht das Grad.
    *
@@ -766,8 +799,8 @@
     var ok = available();
     var tolP = tolerance(cfg.wheelbase);
     var tolR = tolerance(cfg.track);
-    var pitch = ok ? state.pitch : 0;
-    var roll = ok ? state.roll : 0;
+    var pitch = ok ? abwP() : 0;
+    var roll = ok ? abwR() : 0;
     // Über axisLevel und nicht über den nackten Vergleich: nur so tragen
     // Text, Blase und Fahrzeugneigung dieselbe, ruhige Antwort.
     var levP = ok && levelPitch();
@@ -910,7 +943,7 @@
     var schraeg = findStateOf("binary_sensor", "glage") === "ON";
     var bewegt = findStateOf("binary_sensor", "in_bewegung") === "ON";
     var verrueckt = findStateOf("binary_sensor", "nderung") === "ON";
-    var schiefste = Math.max(Math.abs(degP), Math.abs(degR));
+    var schiefste = ok ? Math.max(Math.abs(state.pitch), Math.abs(state.roll)) : 0;
 
     var badges = el('<div class="badges"></div>');
     var badge = function (titel, text, klasse, hinweis) {
@@ -989,7 +1022,66 @@
     };
     target.appendChild(cal);
 
+    zielBox(target);
     waechterBox(target);
+  }
+
+  /* Zielprofil.
+   *
+   * Steht auf der Hauptseite und nicht in den Einstellungen, weil man es
+   * BENUTZT und nicht einrichtet: abends aufs Schlafprofil, im Herbst einmal
+   * aufs Ablassen. Die Zahlen dahinter richtet man einmal ein, die stehen
+   * folgerichtig unter Einstellungen.
+   *
+   * Solange "Ausrichten" gewählt ist, sieht die Seite darüber aus wie immer -
+   * das Ziel ist dann null. */
+  function zielBox(target) {
+    var pfad = pathFor("select", IDS.profile);
+    if (!pfad) return;   // ältere Firmware ohne Profile
+
+    var box = el('<div class="plan" style="margin-top:12px"><h2>Zielprofil</h2></div>');
+    var row = el('<div class="set" style="border-bottom:0"><span>Ziel</span></div>');
+    profileSelect = el('<select><option>Ausrichten</option><option>Schlafen</option>' +
+      "<option>Ablassen</option></select>");
+    profileSelect.value = cfg.profile;
+    profileSelect.onchange = function () {
+      cfg.profile = profileSelect.value;
+      write("select", IDS.profile, "option=" + encodeURIComponent(profileSelect.value));
+      render();
+    };
+    row.appendChild(profileSelect);
+    box.appendChild(row);
+
+    var erklaerung =
+      cfg.profile === "Schlafen"
+        ? "Das Kopfende etwas höher schläft sich für viele deutlich besser. " +
+          "Die Anzeige oben rechnet ab jetzt gegen dieses Ziel – „EBEN“ heißt " +
+          "also „steht, wie du es wolltest“."
+        : cfg.profile === "Ablassen"
+          ? "Boiler und Tank laufen nur leer, wenn sich das Fahrzeug zum " +
+            "Ablasspunkt neigt. Wer eben steht, behält einen Rest drin – und " +
+            "der friert im Winter."
+          : "Eben ausrichten, wie gewohnt.";
+
+    var ziel = "";
+    if (cfg.profile !== "Ausrichten") {
+      var teile = [];
+      if (cfg.target_long) {
+        teile.push((cfg.target_long > 0 ? "Front" : "Heck") + " " +
+          Math.abs(cfg.target_long).toFixed(1).replace(".", ",") + " cm höher");
+      }
+      if (cfg.target_lat) {
+        teile.push((cfg.target_lat > 0 ? "rechts" : "links") + " " +
+          Math.abs(cfg.target_lat).toFixed(1).replace(".", ",") + " cm höher");
+      }
+      ziel = teile.length
+        ? "<br><br>Ziel: <b>" + teile.join(", ") + "</b>"
+        : "<br><br>Ziel: <b>eben</b> – die Zahlen dieses Profils stehen auf 0.";
+    }
+
+    box.appendChild(el('<div class="muted" style="margin-top:10px;line-height:1.5">' +
+      erklaerung + ziel + "</div>"));
+    target.appendChild(box);
   }
 
   /* Der Wächter.
@@ -1070,6 +1162,7 @@
   var vehicleSelect = null;
   var mountingSelect = null;
   var preciseBox = null;
+  var profileSelect = null;
   var mqttNote = null;
   var mqttBroker = null;
   var mqttUser = null;
@@ -1210,6 +1303,28 @@
       "bewegt wurde. Ein Grad sind bei 3500 mm Radstand rund 6 cm – Wind und " +
       "Einsteigen bleiben darunter, Anheben und Abschleppen darüber." +
       "</div>"));
+    /* Die Zahlen hinter den Zielprofilen. Sie stehen hier und nicht bei der
+     * Profilwahl auf der Hauptseite: Man richtet sie einmal ein und wählt
+     * danach nur noch. Vorzeichen wie überall im Gerät. */
+    var ziele = el('<div class="plan"><h2>Ziele</h2></div>');
+    ziele.appendChild(el('<div class="muted" style="margin-bottom:10px">' +
+      "Gilt jeweils nur im zugehörigen Profil. Plus heißt <b>Front höher</b> " +
+      "beziehungsweise <b>rechte Seite höher</b>, minus das Gegenteil." +
+      "</div>"));
+    zahlZeile(ziele, "sleep_long", "Schlafen längs (cm)");
+    ziele.appendChild(el('<div class="muted" style="margin-bottom:10px">' +
+      "Voreingestellt −2 cm, also das Heck etwas höher – der häufigste " +
+      "Grundriss hat das Bett hinten. Wer vorn schläft, dreht das Vorzeichen " +
+      "um. Eine Querneigung gibt es hier bewusst nicht: quer schief rollt man " +
+      "aus dem Bett." +
+      "</div>"));
+    zahlZeile(ziele, "drain_long", "Ablassen längs (cm)");
+    zahlZeile(ziele, "drain_lat", "Ablassen quer (cm)");
+    ziele.appendChild(el('<div class="muted">' +
+      "Wohin sich das Fahrzeug zum Entleeren neigen muss, hängt davon ab, wo " +
+      "dein Ablasspunkt sitzt – deshalb beide Achsen." +
+      "</div>"));
+
     zahlZeile(warnungen, "guard_grace", "Karenzzeit Wächter (s)");
     warnungen.appendChild(el('<div class="muted">' +
       "So lange nach dem Scharfschalten meldet der Wächter nichts – Zeit zum " +
@@ -1217,11 +1332,12 @@
       "Sensor ohnehin einen Moment, bis sein Wert steht." +
       "</div>"));
 
-    /* Vier Kästen, ein Rückgabewert: appendChild fügt bei einem Fragment alle
-     * Kinder ein, der Aufrufer bleibt unverändert. */
+    /* Mehrere Kästen, ein Rückgabewert: appendChild fügt bei einem Fragment
+     * alle Kinder ein, der Aufrufer bleibt unverändert. */
     var beide = document.createDocumentFragment();
     beide.appendChild(box);
     beide.appendChild(anzeige);
+    beide.appendChild(ziele);
     beide.appendChild(warnungen);
     beide.appendChild(geraet);
     return beide;
@@ -1246,6 +1362,7 @@
       mountingSelect.value = cfg.mounting === "unten" ? MOUNT_UNDER : "Deckel oben";
     }
     if (preciseBox && preciseBox !== focused) preciseBox.checked = cfg.precise;
+    if (profileSelect && profileSelect !== focused) profileSelect.value = cfg.profile;
     // Nur, solange dort keine eigene Rueckmeldung steht - sonst ueberschriebe
     // der Zustand die Meldung "Gespeichert, das Geraet startet neu".
     if (mqttNote && !mqttNote.style.fontWeight) {
@@ -1829,6 +1946,16 @@
       else if (id.indexOf(IDS.move_limit) >= 0) cfg.move_limit = num(data.value);
       else if (id.indexOf(IDS.guard_grace) >= 0) cfg.guard_grace = num(data.value);
       else if (id.indexOf(IDS.fridge_minutes) >= 0) cfg.fridge_minutes = num(data.value);
+      else if (id.indexOf(IDS.sleep_long) >= 0) cfg.sleep_long = num(data.value);
+      else if (id.indexOf(IDS.drain_long) >= 0) cfg.drain_long = num(data.value);
+      else if (id.indexOf(IDS.drain_lat) >= 0) cfg.drain_lat = num(data.value);
+      else if (id.indexOf(IDS.target_long) >= 0) cfg.target_long = num(data.value);
+      else if (id.indexOf(IDS.target_lat) >= 0) cfg.target_lat = num(data.value);
+      else if (id.indexOf(IDS.profile) >= 0) {
+        // Wie bei der Fahrzeugart: Das Profil formt die Bedienelemente, da
+        // reicht das Nachziehen der Messwerte nicht.
+        if (data.state !== cfg.profile) { cfg.profile = data.state; render(); return; }
+      }
       else if (id.indexOf(IDS.calm) >= 0) cfg.calm = num(data.value);
       else if (id.indexOf(IDS.hold_percent) >= 0) cfg.hold_percent = num(data.value);
       else if (id.indexOf(IDS.precise) >= 0) {

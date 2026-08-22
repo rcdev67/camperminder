@@ -62,7 +62,7 @@ substitutions:
   # Ein Bindestrich macht die Nummer zur Vorabfassung: "2.0.4-rc1" statt
   # "2.0.4". Daran erkennen die Werkzeuge, dass dieser Stand NICHT
   # veröffentlicht werden soll - Einzelheiten in docs/firmware_update.md.
-  firmware_version: "3.7.0"
+  firmware_version: "3.8.0"
 
   # I2C-Pins (0,42"-OLED-Board): SDA=GPIO5, SCL=GPIO6
   i2c_sda_pin: GPIO5
@@ -591,6 +591,35 @@ globals:
     type: float
     initial_value: "0.0"
 
+  # --- Zielneigung ----------------------------------------------------------
+  #
+  # Eine Wasserwaage kennt EIN Ziel: null. Das ist der Unterschied, den dieses
+  # Gerät machen kann - es kennt Ziele.
+  #
+  # Hier steht das GELTENDE Ziel, einmal je Sekunde aus dem Profil abgeleitet
+  # und in Grad umgerechnet. In Grad und nicht in Zentimetern, weil die
+  # Umrechnung die Fahrzeugmaße braucht und die an genau einer Stelle
+  # angewandt gehört.
+  #
+  # WICHTIG: Das Ziel wirkt nur auf das Ausrichten. Kühlschrankwarnung und
+  # Ruhelage rechnen weiter mit der ECHTEN Neigung - ein Absorber interessiert
+  # sich nicht dafür, wie du schlafen möchtest, und eine Ruhelage, die beim
+  # Profilwechsel springt, meldete einen Diebstahl, der keiner war.
+  - id: ziel_grad_p
+    type: float
+    initial_value: "0.0"
+  - id: ziel_grad_r
+    type: float
+    initial_value: "0.0"
+  # Dasselbe in Zentimetern - das lesen die beiden Oberflächen, damit sie das
+  # Profil nicht selbst auswerten müssen.
+  - id: ziel_cm_p
+    type: float
+    initial_value: "0.0"
+  - id: ziel_cm_r
+    type: float
+    initial_value: "0.0"
+
   # --- Zugangsdaten des MQTT-Brokers ----------------------------------------
   #
   # Gespeichert, nicht einkompiliert: Ein Produkt kann die Adresse seines
@@ -769,6 +798,65 @@ number:
     optimistic: true
     mode: box
 
+  # --- Zielneigung je Profil -------------------------------------------------
+  #
+  # Vorzeichen wie überall im Gerät: längs plus = Front höher, quer plus =
+  # rechte Seite höher.
+  #
+  # Es gibt bewusst KEINE Querneigung fürs Schlafen. Längs ein wenig erhöht
+  # schläft sich besser; quer schief rollt man aus dem Bett. Ein Regler, den
+  # niemand sinnvoll benutzen kann, ist einer zu viel.
+  - platform: template
+    name: "Schlafen längs"
+    id: schlafen_laengs
+    state_topic: camperminder/level/number/schlafen_laengs/state
+    command_topic: camperminder/level/number/schlafen_laengs/command
+    unit_of_measurement: cm
+    icon: mdi:bed
+    entity_category: config
+    min_value: -15
+    max_value: 15
+    step: 0.5
+    initial_value: -2
+    restore_value: true
+    optimistic: true
+    mode: box
+
+  # Zum Entleeren von Boiler und Tank soll das Fahrzeug bewusst schief stehen -
+  # sonst bleibt ein Rest im Tank, und der ist im Winter das Problem. Wohin es
+  # sich neigen muss, hängt vom Fahrzeug ab, deshalb beide Achsen einstellbar.
+  - platform: template
+    name: "Ablassen längs"
+    id: ablassen_laengs
+    state_topic: camperminder/level/number/ablassen_laengs/state
+    command_topic: camperminder/level/number/ablassen_laengs/command
+    unit_of_measurement: cm
+    icon: mdi:water-off
+    entity_category: config
+    min_value: -15
+    max_value: 15
+    step: 0.5
+    initial_value: 5
+    restore_value: true
+    optimistic: true
+    mode: box
+
+  - platform: template
+    name: "Ablassen quer"
+    id: ablassen_quer
+    state_topic: camperminder/level/number/ablassen_quer/state
+    command_topic: camperminder/level/number/ablassen_quer/command
+    unit_of_measurement: cm
+    icon: mdi:water-off
+    entity_category: config
+    min_value: -15
+    max_value: 15
+    step: 0.5
+    initial_value: 0
+    restore_value: true
+    optimistic: true
+    mode: box
+
   # Ab wann die Schräglage vom Hinweis zur Warnung wird.
   #
   # Der Grenzwert darüber sagt, AB WANN der Kühlschrank nicht mehr richtig
@@ -863,6 +951,36 @@ number:
 # Bestimmt, wie die Geräteseite ihre Hinweise ordnet: mit Keilen eine
 # Anweisung nach der anderen, mit einem Hebesystem alle Ecken auf einmal.
 select:
+  # --- Zielprofil ------------------------------------------------------------
+  #
+  # Der Bruch mit der Wasserwaage. Die kennt EIN Ziel: null. Level kennt
+  # Ziele - und das ist keine Spielerei, sondern deckt zwei Fälle ab, in denen
+  # "eben" die falsche Antwort ist:
+  #
+  #   Schlafen - das Kopfende ein wenig höher schläft sich für viele deutlich
+  #     besser, und bisher konnte man das nirgends gezielt einstellen.
+  #   Ablassen - Boiler und Tank laufen nur leer, wenn das Fahrzeug sich zum
+  #     Ablasspunkt neigt. Wer im Herbst "eben" steht, behält einen Rest drin,
+  #     und der friert.
+  #
+  # Das Profil bestimmt NUR das Ziel des Ausrichtens. Kühlschrankwarnung und
+  # Wächter rechnen weiter mit der echten Neigung.
+  #
+  # Kein Eintrag "Eigenes": Jedes Profil hat seine eigenen Zahlen als Regler,
+  # damit das Profil immer die Wahrheit sagt. Ein Profil, das nach dem ersten
+  # Verstellen etwas anderes behauptet als es tut, ist schlimmer als keins.
+  - platform: template
+    name: "Zielprofil"
+    id: zielprofil
+    icon: mdi:target-variant
+    options:
+      - "Ausrichten"
+      - "Schlafen"
+      - "Ablassen"
+    initial_option: "Ausrichten"
+    restore_value: true
+    optimistic: true
+
   - platform: template
     name: "Ausrichtart"
     id: level_method
@@ -1015,6 +1133,34 @@ font:
     size: 8
 
 sensor:
+  # --- Geltende Zielneigung --------------------------------------------------
+  #
+  # Was das gewählte Profil gerade verlangt, in Zentimetern. Beide Oberflächen
+  # lesen das hier ab, statt aus Profil und drei Reglern dieselbe Entscheidung
+  # ein zweites und drittes Mal nachzubauen - so etwas läuft auseinander,
+  # sobald ein Profil dazukommt.
+  #
+  # Vorzeichen wie überall: längs plus = Front höher, quer plus = rechts höher.
+  - platform: template
+    name: "Ziel längs"
+    id: ziel_laengs_sensor
+    state_topic: camperminder/level/sensor/ziel_laengs/state
+    unit_of_measurement: cm
+    icon: mdi:target-variant
+    accuracy_decimals: 1
+    update_interval: 2s
+    lambda: 'return id(ziel_cm_p);'
+
+  - platform: template
+    name: "Ziel quer"
+    id: ziel_quer_sensor
+    state_topic: camperminder/level/sensor/ziel_quer/state
+    unit_of_measurement: cm
+    icon: mdi:target-variant
+    accuracy_decimals: 1
+    update_interval: 2s
+    lambda: 'return id(ziel_cm_r);'
+
   # Wie lange es schon zu schief steht. Als Zahl und nicht nur als Text, damit
   # sich eine eigene Automatisierung eine andere Grenze setzen kann - und
   # damit ein Verlaufsdiagramm zeigt, wie lange der Kühlschrank auf dieser
@@ -1413,12 +1559,45 @@ interval:
           const float tol_r = genau ? grad
             : fmaxf(atanf(zentimeter * 10.0f / spur) * 180.0f / M_PI, 0.05f);
 
+          /* --- Zielneigung ------------------------------------------------
+           *
+           * Ab hier wird nicht mehr gegen "eben" gerechnet, sondern gegen das
+           * Ziel des gewählten Profils. Bei "Ausrichten" ist das null, und
+           * dann ist alles wie zuvor.
+           *
+           * Die Umrechnung von Zentimetern in Grad passiert HIER und nur
+           * hier - sie braucht die Fahrzeugmaße, und die stehen an dieser
+           * Stelle bereits fest.
+           *
+           * p_roh und r_roh bleiben unangetastet: Die Ruhelage weiter unten
+           * braucht die ECHTE Neigung. Ein Bezugspunkt, der beim Wechsel des
+           * Profils mitspringt, meldete einen Diebstahl, der keiner ist. */
+          /* Die Hilfsvariablen heißen bewusst ANDERS als die Globals darunter.
+           * id(ziel_cm_p) wird zu ziel_cm_p->value() übersetzt; eine lokale
+           * Variable gleichen Namens verdeckt den Zeiger, und der Übersetzer
+           * meldet "base operand of '->' is not a pointer". */
+          const std::string profil = id(zielprofil).current_option();
+          float soll_cm_p = 0.0f, soll_cm_r = 0.0f;
+          if (profil == "Schlafen") {
+            soll_cm_p = isnan(id(schlafen_laengs).state) ? 0.0f : id(schlafen_laengs).state;
+          } else if (profil == "Ablassen") {
+            soll_cm_p = isnan(id(ablassen_laengs).state) ? 0.0f : id(ablassen_laengs).state;
+            soll_cm_r = isnan(id(ablassen_quer).state)   ? 0.0f : id(ablassen_quer).state;
+          }
+          id(ziel_cm_p) = soll_cm_p;
+          id(ziel_cm_r) = soll_cm_r;
+          id(ziel_grad_p) = atanf(soll_cm_p * 10.0f / radstand) * 180.0f / M_PI;
+          id(ziel_grad_r) = atanf(soll_cm_r * 10.0f / spur)     * 180.0f / M_PI;
+
+          const float p_soll = p_roh - id(ziel_grad_p);
+          const float r_soll = r_roh - id(ziel_grad_r);
+
           // Eine Achse innerhalb ihrer Toleranz ist FERTIG - ihr Restwinkel
           // darf die Anweisung nicht mehr formen. Ohne das nennt die Anweisung
           // eine Richtung, die die Anzeige daneben bereits als erledigt
           // ausweist.
-          const float p = fabsf(p_roh) <= tol_p ? 0.0f : p_roh;
-          const float r = fabsf(r_roh) <= tol_r ? 0.0f : r_roh;
+          const float p = fabsf(p_soll) <= tol_p ? 0.0f : p_soll;
+          const float r = fabsf(r_soll) <= tol_r ? 0.0f : r_soll;
 
           const float BOGEN = 3.14159265358979323846f / 180.0f;
           const bool wohnwagen = (id(vehicle_type).current_option() == "Wohnwagen");
@@ -1713,9 +1892,15 @@ binary_sensor:
 
       // Hysterese: Wer einmal drinsteht, bleibt drin, bis die Neigung über den
       // Haltebereich hinausgeht. Auch der ist ein Regler - siehe dort.
+      //
+      // Gemessen wird gegen die ZIELNEIGUNG des Profils, nicht gegen null.
+      // Bei "Ausrichten" ist die null und alles wie zuvor; im Schlafprofil
+      // heißt "steht gerade" dann eben "steht, wie du es wolltest". Die
+      // Zielwerte setzt der Sekundentakt.
       const float faktor = id(level_hold) ? halten / 100.0f : 1.0f;
-      id(level_hold) = fabsf(id(pitch).state) <= tol_pitch * faktor
-        && fabsf(id(roll).state) <= tol_roll * faktor;
+      id(level_hold) =
+        fabsf(id(pitch).state - id(ziel_grad_p)) <= tol_pitch * faktor
+        && fabsf(id(roll).state - id(ziel_grad_r)) <= tol_roll * faktor;
       return id(level_hold);
 
   # --- Schräglagenwarnung ---------------------------------------------------

@@ -143,6 +143,15 @@ class CamperPhaseSensor(CamperEntity, SensorEntity):
             # etwas anderes sagt.
             "level_pitch": coordinator.level_pitch,
             "level_roll": coordinator.level_roll,
+            # Zielprofil. Die Karte zeichnet die Abweichung vom Ziel, zeigt in
+            # der Neigungskachel aber den echten Winkel - der Kühlschrank
+            # kennt kein Schlafprofil.
+            "profile": coordinator.profile,
+            "profile_entity": coordinator.profile_entity,
+            "target_pitch": round(coordinator.target_pitch, 3),
+            "target_roll": round(coordinator.target_roll, 3),
+            "target_long_cm": coordinator.target_long_cm,
+            "target_lat_cm": coordinator.target_lat_cm,
             # Schräglagenwarnung. Sie gehört mit auf die Karte, weil sie einen
             # anderen Anlass hat als der Rest: Der übrige Inhalt hilft beim
             # Ausrichten, diese Angabe sagt, dass etwas Schaden nimmt.

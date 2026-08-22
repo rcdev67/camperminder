@@ -34,6 +34,21 @@ CONF_FRIDGE_TEXT: Final = "fridge_text"
 CONF_TILT_MINUTES: Final = "tilt_minutes"
 CONF_FRIDGE_MINUTES: Final = "fridge_minutes"
 
+# --- Zielprofile -------------------------------------------------------------
+# Eine Wasserwaage kennt EIN Ziel: null. Dieses Gerät kennt Ziele - schlafen
+# mit erhöhtem Kopfende, ablassen mit Neigung zum Ablasspunkt.
+#
+# Das Ziel wirkt ausschließlich auf das Ausrichten. Schräglagenwarnung und
+# Wächter rechnen weiter mit der echten Neigung: Ein Absorberkühlschrank
+# interessiert sich nicht dafür, wie jemand schlafen möchte.
+#
+# Die geltende Zielneigung liest die Integration als fertigen Zentimeterwert
+# vom Gerät, statt sie aus Profil und drei Reglern selbst abzuleiten. Sonst
+# gäbe es dieselbe Entscheidung an drei Stellen.
+CONF_PROFILE: Final = "profile"
+CONF_TARGET_LONG: Final = "target_long"
+CONF_TARGET_LAT: Final = "target_lat"
+
 # --- Wächter ----------------------------------------------------------------
 # Er wohnt vollständig im Gerät. Das ist keine Bequemlichkeit, sondern die
 # Bedingung dafür, dass er etwas taugt: Ein Wachdienst, der ausfällt, sobald
@@ -162,6 +177,10 @@ DEVICE_VALUE_ENTITIES: Final = {
     # Ein Textsensor der Firmware landet in Home Assistant in der Domäne
     # "sensor". Der Schalter heißt genauso wie der Textsensor; gesucht wird
     # über das Paar aus Domäne und Name, deshalb stören sie sich nicht.
+    # --- Zielprofile -------------------------------------------------------
+    CONF_PROFILE: ("select", "Zielprofil"),
+    CONF_TARGET_LONG: ("sensor", "Ziel längs"),
+    CONF_TARGET_LAT: ("sensor", "Ziel quer"),
     # --- Kühlschrank-Zeitkonto ---------------------------------------------
     CONF_FRIDGE_WARNING: ("binary_sensor", "Kühlschrank Warnung"),
     CONF_FRIDGE_TEXT: ("sensor", "Kühlschrank"),
@@ -194,6 +213,7 @@ DEVICE_BINARY_VALUES: Final = (
 # den niemand braucht. Gebraucht wird nur seine Entitätskennung, damit die
 # Karte ihn drücken kann.
 DEVICE_TEXT_VALUES: Final = (
+    CONF_PROFILE,
     CONF_GUARD_STATUS,
     CONF_LAST_MOTION,
     CONF_GUARD_ACK,
