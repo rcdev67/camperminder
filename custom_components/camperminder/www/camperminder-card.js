@@ -87,6 +87,7 @@ const TEXTS = {
   bPos: "Lage",
   bOk: "ok",
   bFridge: "Kühlschrank!",
+  bTilted: "schief",
   bTiltHint:
     "Über {grenze}° arbeitet ein Absorberkühlschrank nicht mehr zuverlässig.",
   bMotionHint:
@@ -680,14 +681,37 @@ class CamperMinderCard extends HTMLElement {
       setzeBadge("badgeBewegung", TEXTS.bMotion, "–", "aus");
       setzeBadge("badgeLage", TEXTS.bPos, "–", "aus");
     } else {
+      /* Drei Stufen statt an und aus - wortgleich zur Geräteseite.
+       *
+       * Was einen Absorberkühlschrank beschädigt, ist der Winkel MAL DER
+       * ZEIT. Eine Kachel, die beim Rangieren rot wird, warnt, wo nichts ist
+       * - und wer sie so kennt, sieht über sie hinweg, wenn es ernst wird.
+       *
+       * Gelb: steht schief, noch folgenlos. Rot: jetzt leidet er. Die Grenze
+       * zieht das Gerät, das die Zeit ununterbrochen mitzählt. */
       const schraeg = a.tilt_warning === true;
+      const kuehlWarn = a.fridge_warning === true;
       const schiefste = Math.max(Math.abs(degSide), Math.abs(degRear));
+      const min = Number(a.tilt_minutes);
+      const wieLang = !Number.isFinite(min) || !schraeg
+        ? ""
+        : min < 1 ? " <1 min"
+          : min < 60 ? ` ${Math.round(min)} min`
+            : ` ${Math.round(min / 60)} h`;
       setzeBadge(
         "badgeNeigung",
         TEXTS.bTilt,
-        `${zahl(schiefste)}° · ${schraeg ? TEXTS.bFridge : TEXTS.bOk}`,
-        schraeg ? "alarm" : "ok",
-        TEXTS.bTiltHint.replace("{grenze}", zahl(Number(a.tilt_limit || 3)))
+        `${zahl(schiefste)}° · ${
+          kuehlWarn ? TEXTS.bFridge + wieLang
+            : schraeg ? TEXTS.bTilted + wieLang
+              : TEXTS.bOk
+        }`,
+        kuehlWarn ? "alarm" : schraeg ? "achtung" : "ok",
+        // Der Satz kommt vom Gerät. Zwei Formulierungen für denselben Zustand
+        // wären zwei Wahrheiten, sobald eine davon veraltet.
+        schraeg && a.fridge_text
+          ? a.fridge_text
+          : TEXTS.bTiltHint.replace("{grenze}", zahl(Number(a.tilt_limit || 3)))
       );
       setzeBadge(
         "badgeBewegung",

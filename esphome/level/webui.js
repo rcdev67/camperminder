@@ -62,6 +62,7 @@
     tolerance_deg: 0.4, precise: false, calm: 5, hold_percent: 125,
     tilt_limit: 3,
     move_limit: 1,
+    fridge_minutes: 30,
     guard_grace: 120,
     method: "keile", vehicle: "wohnmobil", mounting: "oben"
   };
@@ -97,6 +98,9 @@
     /* Ebenfalls mit Umlaut in der Kennung ("Lage__nderung") - deshalb
      * der Teilstring ab "nderung". */
     move_limit: "nderung_grenzwert",
+    /* Das Zeitkonto des Kuehlschranks. "K__hlschrank kritisch nach" - der
+     * Umlaut steht am Anfang, deshalb hier das Teilstueck ab "hlschrank". */
+    fridge_minutes: "hlschrank_kritisch_nach",
     /* Der Waechter. "W__chter" - derselbe Umlaut, dieselbe Loesung. Das
      * Teilstueck ab "chter" ist in jedem Bereich eindeutig: Im Schalter- wie
      * im Textbereich gibt es nur diese eine Entitaet, die darauf endet. */
@@ -922,12 +926,33 @@
       badge("Bewegung", "–", "aus");
       badge("Lage", "–", "aus");
     } else {
+      /* Die Neigungskachel kennt drei Stufen statt an und aus.
+       *
+       * Was einen Absorberkühlschrank beschädigt, ist der Winkel MAL DER
+       * ZEIT. Eine Kachel, die beim Rangieren rot wird, ist deshalb doppelt
+       * falsch: Sie warnt, wo nichts ist, und wer sie kennt, sieht über sie
+       * hinweg, wenn es ernst wird.
+       *
+       * Gelb heißt "steht schief, noch folgenlos", rot heißt "jetzt leidet
+       * er". Die Grenze dazwischen zieht das Gerät, nicht diese Seite. */
+      var kuehlWarn = findStateOf("binary_sensor", "hlschrank_warnung") === "ON";
+      var kuehlSatz = findStateOf("text_sensor", "hlschrank");
+      var dauerMin = parseFloat(findStateOf("sensor", "glage_dauer"));
+      var wieLang = isNaN(dauerMin) ? ""
+        : dauerMin < 1 ? " <1 min"
+          : dauerMin < 60 ? " " + Math.round(dauerMin) + " min"
+            : " " + Math.round(dauerMin / 60) + " h";
+
       badge("Neigung",
-        schiefste.toFixed(1).replace(".", ",") + "° · " + (schraeg ? "Kühlschrank!" : "ok"),
-        schraeg ? "alarm" : "ok",
-        schraeg
-          ? "Über " + cfg.tilt_limit.toFixed(1).replace(".", ",") +
-            "° arbeitet ein Absorberkühlschrank nicht mehr zuverlässig."
+        schiefste.toFixed(1).replace(".", ",") + "° · " +
+          (kuehlWarn ? "Kühlschrank!" + wieLang
+            : schraeg ? "schief" + wieLang
+              : "ok"),
+        kuehlWarn ? "alarm" : schraeg ? "achtung" : "ok",
+        // Der Satz kommt vom Gerät. Zwei Formulierungen für denselben
+        // Zustand wären zwei Wahrheiten, sobald eine davon veraltet.
+        schraeg && kuehlSatz
+          ? kuehlSatz
           : "Unter " + cfg.tilt_limit.toFixed(1).replace(".", ",") +
             "° – der Absorberkühlschrank arbeitet zuverlässig.");
       badge("Bewegung", bewegt ? "in Bewegung" : "steht ruhig",
@@ -1171,6 +1196,13 @@
       "Ein Absorberkühlschrank arbeitet über etwa 3° nicht mehr zuverlässig. " +
       "Das merkt niemand, bis das Essen warm ist – deshalb die eigene Warnung, " +
       "unabhängig von deiner Toleranz beim Ausrichten." +
+      "</div>"));
+    zahlZeile(warnungen, "fridge_minutes", "Kühlschrank kritisch nach (min)");
+    warnungen.appendChild(el('<div class="muted" style="margin-bottom:10px">' +
+      "Schaden nimmt der Kühlschrank nicht vom Winkel, sondern vom Winkel mal " +
+      "der Zeit. Kurz schief beim Rangieren ist folgenlos – deshalb warnt das " +
+      "Gerät erst nach einem Drittel dieser Zeit und wird nach der vollen Zeit " +
+      "dringend." +
       "</div>"));
     zahlZeile(warnungen, "move_limit", "Lageänderung ab (°)");
     warnungen.appendChild(el('<div class="muted" style="margin-bottom:10px">' +
@@ -1796,6 +1828,7 @@
       else if (id.indexOf(IDS.tilt_limit) >= 0) cfg.tilt_limit = num(data.value);
       else if (id.indexOf(IDS.move_limit) >= 0) cfg.move_limit = num(data.value);
       else if (id.indexOf(IDS.guard_grace) >= 0) cfg.guard_grace = num(data.value);
+      else if (id.indexOf(IDS.fridge_minutes) >= 0) cfg.fridge_minutes = num(data.value);
       else if (id.indexOf(IDS.calm) >= 0) cfg.calm = num(data.value);
       else if (id.indexOf(IDS.hold_percent) >= 0) cfg.hold_percent = num(data.value);
       else if (id.indexOf(IDS.precise) >= 0) {

@@ -241,7 +241,11 @@ Kurz schräg beim Rangieren ist folgenlos, drei Stunden schräg im Betrieb nicht
 
 - Dauer über dem Grenzwert als eigener Wert
 - Eskalation statt An/Aus: Hinweis, Warnung, dringend
-- Zähler über die ganze Standzeit
+- ~~Zähler über die ganze Standzeit~~ — beim Bauen gestrichen. Solange das
+  Fahrzeug steht, ist er identisch mit der Dauer darüber; unterscheiden würden
+  sich die beiden nur beim Flattern um die Schwelle, und genau das entfernt
+  die Hysterese bereits. Ein zweiter Zähler hätte nur eine zweite Zahl mit
+  derselben Aussage ergeben.
 
 Nur ein Gerät, das die ganze Zeit hinsieht, kann das. Es beseitigt zugleich die
 Fehlalarme beim Rangieren, die eine harte Grenze zwangsläufig erzeugt.

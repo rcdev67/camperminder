@@ -62,7 +62,7 @@ substitutions:
   # Ein Bindestrich macht die Nummer zur Vorabfassung: "2.0.4-rc1" statt
   # "2.0.4". Daran erkennen die Werkzeuge, dass dieser Stand NICHT
   # veröffentlicht werden soll - Einzelheiten in docs/firmware_update.md.
-  firmware_version: "3.6.0"
+  firmware_version: "3.7.0"
 
   # I2C-Pins (0,42"-OLED-Board): SDA=GPIO5, SCL=GPIO6
   i2c_sda_pin: GPIO5
@@ -471,6 +471,25 @@ globals:
     type: bool
     initial_value: "false"
 
+  # --- Kühlschrank-Zeitkonto ------------------------------------------------
+  #
+  # Was einen Absorberkühlschrank beschädigt, ist nicht der Winkel, sondern
+  # der Winkel MAL DER ZEIT. Kurz schief beim Rangieren ist folgenlos; Stunden
+  # schief im Betrieb sind das Problem.
+  #
+  # Deshalb reicht eine Grenze nicht. Eine harte Grenze erzeugt zwei Fehler
+  # auf einmal: Fehlalarme beim Rangieren, und Sorglosigkeit bei 2,8 Grad.
+  # Hier steht stattdessen, seit wann es schief steht.
+  - id: schraeg_seit          # Laufzeit in Sekunden beim Überschreiten, 0 = gerade nicht
+    type: uint32_t
+    initial_value: "0"
+  # 0 = alles gut, 1 = Hinweis, 2 = Warnung, 3 = dringend. An EINER Stelle
+  # entschieden; die Sensoren darunter lesen nur ab. Zwei Stellen, die
+  # dieselbe Stufe berechnen, driften auseinander.
+  - id: kuehl_stufe
+    type: uint8_t
+    initial_value: "0"
+
   # --- Ruhelage für die Lageänderung ----------------------------------------
   #
   # Wogegen die aktuelle Neigung verglichen wird. Mit restore_value, damit ein
@@ -750,6 +769,36 @@ number:
     optimistic: true
     mode: box
 
+  # Ab wann die Schräglage vom Hinweis zur Warnung wird.
+  #
+  # Der Grenzwert darüber sagt, AB WANN der Kühlschrank nicht mehr richtig
+  # arbeitet. Dieser Wert sagt, wie lange das folgenlos bleibt. Beides
+  # zusammen ergibt erst eine brauchbare Meldung: Wer rangiert, steht
+  # sekundenlang schief und will davon nichts hören; wer eine Nacht schief
+  # steht, hat am Morgen einen warmen Kühlschrank.
+  #
+  # Die Stufen leiten sich daraus ab, damit es bei EINEM Regler bleibt:
+  # ab einem Drittel des Werts die Warnung, ab dem vollen Wert "dringend".
+  #
+  # 30 Minuten als Vorgabe sind bewusst vorsichtig gewählt. Die belastbare
+  # Zahl gehört aus den Handbüchern von Dometic und Thetford belegt, bevor sie
+  # auf einer Verpackung steht - siehe docs/produktentscheidungen.md.
+  - platform: template
+    name: "Kühlschrank kritisch nach"
+    id: schraeg_zeit
+    state_topic: camperminder/level/number/kuehlschrank_kritisch_nach/state
+    command_topic: camperminder/level/number/kuehlschrank_kritisch_nach/command
+    unit_of_measurement: min
+    icon: mdi:fridge-alert
+    entity_category: config
+    min_value: 5
+    max_value: 240
+    step: 5
+    initial_value: 30
+    restore_value: true
+    optimistic: true
+    mode: box
+
   # Ab welcher Abweichung von der Ruhelage eine Lageänderung gemeldet wird.
   #
   # Ein Grad entspricht bei 3500 mm Radstand rund 6 cm Höhenunterschied - so
@@ -966,6 +1015,23 @@ font:
     size: 8
 
 sensor:
+  # Wie lange es schon zu schief steht. Als Zahl und nicht nur als Text, damit
+  # sich eine eigene Automatisierung eine andere Grenze setzen kann - und
+  # damit ein Verlaufsdiagramm zeigt, wie lange der Kühlschrank auf dieser
+  # Reise gelitten hat. Genau das kann ein Batteriegerät nicht: Es schläft.
+  - platform: template
+    name: "Schräglage Dauer"
+    id: schraeg_dauer
+    state_topic: camperminder/level/sensor/schraeglage_dauer/state
+    unit_of_measurement: min
+    icon: mdi:timer-alert-outline
+    accuracy_decimals: 1
+    state_class: measurement
+    update_interval: 10s
+    lambda: |-
+      if (id(schraeg_seit) == 0) return 0.0f;
+      return (millis() / 1000 - id(schraeg_seit)) / 60.0f;
+
   - platform: wifi_signal
     name: "WLAN Signal"
     update_interval: 60s
@@ -1563,6 +1629,40 @@ interval:
             ESP_LOGW("wache", "ALARM - die Lage hat sich veraendert.");
           }
 
+  # --- Kühlschrank-Zeitkonto -------------------------------------------------
+  #
+  # Zählt, seit wann es zu schief steht, und leitet daraus die Stufe ab. Der
+  # Winkelvergleich selbst passiert nicht hier, sondern im Binärsensor
+  # "Schräglage" - der trägt die Hysterese, und die gehört an EINE Stelle.
+  - interval: 1s
+    then:
+      - lambda: |-
+          const bool schief = id(schraeglage).has_state() && id(schraeglage).state;
+          if (!schief) {
+            id(schraeg_seit) = 0;
+            id(kuehl_stufe) = 0;
+            return;
+          }
+
+          const uint32_t jetzt = millis() / 1000;
+          if (id(schraeg_seit) == 0) {
+            id(schraeg_seit) = jetzt;
+            ESP_LOGI("kuehl", "Zu schief - Zeitkonto laeuft.");
+          }
+
+          const float minuten = id(schraeg_zeit).state;
+          const uint32_t kritisch = isnan(minuten) ? 1800u
+                                                   : (uint32_t) (minuten * 60.0f);
+          const uint32_t dauer = jetzt - id(schraeg_seit);
+          const uint8_t vorher = id(kuehl_stufe);
+          id(kuehl_stufe) = dauer >= kritisch     ? 3
+                          : dauer >= kritisch / 3 ? 2
+                                                  : 1;
+          if (id(kuehl_stufe) != vorher) {
+            ESP_LOGW("kuehl", "Stufe %u nach %u min schief.",
+                     (unsigned) id(kuehl_stufe), (unsigned) (dauer / 60));
+          }
+
 binary_sensor:
   # id, weil die OLED-Anzeige daran abliest, ob eine Zentrale mithört. Ohne
   # Home Assistant bleibt der Wert dauerhaft aus - das ist kein Fehler,
@@ -1640,6 +1740,24 @@ binary_sensor:
       const float ab = fmaxf(fabsf(id(pitch).state), fabsf(id(roll).state));
       id(schraeg_hold) = id(schraeg_hold) ? (ab > grenze * 0.8f) : (ab > grenze);
       return id(schraeg_hold);
+
+  # --- Kühlschrank Warnung ---------------------------------------------------
+  #
+  # DIES ist die Meldung, auf die eine Benachrichtigung gehört - nicht
+  # "Schräglage" darüber. Der Unterschied ist die Zeit: "Schräglage" springt
+  # an, sobald jemand rangiert, und wieder aus, wenn er fertig ist. Eine
+  # Warnung, die beim Einparken dreimal kommt, schaltet man ab - und dann
+  # schützt sie nie wieder.
+  #
+  # Diese hier meldet erst, wenn es lange genug schief steht, um dem
+  # Kühlschrank wirklich zu schaden.
+  - platform: template
+    name: "Kühlschrank Warnung"
+    id: kuehl_warnung
+    state_topic: camperminder/level/binary_sensor/kuehlschrank_warnung/state
+    device_class: problem
+    icon: mdi:fridge-alert
+    lambda: 'return id(kuehl_stufe) >= 2;'
 
   # --- Lageänderung ---------------------------------------------------------
   #
@@ -1794,6 +1912,47 @@ text_sensor:
           snprintf(text, sizeof(text), "scharf seit %s", spanne);
         }
       }
+      return {std::string(text)};
+    filters:
+      - lambda: |-
+          static std::string letzter;
+          if (x == letzter) return {};
+          letzter = x;
+          return x;
+
+  # --- Kühlschrank im Klartext -----------------------------------------------
+  #
+  # Eine Gradzahl sagt niemandem, ob er handeln muss. Dieser Satz sagt es.
+  #
+  # Die Stufe entsteht im Zeitkonto-Takt, hier wird sie nur ausgeschrieben -
+  # sonst gäbe es zwei Stellen, die dieselbe Grenze auswerten, und die driften
+  # auseinander.
+  - platform: template
+    name: "Kühlschrank"
+    id: kuehl_text
+    state_topic: camperminder/level/text_sensor/kuehlschrank/state
+    icon: mdi:fridge-outline
+    update_interval: 5s
+    lambda: |-
+      if (isnan(id(pitch).state) || isnan(id(roll).state)) return {};
+      if (id(kuehl_stufe) == 0) return {std::string("arbeitet normal")};
+
+      const float ab = fmaxf(fabsf(id(pitch).state), fabsf(id(roll).state));
+      const uint32_t dauer = millis() / 1000 - id(schraeg_seit);
+
+      char wie_lange[24];
+      if (dauer < 60)        snprintf(wie_lange, sizeof(wie_lange), "%u s", (unsigned) dauer);
+      else if (dauer < 3600) snprintf(wie_lange, sizeof(wie_lange), "%u min", (unsigned) (dauer / 60));
+      else                   snprintf(wie_lange, sizeof(wie_lange), "%u h %u min",
+                                      (unsigned) (dauer / 3600), (unsigned) ((dauer % 3600) / 60));
+
+      const char *folge =
+          id(kuehl_stufe) >= 3 ? " - bitte ausrichten"
+        : id(kuehl_stufe) == 2 ? " - die Kühlleistung fällt ab"
+                               : " - noch unkritisch";
+
+      char text[112];
+      snprintf(text, sizeof(text), "%.1f° schief seit %s%s", ab, wie_lange, folge);
       return {std::string(text)};
     filters:
       - lambda: |-

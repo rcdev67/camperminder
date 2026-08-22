@@ -27,12 +27,16 @@ from .const import (
     CONF_PITCH_SENSOR,
     CONF_POSITION_CHANGED,
     CONF_PRECISE,
+    CONF_FRIDGE_MINUTES,
+    CONF_FRIDGE_TEXT,
+    CONF_FRIDGE_WARNING,
     CONF_GUARD,
     CONF_GUARD_ACK,
     CONF_GUARD_ALARM,
     CONF_GUARD_STATUS,
     CONF_LAST_MOTION,
     CONF_ROLL_SENSOR,
+    CONF_TILT_MINUTES,
     CONF_TOLERANCE_CM,
     CONF_TOLERANCE_DEG,
     CONF_TRACK,
@@ -405,6 +409,50 @@ class CamperCoordinator:
         starten dürfen, ohne dass die Überwachung von vorn beginnt.
         """
         return bool(self.get_value(CONF_POSITION_CHANGED))
+
+    # -- Kühlschrank-Zeitkonto ----------------------------------------------
+
+    @property
+    def fridge_warning(self) -> bool:
+        """Steht es lange genug schief, dass der Kühlschrank leidet?
+
+        Nicht dasselbe wie tilt_warning: Jene meldet den Winkel, diese den
+        Winkel MAL DER ZEIT. Wer rangiert, löst tilt_warning aus und diese
+        hier nicht - und genau darauf gehört eine Benachrichtigung gelegt.
+
+        Führt das Gerät den Wert nicht - alte Firmware oder ein fremder
+        Neigungssensor -, bleibt es beim reinen Winkel.
+        """
+        if CONF_FRIDGE_WARNING in self._device_sources:
+            return bool(self.get_value(CONF_FRIDGE_WARNING))
+        return self.tilt_warning
+
+    @property
+    def fridge_text(self) -> str | None:
+        """Der Klartextsatz des Geräts zum Kühlschrank."""
+        wert = self.get_value(CONF_FRIDGE_TEXT)
+        return wert if isinstance(wert, str) else None
+
+    @property
+    def tilt_minutes(self) -> float | None:
+        """Seit wie vielen Minuten es zu schief steht. None, wenn das Gerät
+        die Zeit nicht mitzählt - dann zeigt die Karte nur den Winkel."""
+        if CONF_TILT_MINUTES not in self._device_sources:
+            return None
+        try:
+            return round(float(self.get_value(CONF_TILT_MINUTES)), 1)
+        except (TypeError, ValueError):
+            return None
+
+    @property
+    def fridge_minutes(self) -> float | None:
+        """Ab wann das Gerät die Schräglage kritisch nennt."""
+        if CONF_FRIDGE_MINUTES not in self._device_sources:
+            return None
+        try:
+            return float(self.get_value(CONF_FRIDGE_MINUTES))
+        except (TypeError, ValueError):
+            return None
 
     # -- Wächter ------------------------------------------------------------
     #
