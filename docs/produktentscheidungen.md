@@ -205,7 +205,30 @@ bei 120–190 Geräten.
 **Der Schluss daraus ist die heutige Strategie:** Diese Systeme ergänzen statt
 gegen sie antreten. Deshalb MQTT.
 
-## Der Ausbau — beschlossen am 22. August 2026
+## Der Ausbau — beschlossen und gebaut am 22. August 2026
+
+**Stand: alle vier Punkte sind umgesetzt und am laufenden Gerät geprüft.**
+
+| | Fassung | Was am Gerät nachgewiesen wurde |
+|---|---|---|
+| Wächtermodus | 3.6.0 | Karenz-Countdown, Einrasten, Quittieren, Wiederscharfschalten |
+| Kühlschrank-Zeitkonto | 3.7.0 | alle drei Stufen im Zeitverlauf durchlaufen |
+| Zielprofile | 3.8.0 | alle drei Profile; Schräglage und Lageänderung blieben unberührt |
+| Selbstüberwachung | 3.9.0 | keine Fehlalarme ohne Kalibrierdaten, Montagewarnung kam und ging |
+
+Zwei Beobachtungen aus den Tests, die in den Verkaufstext bzw. ins Handbuch
+gehören:
+
+- **Das Schlafprofil wirkt nur unterhalb der Toleranz sichtbar.** Bei 3 cm
+  Toleranz liegt ein Schlafziel von 2 cm innerhalb davon — das Gerät meldet
+  dann folgerichtig „steht schon richtig". Wer das Profil nutzen will, wählt
+  eine größere Zielneigung oder für die Nacht den Präzisionsmodus. Ob das
+  Profil eine eigene, engere Toleranz bekommen soll, ist offen.
+- **Die Driftnachführung kann eine sehr kleine, sehr langsame Lageänderung
+  aufnehmen**, solange der Kreisel dabei keine Bewegung sieht. Beim echten
+  Aufbocken tritt das nicht auf — dort setzt `In Bewegung` den Zähler zurück.
+
+
 
 Die vier Punkte aus dem Abschnitt „Was noch in die Firmware muss" sind seit
 3.5.2 erledigt. Die Frage war also, was danach kommt. Maßstab ist ein einziger

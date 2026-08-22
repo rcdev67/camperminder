@@ -62,7 +62,7 @@ substitutions:
   # Ein Bindestrich macht die Nummer zur Vorabfassung: "2.0.4-rc1" statt
   # "2.0.4". Daran erkennen die Werkzeuge, dass dieser Stand NICHT
   # veröffentlicht werden soll - Einzelheiten in docs/firmware_update.md.
-  firmware_version: "3.8.0"
+  firmware_version: "3.9.0"
 
   # I2C-Pins (0,42"-OLED-Board): SDA=GPIO5, SCL=GPIO6
   i2c_sda_pin: GPIO5
@@ -570,6 +570,36 @@ globals:
     type: uint32_t
     initial_value: "0"
 
+  # --- Selbstüberwachung ----------------------------------------------------
+  #
+  # Ein fest verbautes Gerät kann sich selbst beobachten, ein Handgerät nicht.
+  # Das verkauft sich schlecht und zahlt sich trotzdem aus: Ein Kunde, dessen
+  # Kalibrierung im August nicht mehr stimmt, schreibt keine Rückfrage - er
+  # schreibt eine Rezension mit "misst falsch".
+  #
+  # Was bei der letzten Kalibrierung galt. Der Vergleich damit ist die ganze
+  # Driftwarnung: Nicht die Zeit verschiebt den Nullpunkt, sondern die
+  # Temperatur. Wer im März bei 6 Grad kalibriert hat, misst im August bei 35
+  # Grad etwas anderes - siehe docs/drift_messung.md.
+  - id: kal_temp
+    type: float
+    initial_value: "-999.0"     # Wächter: nie kalibriert oder alte Firmware
+    restore_value: true
+  - id: kal_betrag
+    type: float
+    initial_value: "-1.0"
+    restore_value: true
+  - id: kal_uhr
+    type: uint32_t
+    initial_value: "0"          # 0 = beim Kalibrieren gab es keine gültige Uhr
+    restore_value: true
+  # Wie viele Takte hintereinander der Sensor Unsinn liefert. Erst nach
+  # mehreren wird gemeldet - ein einzelner Ausreißer beim Überfahren einer
+  # Bordsteinkante ist kein Montagefehler.
+  - id: montage_takte
+    type: uint16_t
+    initial_value: "0"
+
   # --- Anwesenheit ----------------------------------------------------------
   #
   # Wann zuletzt jemand am Fahrzeug war. Wird IMMER mitgeschrieben, auch
@@ -793,6 +823,61 @@ number:
     min_value: 1
     max_value: 10
     step: 0.5
+    initial_value: 3
+    restore_value: true
+    optimistic: true
+    mode: box
+
+  # --- Selbstüberwachung -----------------------------------------------------
+  #
+  # Ab welchem Temperaturunterschied zur Kalibrierung gewarnt wird.
+  #
+  # 20 Kelvin als Vorgabe: Bei 3350 mm Radstand sind 5 cm rund 0,85 Grad, und
+  # ein Drift von 0,2 Grad verbraucht davon schon ein Viertel. Wie groß der
+  # Drift des verbauten Sensors WIRKLICH ist, steht in keinem Datenblatt -
+  # dort stehen Grenzwerte. Deshalb misst das Gerät ihn selbst, und deshalb
+  # ist diese Schwelle einstellbar statt einprogrammiert.
+  - platform: template
+    name: "Driftwarnung ab"
+    id: drift_grenz
+    unit_of_measurement: K
+    icon: mdi:thermometer-alert
+    entity_category: config
+    min_value: 5
+    max_value: 50
+    step: 5
+    initial_value: 20
+    restore_value: true
+    optimistic: true
+    mode: box
+
+  # Der Sensor misst seine eigene Temperatur, nicht die der Raumluft - er
+  # erwärmt sich selbst. Wer eine Frostwarnung darauf stützt, braucht diesen
+  # Abgleich: einmal gegen ein Thermometer im Fahrzeug ablesen, Differenz
+  # eintragen.
+  - platform: template
+    name: "Temperatur Abgleich"
+    id: temp_abgleich
+    unit_of_measurement: K
+    icon: mdi:thermometer-lines
+    entity_category: config
+    min_value: -20
+    max_value: 20
+    step: 0.5
+    initial_value: 0
+    restore_value: true
+    optimistic: true
+    mode: box
+
+  - platform: template
+    name: "Frostwarnung unter"
+    id: frost_grenz
+    unit_of_measurement: "°C"
+    icon: mdi:snowflake-alert
+    entity_category: config
+    min_value: -10
+    max_value: 15
+    step: 1
     initial_value: 3
     restore_value: true
     optimistic: true
@@ -1161,6 +1246,29 @@ sensor:
     update_interval: 2s
     lambda: 'return id(ziel_cm_r);'
 
+  # --- Innentemperatur -------------------------------------------------------
+  #
+  # Die Temperatur des Sensorchips plus Abgleich. Das ist KEIN Thermometer und
+  # soll auch keins sein: Der Chip erwärmt sich selbst, und er sitzt dort, wo
+  # das Gehäuse klebt. Für die Frage "friert hier gleich etwas ein" reicht es
+  # trotzdem - und es kostet nichts, weil der Wert ohnehin anfällt.
+  #
+  # Genau das kann ein Batteriegerät wieder nicht melden: Es schläft, und um
+  # drei Uhr nachts ist kein Telefon in Reichweite.
+  - platform: template
+    name: "Innentemperatur"
+    id: innentemperatur
+    unit_of_measurement: "°C"
+    device_class: temperature
+    state_class: measurement
+    icon: mdi:thermometer
+    accuracy_decimals: 1
+    update_interval: 60s
+    lambda: |-
+      if (isnan(id(mpu_temp).state)) return NAN;
+      const float ab = isnan(id(temp_abgleich).state) ? 0.0f : id(temp_abgleich).state;
+      return id(mpu_temp).state + ab;
+
   # Wie lange es schon zu schief steht. Als Zahl und nicht nur als Text, damit
   # sich eine eigene Automatisierung eine andere Grenze setzen kann - und
   # damit ein Verlaufsdiagramm zeigt, wie lange der Kühlschrank auf dieser
@@ -1204,6 +1312,10 @@ sensor:
       internal: true
     temperature:
       name: "MPU6050 Temperatur"
+      # id, weil die Selbstüberwachung mitliest: Sie vergleicht die jetzige
+      # Temperatur mit der bei der Kalibrierung und warnt, bevor der Nutzer
+      # einem Wert vertraut, den der Temperaturdrift längst verschoben hat.
+      id: mpu_temp
       entity_category: diagnostic
       accuracy_decimals: 2
       # Nicht mehr internal: Ohne diesen Wert in Home Assistant lässt sich der
@@ -1808,6 +1920,33 @@ interval:
             ESP_LOGW("wache", "ALARM - die Lage hat sich veraendert.");
           }
 
+  # --- Selbstüberwachung: sitzt der Sensor noch? -----------------------------
+  #
+  # 10 s reichen: Eine gelöste Montage geht nicht von selbst wieder zu.
+  - interval: 10s
+    then:
+      - lambda: |-
+          const float p = id(pitch).state;
+          const float r = id(roll).state;
+          const float betrag = id(accel_magnitude).state;
+
+          bool verdacht = false;
+          // Ein Wohnmobil steht nie 45 Grad schief. Ein Gehäuse, das sich
+          // gelöst hat und hängt, sehr wohl.
+          if (!isnan(p) && !isnan(r) && (fabsf(p) > 45.0f || fabsf(r) > 45.0f)) {
+            verdacht = true;
+          }
+          // Und die Erdbeschleunigung ist immer 9,81 - zehn Prozent daneben
+          // heißt, der Sensor wird beschleunigt oder er ist defekt.
+          if (!isnan(betrag) && fabsf(betrag - 9.80665f) > 0.98f) verdacht = true;
+
+          if (verdacht) {
+            if (id(montage_takte) < 1000) id(montage_takte)++;
+            if (id(montage_takte) == 3) ESP_LOGW("montage", "Sensor liefert Unsinn - Montage pruefen.");
+          } else {
+            id(montage_takte) = 0;
+          }
+
   # --- Kühlschrank-Zeitkonto -------------------------------------------------
   #
   # Zählt, seit wann es zu schief steht, und leitet daraus die Stufe ab. Der
@@ -1925,6 +2064,69 @@ binary_sensor:
       const float ab = fmaxf(fabsf(id(pitch).state), fabsf(id(roll).state));
       id(schraeg_hold) = id(schraeg_hold) ? (ab > grenze * 0.8f) : (ab > grenze);
       return id(schraeg_hold);
+
+  # --- Selbstüberwachung -----------------------------------------------------
+  #
+  # Sagt dem Kunden, dass er nachkalibrieren sollte, BEVOR er einer Anzeige
+  # vertraut, die der Temperaturdrift verschoben hat. Ohne diese Meldung
+  # merkt er es gar nicht - eine Wasserwaage sagt einem nicht, dass sie lügt.
+  - platform: template
+    name: "Kalibrierung prüfen"
+    id: kal_pruefen
+    state_topic: camperminder/level/binary_sensor/kalibrierung_pruefen/state
+    device_class: problem
+    icon: mdi:crosshairs-question
+    entity_category: diagnostic
+    lambda: |-
+      // Nie kalibriert? Dann ist das kein Driftproblem, sondern eine
+      // Einrichtungsfrage - und die beantwortet der Text daneben.
+      if (id(kal_temp) < -900.0f) return false;
+
+      const float grenze = isnan(id(drift_grenz).state) ? 20.0f : id(drift_grenz).state;
+      if (!isnan(id(mpu_temp).state)
+          && fabsf(id(mpu_temp).state - id(kal_temp)) > grenze) {
+        return true;
+      }
+
+      /* Der Betrag des Beschleunigungsvektors muss immer 9,81 sein, ganz
+       * gleich wie das Fahrzeug steht. Wandert er, war es der Sensor - das
+       * kann weder der Reifendruck noch der Untergrund gewesen sein. 0,15
+       * entspricht rund 1,5 Prozent und liegt weit über dem Rauschen des
+       * über eine Minute gemittelten Werts. */
+      if (id(kal_betrag) > 0.0f && !isnan(id(accel_magnitude).state)
+          && fabsf(id(accel_magnitude).state - id(kal_betrag)) > 0.15f) {
+        return true;
+      }
+      return false;
+
+  # Der Fehlerfall, der sonst als "misst falsch" in einer Rezension landet:
+  # Das Gerät hat sich gelöst oder sitzt schief. Ein Fahrzeug steht nie 45
+  # Grad schief, und der Betrag der Erdbeschleunigung ist immer 9,81 - beides
+  # zusammen erkennt einen abgefallenen Sensor ohne Fehlalarm.
+  #
+  # Erst nach mehreren Takten, damit eine Bordsteinkante nichts auslöst.
+  - platform: template
+    name: "Montage prüfen"
+    id: montage_pruefen
+    state_topic: camperminder/level/binary_sensor/montage_pruefen/state
+    device_class: problem
+    icon: mdi:screw-lag
+    entity_category: diagnostic
+    lambda: 'return id(montage_takte) >= 3;'
+
+  - platform: template
+    name: "Frostgefahr"
+    id: frostgefahr
+    device_class: cold
+    icon: mdi:snowflake-alert
+    lambda: |-
+      if (isnan(id(innentemperatur).state) || isnan(id(frost_grenz).state)) return {};
+      // Zwei Kelvin Hysterese - ohne sie flattert die Meldung die ganze Nacht
+      // um den Grenzwert, und eine flatternde Warnung schaltet man ab.
+      static bool kalt = false;
+      kalt = kalt ? (id(innentemperatur).state < id(frost_grenz).state + 2.0f)
+                  : (id(innentemperatur).state < id(frost_grenz).state);
+      return kalt;
 
   # --- Kühlschrank Warnung ---------------------------------------------------
   #
@@ -2096,6 +2298,60 @@ text_sensor:
           spanne_text(seit, spanne, sizeof(spanne));
           snprintf(text, sizeof(text), "scharf seit %s", spanne);
         }
+      }
+      return {std::string(text)};
+    filters:
+      - lambda: |-
+          static std::string letzter;
+          if (x == letzter) return {};
+          letzter = x;
+          return x;
+
+  # --- Kalibrierung im Klartext ----------------------------------------------
+  #
+  # "Kalibrierung prüfen: an" beantwortet nicht die Frage, die der Nutzer dann
+  # hat - nämlich warum. Dieser Satz tut es.
+  - platform: template
+    name: "Kalibrierung"
+    id: kal_text
+    icon: mdi:crosshairs-gps
+    entity_category: diagnostic
+    update_interval: 60s
+    lambda: |-
+      /* Zwei verschiedene Fälle, und sie dürfen NICHT denselben Satz
+       * bekommen.
+       *
+       * Ein Gerät, das von einer älteren Fassung kommt, IST kalibriert - die
+       * Nullpunkte haben das Update überlebt, nur Temperatur und Betrag von
+       * damals fehlen. Stünde dort "noch nie kalibriert", glaubte der Kunde,
+       * das Update habe seine Kalibrierung gelöscht, und würde sie unnötig
+       * wiederholen. Ein verschobener Nullpunkt ist teurer als ein Satz.
+       *
+       * Unterschieden wird an den Nullpunkten: Wer nie kalibriert hat, hat
+       * dort exakt null stehen. */
+      if (id(kal_temp) < -900.0f) {
+        const bool schon_kalibriert =
+            id(pitch_offset) != 0.0f || id(roll_offset) != 0.0f;
+        return {std::string(schon_kalibriert
+          ? "kalibriert, aber ohne Vergleichswerte - einmal neu kalibrieren, "
+            "dann überwacht das Gerät den Drift"
+          : "noch nie kalibriert - einmal im Stand nachholen")};
+      }
+
+      char text[128];
+      char wann[32];
+      if (id(kal_uhr) > 0) {
+        auto t = ESPTime::from_epoch_local(id(kal_uhr));
+        snprintf(wann, sizeof(wann), "am %s", t.strftime("%d.%m.%Y").c_str());
+      } else {
+        snprintf(wann, sizeof(wann), "Zeitpunkt unbekannt,");
+      }
+
+      if (id(kal_pruefen).state && !isnan(id(mpu_temp).state)) {
+        snprintf(text, sizeof(text), "%s bei %.0f °C - jetzt %.0f °C, bitte prüfen",
+                 wann, id(kal_temp), id(mpu_temp).state);
+      } else {
+        snprintf(text, sizeof(text), "%s bei %.0f °C", wann, id(kal_temp));
       }
       return {std::string(text)};
     filters:
@@ -2426,8 +2682,24 @@ button:
             id(ruhe_roll)  = 0.0f;
             id(ruhe_takte) = 0;
 
-            ESP_LOGI("level", "Kalibrierung gespeichert: pitch_offset=%.3f, roll_offset=%.3f",
-                     id(pitch_offset), id(roll_offset));
+            /* Die Bedingungen mitschreiben, unter denen kalibriert wurde.
+             *
+             * Nicht die ZEIT verschiebt den Nullpunkt eines Neigungsmessers,
+             * sondern die TEMPERATUR - und der Innenraum eines Wohnmobils
+             * schwankt zwischen Winternacht und Sommermittag um 40 bis 50
+             * Grad. Ohne diesen Vergleichswert kann das Geraet nicht sagen,
+             * ob seine eigene Kalibrierung noch gilt, und der Kunde vertraut
+             * einer Anzeige, die im August danebenliegt.
+             *
+             * Der Betrag des Beschleunigungsvektors kommt dazu, weil ihn
+             * weder Reifendruck noch Untergrund noch ein Umparken
+             * verfaelschen koennen - siehe docs/drift_messung.md. */
+            if (!isnan(id(mpu_temp).state)) id(kal_temp) = id(mpu_temp).state;
+            if (!isnan(id(accel_magnitude).state)) id(kal_betrag) = id(accel_magnitude).state;
+            id(kal_uhr) = id(uhr).now().is_valid() ? id(uhr).now().timestamp : 0;
+
+            ESP_LOGI("level", "Kalibrierung gespeichert: pitch_offset=%.3f, roll_offset=%.3f, %.1f C",
+                     id(pitch_offset), id(roll_offset), id(kal_temp));
 
 # --- OLED: Libelle (Blase) links + exakte Zahlen rechts --------------------
 display:

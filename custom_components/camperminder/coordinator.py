@@ -28,6 +28,11 @@ from .const import (
     CONF_POSITION_CHANGED,
     CONF_PROFILE,
     CONF_PRECISE,
+    CONF_CALIBRATION_CHECK,
+    CONF_CALIBRATION_TEXT,
+    CONF_FROST,
+    CONF_INDOOR_TEMP,
+    CONF_MOUNT_CHECK,
     CONF_FRIDGE_MINUTES,
     CONF_FRIDGE_TEXT,
     CONF_FRIDGE_WARNING,
@@ -412,6 +417,54 @@ class CamperCoordinator:
         starten dürfen, ohne dass die Überwachung von vorn beginnt.
         """
         return bool(self.get_value(CONF_POSITION_CHANGED))
+
+    # -- Selbstüberwachung ---------------------------------------------------
+    #
+    # Reine Durchreichen. Entschieden wird alles im Gerät: Es kennt die
+    # Temperatur bei der letzten Kalibrierung und zählt ununterbrochen mit -
+    # Home Assistant darf in der Zeit neu starten.
+
+    @property
+    def calibration_check(self) -> bool:
+        """Sollte nachkalibriert werden?
+
+        Nicht die Zeit verschiebt den Nullpunkt eines Neigungsmessers, sondern
+        die Temperatur. Ohne diese Meldung vertraut der Kunde im August einer
+        Kalibrierung vom März - und merkt es nie.
+        """
+        return bool(self.get_value(CONF_CALIBRATION_CHECK))
+
+    @property
+    def calibration_text(self) -> str | None:
+        """Wann und bei welcher Temperatur zuletzt kalibriert wurde."""
+        wert = self.get_value(CONF_CALIBRATION_TEXT)
+        return wert if isinstance(wert, str) else None
+
+    @property
+    def mount_check(self) -> bool:
+        """Liefert der Sensor unglaubwürdige Werte?
+
+        Ein Fahrzeug steht nie 45 Grad schief, und der Betrag der
+        Erdbeschleunigung ist immer 9,81. Trifft eins davon nicht zu, hat sich
+        das Gehäuse gelöst - sonst landet dieser Fehler als "misst falsch" in
+        einer Rezension.
+        """
+        return bool(self.get_value(CONF_MOUNT_CHECK))
+
+    @property
+    def frost(self) -> bool:
+        return bool(self.get_value(CONF_FROST))
+
+    @property
+    def indoor_temp(self) -> float | None:
+        """Temperatur im Gerät. Kein Thermometer - der Chip erwärmt sich
+        selbst -, aber genug für eine Frostwarnung."""
+        if CONF_INDOOR_TEMP not in self._device_sources:
+            return None
+        try:
+            return round(float(self.get_value(CONF_INDOOR_TEMP)), 1)
+        except (TypeError, ValueError):
+            return None
 
     # -- Zielprofile ---------------------------------------------------------
 

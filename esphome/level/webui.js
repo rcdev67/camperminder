@@ -67,6 +67,7 @@
     profile: "Ausrichten",
     target_long: 0, target_lat: 0,
     sleep_long: -2, drain_long: 5, drain_lat: 0,
+    drift_limit: 20, temp_offset: 0, frost_limit: 3,
     method: "keile", vehicle: "wohnmobil", mounting: "oben"
   };
 
@@ -114,6 +115,11 @@
     sleep_long: "schlafen_l",
     drain_long: "ablassen_l",
     drain_lat: "ablassen_quer",
+    /* Selbstueberwachung. Ein fest verbautes Geraet kann sich selbst
+     * beobachten - ein Handgeraet nicht. */
+    drift_limit: "driftwarnung_ab",
+    temp_offset: "temperatur_abgleich",
+    frost_limit: "frostwarnung_unter",
     /* Der Waechter. "W__chter" - derselbe Umlaut, dieselbe Loesung. Das
      * Teilstueck ab "chter" ist in jedem Bereich eindeutig: Im Schalter- wie
      * im Textbereich gibt es nur diese eine Entitaet, die darauf endet. */
@@ -752,6 +758,7 @@
     // Vor allem anderen und auf JEDEM Reiter: Ein Alarm, den man erst nach
     // einem Reiterwechsel sieht, ist ein halber Alarm.
     waechterAlarm(liveEl);
+    geraetWarnung(liveEl);
     if (page === "technik") renderTechTable(liveEl);
     else renderMain(liveEl);
     syncSettings();
@@ -1142,6 +1149,30 @@
     target.appendChild(box);
   }
 
+  /* Selbstüberwachung: Meldungen, die sagen „traue der Anzeige gerade
+   * nicht“. Die gehören nach oben und nicht in eine Diagnoseliste, die
+   * niemand öffnet – wer einer verschobenen Kalibrierung vertraut, richtet
+   * sein Fahrzeug falsch aus und merkt es nie.
+   *
+   * Gelb und nicht rot: Hier nimmt nichts Schaden, hier stimmt nur eine Zahl
+   * womöglich nicht mehr. Rot bleibt dem Wächteralarm vorbehalten. */
+  function geraetWarnung(target) {
+    var montage = findStateOf("binary_sensor", "montage_pr") === "ON";
+    var kalib = findStateOf("binary_sensor", "kalibrierung_pr") === "ON";
+    if (!montage && !kalib) return;
+
+    var text = montage
+      ? "Der Sensor liefert unglaubwürdige Werte – sitzt das Gehäuse noch fest? " +
+        "Solange das so ist, stimmt die Anzeige nicht."
+      : "Kalibrierung: " + (findStateOf("text_sensor", "kalibrierung") || "bitte prüfen");
+
+    var w = el('<div style="background:#4a3410;border:1px solid #ffb020;' +
+      'border-radius:12px;padding:10px 12px;margin-bottom:12px;' +
+      'font-size:.9rem;line-height:1.45;color:#ffd48a;font-weight:600"></div>');
+    w.textContent = "⚠️ " + text;
+    target.appendChild(w);
+  }
+
   /* Der Alarm gehört an den Anfang der Seite, nicht ans Ende.
    *
    * Wer morgens aufs Telefon schaut, soll ihn sehen, bevor er irgendetwas
@@ -1256,9 +1287,26 @@
     mountingSelect.onchange = function () { setMounting(mountingSelect.value); };
     erow.appendChild(mountingSelect);
     geraet.appendChild(erow);
-    geraet.appendChild(el('<div class="muted" style="margin-top:8px">' +
+    geraet.appendChild(el('<div class="muted" style="margin-top:8px;margin-bottom:10px">' +
       "„Deckel unten“ heißt: unter ein Regalbrett oder eine Decke geklebt, " +
       "der Pfeil zeigt weiterhin nach vorn. Nach dem Umstellen neu kalibrieren." +
+      "</div>"));
+
+    /* Selbstüberwachung. Steht hier, weil beides das GERÄT betrifft und nicht
+     * das Fahrzeug. */
+    zahlZeile(geraet, "drift_limit", "Driftwarnung ab (K)");
+    geraet.appendChild(el('<div class="muted" style="margin-bottom:10px">' +
+      "Nicht die Zeit verschiebt den Nullpunkt eines Neigungsmessers, sondern " +
+      "die Temperatur – und im Fahrzeug sind das zwischen Winternacht und " +
+      "Sommermittag leicht 40 Kelvin. Weicht die jetzige Temperatur so weit " +
+      "von der bei der Kalibrierung ab, meldet sich das Gerät." +
+      "</div>"));
+    zahlZeile(geraet, "temp_offset", "Temperatur Abgleich (K)");
+    geraet.appendChild(el('<div class="muted" style="margin-bottom:10px">' +
+      "Der Sensor misst sich selbst und erwärmt sich dabei. Einmal gegen ein " +
+      "Thermometer im Fahrzeug ablesen und die Differenz hier eintragen – " +
+      "danach taugt der Wert für eine Frostwarnung. Ein Thermometer wird " +
+      "daraus nicht." +
       "</div>"));
 
     /* Eigener Kasten, weil diese beiden weder die Messung noch die Toleranz
@@ -1323,6 +1371,13 @@
     ziele.appendChild(el('<div class="muted">' +
       "Wohin sich das Fahrzeug zum Entleeren neigen muss, hängt davon ab, wo " +
       "dein Ablasspunkt sitzt – deshalb beide Achsen." +
+      "</div>"));
+
+    zahlZeile(warnungen, "frost_limit", "Frostwarnung unter (°C)");
+    warnungen.appendChild(el('<div class="muted" style="margin-bottom:10px">' +
+      "Der Sensor misst seine eigene Temperatur, nicht die der Raumluft – er " +
+      "erwärmt sich selbst. Für eine Frostwarnung reicht das, wenn du den " +
+      "Abgleich unter „Gerät“ einmal gegen ein Thermometer setzt." +
       "</div>"));
 
     zahlZeile(warnungen, "guard_grace", "Karenzzeit Wächter (s)");
@@ -1951,6 +2006,9 @@
       else if (id.indexOf(IDS.drain_lat) >= 0) cfg.drain_lat = num(data.value);
       else if (id.indexOf(IDS.target_long) >= 0) cfg.target_long = num(data.value);
       else if (id.indexOf(IDS.target_lat) >= 0) cfg.target_lat = num(data.value);
+      else if (id.indexOf(IDS.drift_limit) >= 0) cfg.drift_limit = num(data.value);
+      else if (id.indexOf(IDS.temp_offset) >= 0) cfg.temp_offset = num(data.value);
+      else if (id.indexOf(IDS.frost_limit) >= 0) cfg.frost_limit = num(data.value);
       else if (id.indexOf(IDS.profile) >= 0) {
         // Wie bei der Fahrzeugart: Das Profil formt die Bedienelemente, da
         // reicht das Nachziehen der Messwerte nicht.
