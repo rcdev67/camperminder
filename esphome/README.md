@@ -5,10 +5,16 @@ esphome/
   common/                     geteilte Bausteine — noch leer, siehe dort
   level/                      CamperMinder Level
     camperminder-level.yaml   die auszuliefernde Firmware
-    hardware.yaml             Messlogik, Anzeige, Einstellwerte
+    hardware.yaml             Messlogik, Status-LED, Summer, Einstellwerte
+    anzeige-oled.yaml         Bauvariante mit 0,42"-OLED, NICHT im Produkt
     webui.js                  Bedienoberfläche auf dem Gerät
     secrets.yaml.example
 ```
+
+Die ausgelieferte Ausführung hat **kein Display**. `anzeige-oled.yaml` wird nur
+gebaut, wenn man in `camperminder-level.yaml` unter `packages:` die
+entsprechende Zeile einkommentiert — für Werkstatt und Messplatz, und um die
+Boards mit aufgelötetem OLED aus der ersten Runde weiterzubenutzen.
 
 ## Bauen
 

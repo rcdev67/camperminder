@@ -312,9 +312,96 @@ Ventile schalten nein.
 **Windwarnung.** Der Kreisel sieht das Schwingen des Aufbaus, „Markise
 einfahren" wäre ein hübsches Argument. Wind ist von Menschen im Fahrzeug aber
 schwer zu unterscheiden — erst angehen, wenn der LSM6DS3TR-C läuft und echte
-Aufzeichnungen vorliegen.
+Aufzeichnungen vorliegen. **Seit 4.0.0 läuft er**; die Aufzeichnungen fehlen
+noch.
 
-### Fernalarm — entschieden am 22. August 2026
+## Der Hardwarewechsel — gebaut am 31. August 2026, Fassung 4.0.0
+
+Zwei Änderungen auf einmal, weil sie dieselbe Verkabelung anfassen.
+
+### 1. LSM6DS3TR-C statt MPU6050
+
+Der Grund steht oben unter „Was Level wirklich kann": Der MPU-6050 ist bei TDK
+abgekündigt, der Markt ist voller Fälschungen, und bei einem Gerät, dessen
+Genauigkeit am Temperaturdrift des Sensors hängt, ist das die schlechteste
+Stelle zum Sparen. Bis 3.9.0 war das ein Vorsatz, seit 4.0.0 ist es gebaut.
+
+ESPHome bringt den Chip seit 2026.6 selbst mit — als `motion`-Plattform. Ein
+eigener Treiber war also nicht nötig; das war vor der Entscheidung nicht sicher
+und hätte sie sonst teuer gemacht.
+
+**Was dabei zu beachten war:**
+
+| | |
+|---|---|
+| **Einheit** | Die neue Plattform liefert die Beschleunigung in **g**, der MPU6050 lieferte sie in **m/s²**. Betroffen sind der Diagnosewert „Betrag", die Montageprüfung und die Kalibrierprüfung. Pitch und Roll nicht — `atan2` rechnet mit Verhältnissen. |
+| **Gespeicherte Kalibrierung** | Ein Gerät aus 3.9.0 hat einen Kalibrierbetrag von rund 9,81 gespeichert. Nach dem Update läge er um den Faktor 9,81 daneben, und die Kalibrierprüfung schlüge dauerhaft an — ein harmloses Update erzeugte eine Störung, die keine ist. Die Firmware verwirft ihn deshalb beim ersten Start. |
+| **Achsen** | Der Adafruit-Breakout trägt den Chip anders herum auf der Platine als ein GY-521. Zuordnung und Vorzeichen sind **am Prototyp neu zu bestimmen**, bevor etwas davon in eine Serie geht. |
+| **Aufzeichnungen** | Die Driftmessreihe aus `docs/drift_messung.md` beginnt von vorn. Sie stammte von einem anderen Bauteil und sagt über dieses hier nichts. |
+
+**Was der neue Sensor mitbringt:** rund viermal weniger Rauschen auf der
+Beschleunigung (90 statt etwa 400 Mikro-g je Wurzel Hertz) und einen deutlich
+kleineren Nullpunktversatz auf der Drehrate. Beides ist noch **nicht**
+ausgenutzt — die Glättungsbeiwerte und die Bewegungsschwelle stehen weiter auf
+den Werten, die am MPU6050 erprobt wurden. Sie werden erst nach einer Messreihe
+am stehenden Fahrzeug gesenkt, nicht auf Verdacht: Eine zu niedrige
+Bewegungsschwelle hat hier schon einmal drei Fehler auf einmal erzeugt.
+
+Damit rückt auch die zurückgestellte **Windwarnung** in Reichweite. Ihre
+Bedingung war „erst wenn der LSM6DS3TR-C läuft und echte Aufzeichnungen
+vorliegen". Die erste Hälfte ist erfüllt, die zweite nicht.
+
+### 2. Die Ausführung ohne Display
+
+Die Serie bekommt kein OLED. Die Nivellieranzeige gehört aufs Handy — sie
+braucht Größe, Farbe und einen Blickwinkel, den ein Feld von 72 x 40 Pixeln an
+der Einbaustelle nicht hergibt. Wer Keile unterlegt, steht draußen und sieht es
+ohnehin nicht.
+
+Das Feld beantwortete aber drei Fragen, die sich **ohne** Handy stellen. Zwei
+davon übernehmen jetzt eine Status-LED und ein Summer:
+
+| Frage | vorher | jetzt |
+|---|---|---|
+| Läuft das Gerät? | Anzeige an | LED blinkt |
+| Eigenes Netz oder Heimnetz? | stand da | zwei verschiedene Blinkmuster |
+| Antwortet der Sensor? | „Sensor stumm" | eigenes Blinkmuster |
+| Liegt ein Alarm an? | „ALARM" mit Uhrzeit | Blinkmuster **und Ton** |
+| **Wie lautet die IP im Heimnetz?** | **stand da** | **nicht mehr** |
+
+Die letzte Zeile ist ein echter Verlust und wird nicht schöngeredet: Eine LED
+kann keine Adresse buchstabieren. Ersatz ist der Name
+`camperminder-level.local` im Handbuch — das ist schlechter, aber es betrifft
+nur den Fall „im Heimnetz **und** Adresse vergessen **und** kein Zugriff auf
+den Router". Im eigenen Netz gilt weiterhin die feste 192.168.4.1.
+
+Dafür kann der Summer etwas, was das Display nie konnte: Er erreicht jemanden,
+der nicht hinsieht. Beim Wächteralarm tönt er alle zehn Sekunden, und nach
+fünf Minuten ist Ruhe — wer ihn hört, ist entweder da, oder das Gerät
+beschallt sonst eine halbe Nacht den Stellplatz, ohne dass es jemandem hilft.
+Eine Sirene, die stundenlang läuft, schaltet der Nachbar ab, und dann ist die
+Meldung weg.
+
+Das OLED bleibt als **Bauvariante** bestehen (`anzeige-oled.yaml`, in der
+Gerätedatei eine auskommentierte Zeile). Es ist kein zweites Produkt, sondern
+das Werkzeug für Werkstatt und Messplatz — und der Weg, die Boards der ersten
+Runde weiterzubenutzen.
+
+### 3. Das Board — noch nicht entschieden
+
+Der Prototyp läuft auf einem **ESP32-C3 SuperMini**, weil davon welche da sind.
+**Für die Serie ist das keine Entscheidung**, und der Unterschied ist teuer:
+
+Der SuperMini trägt den Chip ungekapselt auf der eigenen Platine, mit eigener
+Leiterbahnantenne. Damit fällt das Argument aus dem Abschnitt „Zulassung" weg,
+die Funkeigenschaften nach Artikel 3.2 vom vorzertifizierten
+**ESP32-C3-WROOM-02 zu erben** — und das ist der teuerste Posten der
+CE-Prüfung. Wer die Serie auf einem SuperMini aufbaut, zahlt eine
+Funkmessung, die auf einem Modulboard geschenkt wäre.
+
+Zum Erproben ist das gleichgültig. **Vor der ersten Serienbestellung nicht.**
+
+## Fernalarm — entschieden am 22. August 2026
 
 Der Wächter hat einen blinden Fleck: **Er erreicht den Kunden nur, solange
 dieser sein Netz erreicht.** Wer am Strand steht, während das Fahrzeug
@@ -371,6 +458,15 @@ den kritischen Pfad** vor der ersten Serie.
    Vor jeder Empfehlung in diese Richtung nachzurüsten, und dabei gegen den
    Flash-Verbrauch zu prüfen: Stand 3.9.0 sind 71,7 % belegt.
 9. Push-Dienst als Fernalarm (Stufe 2), nach dem Verkaufsstart.
+10. **Achszuordnung und Vorzeichen am LSM6DS3TR-C bestimmen.** Die Werte in
+    den Substitutions stammen vom GY-521. Bis das erledigt ist, kann das
+    Gerät Längs und Quer vertauschen — und das sieht auf der Anzeige
+    plausibel aus. Verfahren in `docs/kalibrierung.md`, Schritte 2 und 3.
+11. **Glättung und Bewegungsschwelle am neuen Sensor nachmessen.** Beide
+    stehen auf den am MPU6050 erprobten Werten und lassen Genauigkeit liegen.
+12. **Board für die Serie festlegen.** Der SuperMini des Prototyps kostet die
+    geerbte Funkzertifizierung — siehe „Der Hardwarewechsel", Punkt 3. Das
+    gehört vor Punkt 5 (Prüflabor) entschieden, nicht danach.
 
 ## Marktumfeld, zur Einordnung
 

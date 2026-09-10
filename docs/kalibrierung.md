@@ -38,9 +38,16 @@ Hinweis ins Log.
 
 ## 2. Achszuordnung prüfen (bei anderem Einbau)
 
-Der MPU6050 misst auf drei Achsen. Welche davon die Längsneigung trägt, hängt
+Der Sensor misst auf drei Achsen. Welche davon die Längsneigung trägt, hängt
 davon ab, **wie herum das Board eingebaut ist** — das lässt sich nicht durch ein
 Vorzeichen korrigieren.
+
+> **Mit 4.0.0 ist dieser Schritt Pflicht, nicht Kür.** Die Werte in den
+> Substitutions stammen vom MPU6050 auf einem GY-521. Der Adafruit-Breakout des
+> LSM6DS3TR-C trägt den Chip anders herum, also stimmen Zuordnung und
+> Vorzeichen erst einmal nicht zwangsläufig. Wer diesen und den nächsten
+> Schritt überspringt, bekommt eine Anzeige, die plausibel aussieht und
+> Längs mit Quer verwechselt.
 
 Test: Fahrzeug (oder Board) **vorne anheben**.
 

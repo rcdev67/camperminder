@@ -1,0 +1,126 @@
+# ============================================================================
+#  CamperMinder Level  -  Anzeige auf dem Gerät (0,42"-OLED)
+# ----------------------------------------------------------------------------
+#  BAUVARIANTE, NICHT TEIL DER PRODUKTFIRMWARE.
+#
+#  Die auszuliefernde Ausführung hat kein Display: Die Nivellieranzeige gehört
+#  aufs Handy - sie braucht Größe, Farbe und einen Blickwinkel, den ein Feld
+#  von 72 x 40 Pixeln an der Einbaustelle nicht hergibt. Wer Keile unterlegt,
+#  steht draußen und sieht es ohnehin nicht.
+#
+#  Was das Feld dafür konnte, übernehmen jetzt Status-LED und Summer aus
+#  hardware.yaml. Eines nicht: die IP-Adresse im Heimnetz buchstabieren. Wer
+#  das braucht - Werkstatt, Messplatz, ein Board mit aufgelötetem OLED, das
+#  noch herumliegt -, baut mit dieser Datei.
+#
+#  Verwendung: in camperminder-level.yaml unter packages: die dort
+#  vorbereitete Zeile einkommentieren.
+#
+#        packages:
+#          hardware: !include hardware.yaml
+#          anzeige:  !include anzeige-oled.yaml
+#
+#  Bewusst eine auskommentierte Zeile und keine zweite Gerätedatei: Zwei
+#  Dateien hießen zwei Gerätenamen, zwei Kacheln im ESPHome-Dashboard und die
+#  Gewissheit, dass irgendwann die falsche gebaut wird. Dieselbe Begründung
+#  steht in camperminder-level.yaml schon dafür, dass es EINE Firmware für
+#  Standalone und Home Assistant gibt statt zweier.
+#
+#  Diese Datei setzt hardware.yaml voraus. Sie benutzt daraus den I2C-Bus
+#  (grove), ${firmware_version} sowie die Kennungen pitch, wache_alarm,
+#  wache_alarm_uhr, wache_alarm_lauf, ip_adresse, wlan_name,
+#  zentrale_verbunden und wache. Allein ergibt sie nichts.
+# ============================================================================
+
+# --- Schriften fürs OLED (lädt sich beim Kompilieren automatisch) --------
+font:
+  # Zwei Größen, weil das Feld nur 72 x 40 Pixel hat: Die Adresse muss lesbar
+  # sein, der Rest darf klein bleiben. "192.168.100.123" wäre in Größe 10 zu
+  # breit - deshalb steht die Adresse in 10 und alles andere in 8.
+  - file: "gfonts://Roboto"
+    id: font_zeile
+    size: 10
+  - file: "gfonts://Roboto"
+    id: font_klein
+    size: 8
+
+# --- OLED: Libelle (Blase) links + exakte Zahlen rechts --------------------
+display:
+  - platform: ssd1306_i2c
+    model: "SSD1306 72x40"
+    i2c_id: grove
+    address: 0x3C
+    # 1s statt 200ms: Hier steht kein wandernder Messwert mehr, sondern ein
+    # Zustand. Der ändert sich selten, und der I2C-Bus teilt sich die Leitung
+    # mit dem Beschleunigungssensor.
+    update_interval: 1s
+    lambda: |-
+      // Das Feld zeigt den SYSTEMZUSTAND, nicht die Neigung.
+      //
+      // Die Nivellieranzeige gehört aufs Handy: Sie braucht Größe, Farbe und
+      // einen Blickwinkel, den ein 72 x 40 grosses Feld an der Einbaustelle
+      // nicht hergibt - wer Keile unterlegt, steht draußen und sieht es nicht.
+      //
+      // Was hier steht, beantwortet dafür genau die Fragen, die sich OHNE
+      // Handy nicht beantworten lassen: Läuft das Gerät? Und unter welcher
+      // Adresse ist es zu erreichen? Letzteres ist die häufigste Rückfrage
+      // überhaupt, und die Antwort stand bisher nirgends.
+
+      // Kein Messwert heißt: Der Sensor antwortet nicht. Das ist die einzige
+      // Störung, die der Nutzer selbst beheben kann, deshalb steht sie vorn.
+      if (isnan(id(pitch).state)) {
+        it.print(0,  0, id(font_zeile), "Sensor?");
+        it.print(0, 14, id(font_klein), "Sensor stumm");
+        it.print(0, 26, id(font_klein), "Verkabelung");
+        return;
+      }
+
+      /* Ein eingerasteter Alarm verdrängt alles andere.
+       *
+       * Genau hier ist das Feld im Vorteil: Wer zum Fahrzeug zurückkommt,
+       * sieht es beim Aufschliessen - ohne Handy, ohne Netz, ohne App. Die
+       * Adresse darunter kann warten, die steht auch noch nach dem
+       * Quittieren da.
+       *
+       * Nur ASCII: Der Zeichensatz der Schrift kennt keine Umlaute, ein "ä"
+       * bliebe schlicht leer. */
+      if (id(wache_alarm)) {
+        it.print(0,  0, id(font_zeile), "ALARM");
+        it.print(0, 14, id(font_klein), "Lage veraendert");
+        if (id(wache_alarm_uhr) > 0) {
+          auto t = ESPTime::from_epoch_local(id(wache_alarm_uhr));
+          it.print(0, 26, id(font_klein), t.strftime("%d.%m. %H:%M").c_str());
+        } else if (id(wache_alarm_lauf) > 0) {
+          const uint32_t s = millis() / 1000 - id(wache_alarm_lauf);
+          if (s < 3600) it.printf(0, 26, id(font_klein), "vor %u min", (unsigned) (s / 60));
+          else if (s < 86400) it.printf(0, 26, id(font_klein), "vor %u h", (unsigned) (s / 3600));
+          else it.printf(0, 26, id(font_klein), "vor %u d", (unsigned) (s / 86400));
+        }
+        return;
+      }
+
+      const std::string ip   = id(ip_adresse).state;
+      const std::string netz = id(wlan_name).state;
+
+      // Solange keine gültige Adresse aus dem Heimnetz vorliegt, spannt das
+      // Gerät sein eigenes Netz auf - dann gilt die feste Adresse aus der
+      // manual_ip-Angabe der Gerätedatei.
+      const bool im_fremden_netz = !ip.empty() && ip != "0.0.0.0";
+
+      if (im_fremden_netz) {
+        it.printf(0,  0, id(font_klein), "WLAN %.9s", netz.c_str());
+        it.print (0, 12, id(font_zeile), ip.c_str());
+      } else {
+        // Kein Passwort auf dem Display: Ab Werk gibt es keins, und ein selbst
+        // vergebenes gehört dem Nutzer - das steht nicht sichtbar im
+        // Fahrzeug herum.
+        it.print (0,  0, id(font_klein), "Netz CamperMinder");
+        it.print (0, 12, id(font_zeile), "192.168.4.1");
+      }
+
+      // Fußzeile: eigene Version, dazu je ein Kürzel, wenn eine Zentrale
+      // mithört und wenn der Wächter scharf ist. Beides ohne Alarm - der hat
+      // oben schon die ganze Fläche bekommen.
+      it.printf(0, 28, id(font_klein), "v${firmware_version}%s%s",
+                id(zentrale_verbunden).state ? "  HA" : "",
+                id(wache).state ? "  W" : "");

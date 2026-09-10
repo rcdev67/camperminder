@@ -31,7 +31,7 @@ substitutions:
 esphome:
   name: ${device_name}
   friendly_name: ${friendly_name}
-  comment: CamperMinder - ESP32-C3 + MPU-6050 + OLED
+  comment: CamperMinder Level - ESP32-C3 + LSM6DS3TR-C
 
   # Ohne diesen Block wäre die Update-Prüfung wertlos. Der Quelltext von
   # http_request_update.cpp:
@@ -62,6 +62,17 @@ esphome:
   # Bau dauert dadurch länger und geht dafür durch.
   compile_process_limit: 1
 
+# Der Prototyp läuft auf einem ESP32-C3 SuperMini. Das Profil
+# esp32-c3-devkitm-1 passt dafür - es beschreibt den Chip, nicht die Platine,
+# und beide tragen einen ESP32-C3 mit 4 MB Flash.
+#
+# FÜR DIE SERIE IST DAS NOCH KEINE ENTSCHEIDUNG. Der SuperMini trägt den Chip
+# ungekapselt auf der eigenen Platine, mit eigener Leiterbahnantenne. Damit
+# fällt das Argument aus docs/produktentscheidungen.md weg, die
+# Funkeigenschaften nach Artikel 3.2 der Funkanlagenrichtlinie vom
+# vorzertifizierten ESP32-C3-WROOM-02 zu ERBEN - und genau das ist der
+# teuerste Posten der CE-Prüfung. Zum Erproben ist das gleichgültig, vor der
+# ersten Serienbestellung nicht.
 esp32:
   board: esp32-c3-devkitm-1
 
@@ -82,7 +93,8 @@ logger:
     number: INFO
     select: INFO
     text: INFO
-    mpu6050: INFO
+    lsm6ds: INFO
+    motion: INFO
     i2c: INFO
     api: INFO
     api.service: INFO
@@ -303,6 +315,22 @@ wifi:
 # fehlen, und jederzeit versehentlich installierbar.
 packages:
   hardware: !include hardware.yaml
+
+  # Bauvariante mit 0,42"-OLED: die folgende Zeile einkommentieren.
+  #
+  # Die auszuliefernde Ausführung hat KEIN Display - die Nivellieranzeige
+  # gehört aufs Handy, und was das Feld sonst konnte, übernehmen Status-LED
+  # und Summer aus hardware.yaml. Eines können sie nicht: die IP-Adresse im
+  # Heimnetz buchstabieren. Wer die vor Ort ablesen können muss - Werkstatt,
+  # Messplatz, ein Board mit aufgelötetem OLED aus der ersten Runde -, baut
+  # mit dieser Zeile.
+  #
+  # Bewusst eine auskommentierte Zeile und keine zweite Gerätedatei: Zwei
+  # Dateien hießen zwei Gerätenamen, zwei Kacheln im Dashboard und die
+  # Gewissheit, dass irgendwann die falsche gebaut wird. Genau diese
+  # Begründung steht oben schon für die eine Firmware statt zweier.
+  #
+  # anzeige: !include anzeige-oled.yaml
 
 # Eigene Oberfläche statt der ESPHome-Entitätenliste.
 #

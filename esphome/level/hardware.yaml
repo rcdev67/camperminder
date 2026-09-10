@@ -1,8 +1,11 @@
 # ============================================================================
 #  CamperMinder  -  Hardware und Messlogik
 # ----------------------------------------------------------------------------
-#  Enthält ausschließlich das Projektspezifische: Sensorik, OLED-Anzeige,
-#  Kalibrierung und Geräte-Webseite.
+#  Enthält ausschließlich das Projektspezifische: Sensorik, Status-LED,
+#  Summer, Kalibrierung und Geräte-Webseite.
+#
+#  NICHT die OLED-Anzeige - die ist eine Bauvariante und steht in
+#  anzeige-oled.yaml daneben. Die ausgelieferte Ausführung hat kein Display.
 #
 #  Bewusst NICHT enthalten: esphome:, wifi:, api:, ota:, captive_portal:.
 #  Diese Blöcke erzeugt der ESPHome-Assistent beim Anlegen eines neuen Geräts
@@ -39,6 +42,10 @@
 #  WICHTIG: Im Assistenten muss als Gerätetyp ESP32-C3 gewählt sein. Steht in
 #  der erzeugten Datei "board: esp32dev", auf "board: esp32-c3-devkitm-1"
 #  ändern - sonst passen die Pins nicht.
+#
+#  ANSCHLÜSSE: I2C auf GPIO5/GPIO6, Status-LED auf GPIO8, Summer auf GPIO10.
+#  Alle vier stehen als Substitution weiter unten; verkabelt wird nach
+#  docs/verkabelung.md.
 # ============================================================================
 
 substitutions:
@@ -62,11 +69,45 @@ substitutions:
   # Ein Bindestrich macht die Nummer zur Vorabfassung: "2.0.4-rc1" statt
   # "2.0.4". Daran erkennen die Werkzeuge, dass dieser Stand NICHT
   # veröffentlicht werden soll - Einzelheiten in docs/firmware_update.md.
-  firmware_version: "3.9.0"
+  firmware_version: "4.0.0"
 
-  # I2C-Pins (0,42"-OLED-Board): SDA=GPIO5, SCL=GPIO6
+  # --- Anschluesse ---------------------------------------------------------
+  #
+  # I2C-Bus. Auf dem ESP32-C3 sind GPIO4 bis GPIO7 und GPIO10 frei belegbar:
+  # GPIO0/1 tragen den 32-kHz-Quarz, GPIO2/8/9 sind Strapping-Pins, GPIO11 ist
+  # VDD_SPI, GPIO12-17 der Flash, GPIO18/19 der USB-Anschluss und GPIO20/21 die
+  # Log-Schnittstelle.
+  #
+  # 5 und 6 stehen hier weiter, obwohl sie im ersten Prototyp vom aufgeloeteten
+  # OLED vorgegeben waren und auf einem Board ohne Display frei waehlbar sind.
+  # Der Grund ist die Verkabelung: EINE Belegung fuer beide Ausfuehrungen
+  # bedeutet eine Anleitung, einen Kabelbaum und eine Loetstelle weniger, an
+  # der man sich vertun kann.
   i2c_sda_pin: GPIO5
   i2c_scl_pin: GPIO6
+
+  # Status-LED. Sie ersetzt am Geraet ohne Display die drei Auskuenfte, die
+  # bisher auf dem OLED standen: Laeuft das Geraet? Unter welcher Adresse ist
+  # es zu erreichen? Liegt ein Alarm an? Die Muster stehen im interval-Block.
+  #
+  # Auf dem ESP32-C3 SuperMini sitzt die eingebaute LED an GPIO8 und haengt
+  # gegen 3V3 - sie leuchtet also bei LOW, deshalb inverted. Dass GPIO8
+  # zugleich Strapping-Pin ist, stoert nicht: Beim Start ist der Pin Eingang,
+  # und der Widerstand der LED zieht ihn dabei nach oben - genau in den
+  # Zustand, den der Bootlader erwartet.
+  #
+  # Auf einer eigenen Platine gehoert die LED an einen freien Pin ohne
+  # Nebenaufgabe. Deshalb steht sie hier und nicht im Code.
+  status_led_pin: GPIO8
+  status_led_inverted: "true"
+
+  # Summer fuer den Waechteralarm. Ohne Display ist er das Einzige, was jemanden
+  # erreicht, der ohne Handy zum Fahrzeug kommt.
+  #
+  # GPIO10 ist frei und hat keine Nebenaufgabe. Haengt nichts daran, passiert
+  # nichts - der Pin schaltet dann ins Leere, und niemand muss deswegen eine
+  # andere Firmware bauen.
+  buzzer_pin: GPIO10
   # Vorgabe für "Toleranz genau" - die Gradtoleranz des Präzisionsmodus.
   # Nur der Anfangswert; verstellt wird sie danach über die Entität, damit
   # dafür niemand flashen muss. Muss zu DEFAULT_TOLERANCE_DEG in
@@ -89,10 +130,17 @@ substitutions:
   # Achs-ZUORDNUNG: auf welcher Beschleunigungsachse liegt welche Neigung?
   # Nur "x" oder "y" (z ist immer die Schwerkraft-Achse).
   #
-  # Die vier Werte oben und hier gelten für den Serienaufbau: MPU6050 flach auf
-  # die Lochrasterplatine gelötet, Gehäuse mit dem Pfeil nach vorn, Deckel oben.
-  # Am fertigen Prototyp geprüft - Front anheben gibt positiven Pitch, rechte
-  # Seite anheben positiven Roll.
+  # Die vier Werte oben und hier gelten für den Serienaufbau: Sensormodul flach
+  # auf die Lochrasterplatine gelötet, Gehäuse mit dem Pfeil nach vorn, Deckel
+  # oben. Front anheben gibt positiven Pitch, rechte Seite anheben positiven
+  # Roll.
+  #
+  # MIT 4.0.0 NEU ZU PRÜFEN: Diese Werte wurden am MPU6050 auf einem GY-521
+  # ermittelt. Der Adafruit-Breakout des LSM6DS3TR-C trägt den Chip anders
+  # herum auf der Platine, also liegen Zuordnung und Vorzeichen erst einmal
+  # NICHT fest. Sie sind am Prototyp neu zu bestimmen - Verfahren in
+  # docs/kalibrierung.md, Schritte 2 und 3 -, bevor irgendetwas davon in eine
+  # Serie geht. Eine falsche Zuordnung fällt sonst erst auf dem Stellplatz auf.
   #
   # Frühere Fassungen dieses Kommentars nannten "y / x" den Standard-Einbau.
   # Das war falsch beschriftet, nicht falsch eingestellt: Die Werte stimmten,
@@ -108,13 +156,21 @@ substitutions:
 
   # Ab welcher Summe der drei Drehraten - gemessen ALS ABWEICHUNG VOM
   # gelernten Nullpunkt, nicht als Absolutwert - Bewegung gilt. Bei einem
-  # ruhenden MPU6050 bleibt das Rauschen deutlich darunter.
+  # ruhenden Sensor bleibt das Rauschen deutlich darunter.
+  #
+  # Der Wert stammt vom MPU6050. Der LSM6DS3TR-C rauscht auf der Drehrate
+  # erheblich weniger, nach unten ist also Luft - und erst die macht die
+  # zurückgestellte Windwarnung überhaupt denkbar. Gesenkt wird er trotzdem
+  # nicht auf Verdacht, sondern nach einer Messreihe am stehenden Fahrzeug: Zu
+  # niedrig heißt, "In Bewegung" klebt dauerhaft an, und dieser eine Fehler hat
+  # hier schon einmal drei Symptome auf einmal erzeugt (siehe globals,
+  # gyro_null_x).
   motion_deg_s: "3.0"
 
   # --- Ruhige Anzeige: adaptive Glättung -----------------------------------
   #
   # Das Problem, das diese Rechnung löst: Ein Grad Neigung sind rund 17
-  # Milli-g. Das Rauschen eines MPU6050 liegt in derselben Größenordnung, und
+  # Milli-g. Das Rauschen eines MPU6050 lag in derselben Größenordnung, und
   # über einen Radstand von 3500 mm werden aus zwei, drei Zehntelgrad ein
   # ganzer Zentimeter. Bei 5 cm Toleranz sprang die Anzeige dadurch im Stand
   # zwischen 4,3 und 5,2 cm hin und her - das Fahrzeug stand längst, die
@@ -171,6 +227,12 @@ substitutions:
   #
   # Ruhe 5 ergibt exakt das Verhalten, mit dem 2.0.5 ausgeliefert wurde. Wer
   # die Abbildung ändert, verschiebt damit die Voreinstellung für alle.
+  #
+  # Auch diese sechs Zahlen sind am MPU6050 ermittelt. Der LSM6DS3TR-C rauscht
+  # rund viermal weniger - 90 statt etwa 400 Mikro-g je Wurzel Hertz -, die
+  # Rauschgrenze dürfte also deutlich enger gehen und die Anzeige damit
+  # schneller werden, ohne unruhig zu wirken. Vor einer Messreihe wird hier
+  # aber nichts gedreht: Die Abbildung verschiebt die Voreinstellung für alle.
   calm_default: "5"
   calm_noise_base: "0.05"
   calm_noise_step: "0.04"
@@ -206,6 +268,27 @@ esp32:
 # bereits offen.
 esphome:
   on_boot:
+    # ZUERST: die gespeicherte Kalibrierung auf die neue Einheit pruefen.
+    #
+    # Bis 3.9.0 lieferte der MPU6050 die Beschleunigung in m/s2, der
+    # Kalibrierbetrag lag also bei rund 9,81. Der LSM6DS3TR-C liefert sie in g,
+    # also bei rund 1,0. Ein aus der alten Fassung uebernommener Wert laege um
+    # den Faktor 9,81 daneben - die Kalibrierpruefung schluege danach dauerhaft
+    # an, und der Kunde saehe nach einem harmlosen Update eine Stoerung, die
+    # keine ist.
+    #
+    # Alles ueber 5 kann nur aus der alten Einheit stammen: Der Betrag der
+    # Erdbeschleunigung in g ist immer rund 1,0, auch bei schief haengendem
+    # Geraet. Verworfen statt umgerechnet, weil auch der NULLPUNKT neu zu
+    # setzen ist - der Sensor ist ein anderer, und ein umgerechneter Betrag
+    # taeuschte eine Kalibrierung vor, die es nicht mehr gibt.
+    - priority: 600
+      then:
+        - lambda: |-
+            if (id(kal_betrag) > 5.0f) {
+              ESP_LOGW("level", "Kalibrierbetrag stammt aus der alten Einheit (m/s2) - verworfen. Bitte neu kalibrieren.");
+              id(kal_betrag) = -1.0f;
+            }
     - priority: 600
       then:
         - lambda: |-
@@ -354,15 +437,110 @@ web_server:
 preferences:
   flash_write_interval: 1min
 
-# --- I2C: OLED + MPU6050 auf einem Bus -------------------------------------
+# --- I2C: der Lagesensor, beim Bausatz mit Display auch das OLED -----------
 i2c:
   id: grove
   sda: ${i2c_sda_pin}
   scl: ${i2c_scl_pin}
   scan: true
-  frequency: 100kHz          # stabil mit OLED+MPU; 400kHz möglich, wenn Bus sauber
+  # 100 kHz ist die vorsichtige Wahl und reicht: Bei 100 ms Takt sind sechs
+  # 16-Bit-Register zu lesen, das sind rund 1,5 ms Busbelegung. 400 kHz gingen
+  # bei sauberem Aufbau, brächten aber nichts, was man merkt - und der
+  # LSM6DS3TR-C sitzt auf einem Steckkabel, nicht auf der Platine.
+  frequency: 100kHz
   sda_pullup_enabled: true
   scl_pullup_enabled: true
+
+# --- Lagesensor: LSM6DS3TR-C -----------------------------------------------
+#
+# Loest den MPU6050 ab. Der Grund steht in docs/produktentscheidungen.md und
+# ist kein technischer Ehrgeiz: TDK fuehrt den MPU-6050 als abgekuendigt, der
+# Markt ist voller Faelschungen, und bei einem Geraet, dessen Genauigkeit am
+# Temperaturdrift des Sensors haengt, ist das die schlechteste Stelle zum
+# Sparen. Der LSM6DS3TR-C ist in laufender Produktion.
+#
+# ESPHome bringt ihn seit 2026.6 selbst mit - als "motion"-Plattform, nicht als
+# gewoehnliche Sensorplattform. Der Unterschied ist wichtig fuer jeden, der
+# hier etwas anfasst: Der Block unten ist der HUB, der den Chip ausliest; die
+# einzelnen Achsen erscheinen weiter unten unter sensor: als "platform: motion"
+# und verweisen mit motion_id hierher.
+#
+# ACHTUNG, EINHEITEN: Diese Plattform liefert die Beschleunigung in g, der
+# MPU6050 lieferte sie in m/s2. Wer Schwellen anfasst, die auf den Betrag des
+# Beschleunigungsvektors gehen, rechnet mit 1,0 - nicht mit 9,81. Betroffen
+# sind die Montagepruefung und die Kalibrierpruefung; beide sind dort
+# entsprechend kommentiert. Die Drehrate ist in beiden Faellen Grad je Sekunde.
+#
+# WARUM DIESE VIER EINSTELLUNGEN:
+#
+# accelerometer_range 2G statt der Voreinstellung 4G. Ein Fahrzeug steht nie
+#   schraeger als ein paar Grad, der Messbereich wird also nie gebraucht - und
+#   der kleinste Bereich hat die feinste Aufloesung: 0,061 mg je Schritt statt
+#   0,122. Ein Grad Neigung sind rund 17 mg, das sind damit 280 Schritte je
+#   Grad. Genau darauf kommt es bei einem Neigungsmesser an.
+#
+# gyroscope_range 125DPS statt 2000DPS, aus demselben Grund. Erkannt werden
+#   soll eine Erschuetterung von wenigen Grad je Sekunde; 2000 waeren fuer
+#   einen Kreiselkompass richtig und hier reine Aufloesungsverschwendung.
+#
+# accelerometer_odr 104HZ bei 100 ms Abtastung: Der Chip filtert intern ueber
+#   seine eigene Datenrate. Deutlich langsamer eingestellt lieferte er bei
+#   jedem zweiten Lesen denselben Wert, deutlich schneller kostet nur Strom.
+#
+# update_interval 100ms - der Takt, den die ganze restliche Rechnung erwartet
+#   (Glaettung, Bewegungserkennung, Anzeige). Die Voreinstellung der Plattform
+#   sind 250 ms; damit liefe alles darunter im falschen Takt.
+motion:
+  - platform: lsm6ds
+    id: lagesensor
+    i2c_id: grove
+    # 0x6A ist die Werkseinstellung des Adafruit-Breakouts (Artikel 4503).
+    # 0x6B gilt, wenn auf der Platine die Bruecke SDO/SA0 geschlossen ist.
+    address: 0x6A
+    accelerometer_range: 2G
+    accelerometer_odr: 104HZ
+    gyroscope_range: 125DPS
+    gyroscope_odr: 104HZ
+    update_interval: 100ms
+
+# --- Ausgänge: Status-LED und Summer ----------------------------------------
+#
+# Beides ist der Ersatz für das OLED des ersten Prototyps. Die Ausführung ohne
+# Display kann drei Dinge sonst nicht mehr sagen, und alle drei stehen genau
+# dann an, wenn kein Handy zur Hand ist:
+#
+#   Läuft das Gerät überhaupt?   -> die LED blinkt
+#   Wo erreiche ich es?          -> das Blinkmuster unterscheidet eigenes Netz
+#                                   (dann gilt 192.168.4.1) von Heimnetz
+#   Ist etwas passiert?          -> Alarmmuster und Summer
+#
+# Die Adresse im Heimnetz kann eine LED nicht buchstabieren. Dafür steht der
+# Name camperminder-level.local im Handbuch - das ist der eine Punkt, an dem
+# die Ausführung ohne Display schlechter ist als die mit, und er wird
+# ausdrücklich nicht schöngeredet.
+output:
+  # Die LED hängt gegen 3V3 und leuchtet bei LOW - deshalb inverted. Steht in
+  # den Substitutions, weil eine eigene Platine sie woandershin legt.
+  - platform: gpio
+    id: led_ausgang
+    pin:
+      number: ${status_led_pin}
+      inverted: ${status_led_inverted}
+
+  # ledc, weil rtttl eine einstellbare Frequenz braucht - ein einfacher
+  # Schaltausgang kann keinen Ton erzeugen. Passives Piezoelement vorausgesetzt;
+  # ein aktiver Summer mit eigener Elektronik pfeift stur auf seiner eigenen
+  # Frequenz und ignoriert die Melodie.
+  - platform: ledc
+    id: summer_ausgang
+    pin: ${buzzer_pin}
+
+rtttl:
+  id: summer
+  output: summer_ausgang
+  # 60 % statt voller Aussteuerung: Ein Piezo direkt am Pin wird sonst
+  # unangenehm laut für ein Gerät, das im Wohnraum sitzt.
+  gain: 60%
 
 # --- Uhr ---------------------------------------------------------------------
 #
@@ -513,9 +691,10 @@ globals:
 
   # --- Nullpunkt der Drehraten ----------------------------------------------
   #
-  # Der Gyro eines MPU6050 zeigt im Stillstand NICHT null, sondern einen
-  # Versatz von oft mehreren Grad je Sekunde - je Achse und je Bauteil
-  # verschieden. Die erste Fassung addierte die Absolutwerte der drei Achsen
+  # Ein Gyro zeigt im Stillstand NICHT null, sondern einen Versatz - je Achse
+  # und je Bauteil verschieden. Beim MPU6050 waren das oft mehrere Grad je
+  # Sekunde, beim LSM6DS3TR-C ist er erheblich kleiner, aber er ist da und er
+  # wandert mit der Temperatur. Die erste Fassung addierte die Absolutwerte der drei Achsen
   # und verglich mit 3 Grad/s; damit überschritt allein der Versatz die
   # Schwelle, und "In Bewegung" klebte dauerhaft an.
   #
@@ -598,6 +777,20 @@ globals:
   # Bordsteinkante ist kein Montagefehler.
   - id: montage_takte
     type: uint16_t
+    initial_value: "0"
+
+  # --- Summer ---------------------------------------------------------------
+  #
+  # Wann der Alarm angefangen hat zu toenen und wann zuletzt getoent wurde.
+  # Beide BEWUSST ohne restore_value: Nach einem Neustart soll der Summer nicht
+  # dort weitermachen, wo er aufgehoert hat, sondern von vorn anfangen - ein
+  # neu gestartetes Geraet mit eingerastetem Alarm ist genau der Fall, in dem
+  # man den Ton noch einmal hoeren will.
+  - id: summer_seit
+    type: uint32_t
+    initial_value: "0"
+  - id: summer_letzt
+    type: uint32_t
     initial_value: "0"
 
   # --- Anwesenheit ----------------------------------------------------------
@@ -1164,6 +1357,41 @@ switch:
     # erst auspackt.
     restore_mode: RESTORE_DEFAULT_OFF
 
+  # --- Status-LED ------------------------------------------------------------
+  #
+  # Abschaltbar, und das ist kein Zugeständnis: Das Gerät sitzt im Wohnraum,
+  # und eine blinkende LED über dem Bett ist nachts genau so störend wie jede
+  # andere. Wer sie einmal aus Ärger abklebt, klebt sie nicht wieder frei -
+  # dann wäre auch die Alarmanzeige weg.
+  #
+  # DER ALARM BLINKT TROTZDEM. Dieser Schalter nimmt die Betriebsanzeige weg,
+  # nicht die Meldung. Eine Meldung, die sich versehentlich abschalten lässt,
+  # ist keine.
+  - platform: template
+    name: "Status-LED"
+    id: led_an
+    state_topic: camperminder/level/switch/status_led/state
+    command_topic: camperminder/level/switch/status_led/command
+    icon: mdi:led-on
+    entity_category: config
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_ON
+
+  # --- Alarmton --------------------------------------------------------------
+  #
+  # Der Summer ist die einzige Meldung, die jemanden erreicht, der ohne Handy
+  # und ohne Netz zum Fahrzeug kommt. Abschaltbar trotzdem: Wer den Wächter im
+  # Betrieb scharf hat, während Leute im Fahrzeug sind, will keinen Ton.
+  - platform: template
+    name: "Alarmton"
+    id: alarmton
+    state_topic: camperminder/level/switch/alarmton/state
+    command_topic: camperminder/level/switch/alarmton/command
+    icon: mdi:bullhorn
+    entity_category: config
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_ON
+
   # --- Wächter ---------------------------------------------------------------
   #
   # Das Gerät hängt fest am Bordnetz und ist immer an. Genau daraus entsteht
@@ -1204,18 +1432,6 @@ switch:
       - lambda: |-
           id(wache_alarm) = false;
           ESP_LOGI("wache", "Unscharf.");
-
-# --- Schriften fürs OLED (lädt sich beim Kompilieren automatisch) --------
-font:
-  # Zwei Größen, weil das Feld nur 72 x 40 Pixel hat: Die Adresse muss lesbar
-  # sein, der Rest darf klein bleiben. "192.168.100.123" wäre in Größe 10 zu
-  # breit - deshalb steht die Adresse in 10 und alles andere in 8.
-  - file: "gfonts://Roboto"
-    id: font_zeile
-    size: 10
-  - file: "gfonts://Roboto"
-    id: font_klein
-    size: 8
 
 sensor:
   # --- Geltende Zielneigung --------------------------------------------------
@@ -1265,9 +1481,9 @@ sensor:
     accuracy_decimals: 1
     update_interval: 60s
     lambda: |-
-      if (isnan(id(mpu_temp).state)) return NAN;
+      if (isnan(id(chip_temp).state)) return NAN;
       const float ab = isnan(id(temp_abgleich).state) ? 0.0f : id(temp_abgleich).state;
-      return id(mpu_temp).state + ab;
+      return id(chip_temp).state + ab;
 
   # Wie lange es schon zu schief steht. Als Zahl und nicht nur als Text, damit
   # sich eine eigene Automatisierung eine andere Grenze setzen kann - und
@@ -1296,49 +1512,82 @@ sensor:
     update_interval: 60s
     entity_category: diagnostic
 
-  # --- MPU6050: schnelle Rohwerte ------------------------------------------
-  - platform: mpu6050
-    i2c_id: grove
-    address: 0x68
-    update_interval: 100ms          # 10 Hz Rohdaten
-    accel_x:
-      id: accel_x
-      internal: true
-    accel_y:
-      id: accel_y
-      internal: true
-    accel_z:
-      id: accel_z
-      internal: true
-    temperature:
-      name: "MPU6050 Temperatur"
-      # id, weil die Selbstüberwachung mitliest: Sie vergleicht die jetzige
-      # Temperatur mit der bei der Kalibrierung und warnt, bevor der Nutzer
-      # einem Wert vertraut, den der Temperaturdrift längst verschoben hat.
-      id: mpu_temp
-      entity_category: diagnostic
-      accuracy_decimals: 2
-      # Nicht mehr internal: Ohne diesen Wert in Home Assistant lässt sich der
-      # Nullpunktdrift des Sensors über Temperatur nicht messen - und genau der
-      # begrenzt die Genauigkeit eines Neigungsmessers, nicht das Rauschen.
-      #
-      # throttle_average mittelt die 600 Messungen einer Minute zu einem Wert.
-      # Ungebremst kämen bei 100 ms Takt zehn Werte je Sekunde in der Datenbank
-      # an - für eine Temperatur sinnlos und für die Aufzeichnung eine Last.
-      filters:
-        - throttle_average: 60s
-    gyro_x:
-      name: "MPU6050 Gyro X"
-      id: gyro_x
-      internal: true
-    gyro_y:
-      name: "MPU6050 Gyro Y"
-      id: gyro_y
-      internal: true
-    gyro_z:
-      name: "MPU6050 Gyro Z"
-      id: gyro_z
-      internal: true
+  # --- Lagesensor: schnelle Rohwerte ----------------------------------------
+  #
+  # Sechs Einzeleintraege statt eines Blocks wie beim MPU6050: Die
+  # motion-Plattform gibt jede Achse als eigenen Sensor heraus, der ueber
+  # motion_id auf den Hub weiter oben zeigt. Das ist geschwaetziger, hat aber
+  # einen Vorteil - eine Achse, die niemand abfragt, wird auch nicht berechnet.
+  #
+  # EINHEIT: acceleration_* liefert g, NICHT m/s2 wie frueher. Wer hier etwas
+  # anhaengt, das mit dem Betrag rechnet, prueft "Diagnose Betrag" weiter unten
+  # und die beiden Schwellen in der Selbstueberwachung mit.
+  #
+  # internal: true bei allen sechs. Es sind Zwischenwerte im 100-ms-Takt; in
+  # Home Assistant waeren sie sechs Datenreihen, die niemand ansieht und die
+  # bei jedem Wert die Datenbank anfassen. Was gebraucht wird, entsteht daraus
+  # weiter unten: Pitch, Roll, Betrag, Bewegung.
+  - platform: motion
+    motion_id: lagesensor
+    type: acceleration_x
+    id: accel_x
+    internal: true
+  - platform: motion
+    motion_id: lagesensor
+    type: acceleration_y
+    id: accel_y
+    internal: true
+  - platform: motion
+    motion_id: lagesensor
+    type: acceleration_z
+    id: accel_z
+    internal: true
+  - platform: motion
+    motion_id: lagesensor
+    type: gyroscope_x
+    id: gyro_x
+    internal: true
+  - platform: motion
+    motion_id: lagesensor
+    type: gyroscope_y
+    id: gyro_y
+    internal: true
+  - platform: motion
+    motion_id: lagesensor
+    type: gyroscope_z
+    id: gyro_z
+    internal: true
+
+  # Die Temperatur im Chip. Eigene Plattform, weil sie nicht aus dem
+  # Bewegungsdatensatz stammt: Der Treiber liest das Temperaturregister nur
+  # dann zusaetzlich aus, wenn jemand zuhoert - dieser Eintrag hier ist dieses
+  # Jemand.
+  #
+  # id, weil die Selbstüberwachung mitliest: Sie vergleicht die jetzige
+  # Temperatur mit der bei der Kalibrierung und warnt, bevor der Nutzer einem
+  # Wert vertraut, den der Temperaturdrift längst verschoben hat.
+  #
+  # Nicht internal: Ohne diesen Wert in Home Assistant lässt sich der
+  # Nullpunktdrift des Sensors über Temperatur nicht messen - und genau der
+  # begrenzt die Genauigkeit eines Neigungsmessers, nicht das Rauschen.
+  #
+  # Der Name hat sich mit 4.0.0 geändert - aus "MPU6050 Temperatur" wurde
+  # "Sensortemperatur". Das bricht die Aufzeichnung in Home Assistant, und das
+  # ist hier richtig so: Die alte Messreihe stammt von einem anderen Bauteil
+  # und sagt über dieses hier nichts aus. Sie jetzt fortzuschreiben hieße, zwei
+  # verschiedene Sensoren in eine Kurve zu zeichnen.
+  - platform: lsm6ds
+    lsm6ds_id: lagesensor
+    type: temperature
+    name: "Sensortemperatur"
+    id: chip_temp
+    entity_category: diagnostic
+    accuracy_decimals: 2
+    # throttle_average mittelt die 600 Messungen einer Minute zu einem Wert.
+    # Ungebremst kämen bei 100 ms Takt zehn Werte je Sekunde in der Datenbank
+    # an - für eine Temperatur sinnlos und für die Aufzeichnung eine Last.
+    filters:
+      - throttle_average: 60s
 
   # --- Neigung Längs (Pitch) ----------------------------------------------
   - platform: template
@@ -1586,19 +1835,27 @@ sensor:
     lambda: 'return id(stuetzrad);'
     filters: [ or: [ delta: 0.05, heartbeat: 60s ] ]
 
-  # Der Betrag des Beschleunigungsvektors. Er muss im Stillstand immer 9,81
+  # Der Betrag des Beschleunigungsvektors. Er muss im Stillstand immer 1,0 g
   # betragen, ganz gleich wie das Fahrzeug steht - die Erdbeschleunigung ändert
   # sich nicht mit der Neigung. Jede Abweichung, die mit der Temperatur
   # mitwandert, ist deshalb eindeutig ein Sensorfehler und kann nicht vom
   # Fahrzeug kommen. Das ist der einzige Wert der Messreihe, den weder
   # Reifendruck noch Federung noch ein Umparken verfälschen können.
+  #
+  # BIS 3.9.0 STAND HIER m/s² UND DAMIT 9,81. Der LSM6DS3TR-C liefert g; alle
+  # Schwellen, die auf diesen Wert gehen, sind entsprechend umgerechnet. Eine
+  # aufgezeichnete Messreihe aus 3.9.0 lässt sich mit dieser nicht in ein
+  # Diagramm legen.
   - platform: template
     name: "Diagnose Betrag"
     id: accel_magnitude
     entity_category: diagnostic
-    unit_of_measurement: "m/s²"
+    unit_of_measurement: "g"
     state_class: measurement
-    accuracy_decimals: 4
+    # Fünf statt vier Nachkommastellen: Ein Schritt des Wandlers sind bei 2 g
+    # Messbereich 0,000061 g. Mit vier Stellen läge die Anzeige gröber als das
+    # Bauteil, und genau die kleinen Wanderungen sollen hier sichtbar werden.
+    accuracy_decimals: 5
     update_interval: 100ms
     lambda: |-
       if (isnan(id(accel_x).state) || isnan(id(accel_y).state) || isnan(id(accel_z).state)) {
@@ -1936,9 +2193,9 @@ interval:
           if (!isnan(p) && !isnan(r) && (fabsf(p) > 45.0f || fabsf(r) > 45.0f)) {
             verdacht = true;
           }
-          // Und die Erdbeschleunigung ist immer 9,81 - zehn Prozent daneben
+          // Und die Erdbeschleunigung ist immer 1,0 g - zehn Prozent daneben
           // heißt, der Sensor wird beschleunigt oder er ist defekt.
-          if (!isnan(betrag) && fabsf(betrag - 9.80665f) > 0.98f) verdacht = true;
+          if (!isnan(betrag) && fabsf(betrag - 1.0f) > 0.10f) verdacht = true;
 
           if (verdacht) {
             if (id(montage_takte) < 1000) id(montage_takte)++;
@@ -1980,6 +2237,86 @@ interval:
             ESP_LOGW("kuehl", "Stufe %u nach %u min schief.",
                      (unsigned) id(kuehl_stufe), (unsigned) (dauer / 60));
           }
+
+  # --- Status-LED: die Auskünfte des OLED, in Blinkmuster übersetzt ----------
+  #
+  # Ein Zeichen je 100 ms, dreißig Zeichen ergeben drei Sekunden. '#' heißt an,
+  # '.' heißt aus. Als Zeichenkette und nicht als Rechnung, weil man ein Muster
+  # so ANSIEHT - wer es ändern will, zählt Zeichen statt Millisekunden
+  # auszurechnen, und ein Tippfehler ist auf einen Blick zu erkennen.
+  #
+  # Die vier Muster sind absichtlich verschieden lang an: Man soll sie aus dem
+  # Augenwinkel unterscheiden können, ohne sie gezählt zu haben.
+  - interval: 100ms
+    then:
+      - lambda: |-
+          static uint8_t takt = 0;
+          takt = (takt + 1) % 30;
+
+          const char *muster;
+          if (id(wache_alarm)) {
+            // Hektisches Doppelblinken, dreimal je drei Sekunden. Sticht gegen
+            // alles andere hier ab und ist auch durch eine Scheibe zu sehen.
+            muster = "#.#.......#.#.......#.#.......";
+          } else if (!id(led_an).state) {
+            muster = "..............................";
+          } else if (isnan(id(pitch).state)) {
+            // Der Sensor antwortet nicht. Die einzige Störung, die der Nutzer
+            // selbst beheben kann - deshalb bekommt sie ein eigenes Muster.
+            muster = "#####.....#####.....#####.....";
+          } else {
+            const std::string ip = id(ip_adresse).state;
+            if (ip.empty() || ip == "0.0.0.0") {
+              // Eigenes Netz: lang an, lang aus. Heißt "verbinde dich mit
+              // CamperMinder und ruf 192.168.4.1 auf".
+              muster = "##############................";
+            } else {
+              // Im Heimnetz und zufrieden: ein kurzer Herzschlag alle drei
+              // Sekunden. Mehr wäre im Wohnraum nur lästig.
+              muster = "#.............................";
+            }
+          }
+
+          if (muster[takt] == '#') id(led_ausgang).turn_on();
+          else                     id(led_ausgang).turn_off();
+
+  # --- Summer beim Wächteralarm ---------------------------------------------
+  #
+  # Alle zehn Sekunden ein kurzer Dreiklang, und nach fünf Minuten ist Ruhe.
+  #
+  # Warum nicht dauerhaft: Wer den Alarm hört, ist entweder da - dann reichen
+  # fünf Minuten - oder er ist es nicht, und dann beschallt das Gerät eine
+  # halbe Nacht lang den Stellplatz, ohne dass es jemandem hilft. Eine Sirene,
+  # die stundenlang läuft, schaltet der Nachbar ab, und dann ist die Meldung
+  # weg. Der eingerastete Alarm, die LED, Home Assistant und MQTT bleiben
+  # ohnehin bestehen - der Ton ist nur die Spur, die sofort auffällt.
+  - interval: 1s
+    then:
+      - lambda: |-
+          if (!id(wache_alarm) || !id(alarmton).state) {
+            id(summer_seit) = 0;
+            return;
+          }
+          /* Plus eins, damit der Wert nie null wird: Null heißt hier "tönt
+           * gerade nicht", und in der ersten Sekunde nach dem Einschalten
+           * lieferte millis()/1000 genau das. Ein Gerät, das mit
+           * eingerastetem Alarm hochfährt - der übersteht den Stromausfall -,
+           * hätte in dieser Sekunde bei jedem Durchlauf neu angeschlagen.
+           * Auf die Differenzen weiter unten wirkt sich der Versatz nicht
+           * aus, er steht auf beiden Seiten. */
+          const uint32_t jetzt = millis() / 1000 + 1;
+
+          // Erster Ton sofort beim Einrasten, nicht erst zehn Sekunden später.
+          if (id(summer_seit) == 0) {
+            id(summer_seit)  = jetzt;
+            id(summer_letzt) = jetzt;
+            id(summer).play("alarm:d=16,o=6,b=180:a,p,a,p,a");
+            return;
+          }
+          if (jetzt - id(summer_seit)  > 300) return;   // nach fünf Minuten Ruhe
+          if (jetzt - id(summer_letzt) <  10) return;
+          id(summer_letzt) = jetzt;
+          id(summer).play("alarm:d=16,o=6,b=180:a,p,a,p,a");
 
 binary_sensor:
   # id, weil die OLED-Anzeige daran abliest, ob eine Zentrale mithört. Ohne
@@ -2083,25 +2420,26 @@ binary_sensor:
       if (id(kal_temp) < -900.0f) return false;
 
       const float grenze = isnan(id(drift_grenz).state) ? 20.0f : id(drift_grenz).state;
-      if (!isnan(id(mpu_temp).state)
-          && fabsf(id(mpu_temp).state - id(kal_temp)) > grenze) {
+      if (!isnan(id(chip_temp).state)
+          && fabsf(id(chip_temp).state - id(kal_temp)) > grenze) {
         return true;
       }
 
-      /* Der Betrag des Beschleunigungsvektors muss immer 9,81 sein, ganz
+      /* Der Betrag des Beschleunigungsvektors muss immer 1,0 g sein, ganz
        * gleich wie das Fahrzeug steht. Wandert er, war es der Sensor - das
-       * kann weder der Reifendruck noch der Untergrund gewesen sein. 0,15
+       * kann weder der Reifendruck noch der Untergrund gewesen sein. 0,0153
        * entspricht rund 1,5 Prozent und liegt weit über dem Rauschen des
-       * über eine Minute gemittelten Werts. */
+       * über eine Minute gemittelten Werts. Es ist derselbe Anteil wie die
+       * 0,15 m/s² bis 3.9.0, nur in der Einheit dieses Sensors. */
       if (id(kal_betrag) > 0.0f && !isnan(id(accel_magnitude).state)
-          && fabsf(id(accel_magnitude).state - id(kal_betrag)) > 0.15f) {
+          && fabsf(id(accel_magnitude).state - id(kal_betrag)) > 0.0153f) {
         return true;
       }
       return false;
 
   # Der Fehlerfall, der sonst als "misst falsch" in einer Rezension landet:
   # Das Gerät hat sich gelöst oder sitzt schief. Ein Fahrzeug steht nie 45
-  # Grad schief, und der Betrag der Erdbeschleunigung ist immer 9,81 - beides
+  # Grad schief, und der Betrag der Erdbeschleunigung ist immer 1,0 g - beides
   # zusammen erkennt einen abgefallenen Sensor ohne Fehlalarm.
   #
   # Erst nach mehreren Takten, damit eine Bordsteinkante nichts auslöst.
@@ -2176,9 +2514,12 @@ binary_sensor:
   # KEIN Alarm - das ist Anwesenheit. Der Alarm ist "Lageänderung" darüber.
   #
   # Die Entscheidung fällt im 100-ms-Block weiter oben, weil sie den gelernten
-  # Nullpunkt der Drehraten braucht. Hier stand vorher die Summe der
-  # ABSOLUTWERTE gegen 3 Grad/s - und weil ein MPU6050 im Stillstand einen
-  # Versatz von mehreren Grad je Sekunde zeigt, war die Meldung dauerhaft an.
+  # Nullpunkt der Drehraten braucht. Hier stand einmal die Summe der
+  # ABSOLUTWERTE gegen 3 Grad/s - und weil der damalige MPU6050 im Stillstand
+  # einen Versatz von mehreren Grad je Sekunde zeigte, war die Meldung
+  # dauerhaft an. Der LSM6DS3TR-C hat einen kleineren Versatz; der gelernte
+  # Nullpunkt bleibt trotzdem richtig, denn er wandert bei jedem Bauteil mit
+  # der Temperatur.
   - platform: template
     name: "In Bewegung"
     id: in_motion
@@ -2347,9 +2688,9 @@ text_sensor:
         snprintf(wann, sizeof(wann), "Zeitpunkt unbekannt,");
       }
 
-      if (id(kal_pruefen).state && !isnan(id(mpu_temp).state)) {
+      if (id(kal_pruefen).state && !isnan(id(chip_temp).state)) {
         snprintf(text, sizeof(text), "%s bei %.0f °C - jetzt %.0f °C, bitte prüfen",
-                 wann, id(kal_temp), id(mpu_temp).state);
+                 wann, id(kal_temp), id(chip_temp).state);
       } else {
         snprintf(text, sizeof(text), "%s bei %.0f °C", wann, id(kal_temp));
       }
@@ -2694,90 +3035,9 @@ button:
              * Der Betrag des Beschleunigungsvektors kommt dazu, weil ihn
              * weder Reifendruck noch Untergrund noch ein Umparken
              * verfaelschen koennen - siehe docs/drift_messung.md. */
-            if (!isnan(id(mpu_temp).state)) id(kal_temp) = id(mpu_temp).state;
+            if (!isnan(id(chip_temp).state)) id(kal_temp) = id(chip_temp).state;
             if (!isnan(id(accel_magnitude).state)) id(kal_betrag) = id(accel_magnitude).state;
             id(kal_uhr) = id(uhr).now().is_valid() ? id(uhr).now().timestamp : 0;
 
             ESP_LOGI("level", "Kalibrierung gespeichert: pitch_offset=%.3f, roll_offset=%.3f, %.1f C",
                      id(pitch_offset), id(roll_offset), id(kal_temp));
-
-# --- OLED: Libelle (Blase) links + exakte Zahlen rechts --------------------
-display:
-  - platform: ssd1306_i2c
-    model: "SSD1306 72x40"
-    i2c_id: grove
-    address: 0x3C
-    # 1s statt 200ms: Hier steht kein wandernder Messwert mehr, sondern ein
-    # Zustand. Der ändert sich selten, und der I2C-Bus teilt sich die Leitung
-    # mit dem Beschleunigungssensor.
-    update_interval: 1s
-    lambda: |-
-      // Das Feld zeigt den SYSTEMZUSTAND, nicht die Neigung.
-      //
-      // Die Nivellieranzeige gehört aufs Handy: Sie braucht Größe, Farbe und
-      // einen Blickwinkel, den ein 72 x 40 grosses Feld an der Einbaustelle
-      // nicht hergibt - wer Keile unterlegt, steht draußen und sieht es nicht.
-      //
-      // Was hier steht, beantwortet dafür genau die Fragen, die sich OHNE
-      // Handy nicht beantworten lassen: Läuft das Gerät? Und unter welcher
-      // Adresse ist es zu erreichen? Letzteres ist die häufigste Rückfrage
-      // überhaupt, und die Antwort stand bisher nirgends.
-
-      // Kein Messwert heißt: Der Sensor antwortet nicht. Das ist die einzige
-      // Störung, die der Nutzer selbst beheben kann, deshalb steht sie vorn.
-      if (isnan(id(pitch).state)) {
-        it.print(0,  0, id(font_zeile), "Sensor?");
-        it.print(0, 14, id(font_klein), "MPU6050 stumm");
-        it.print(0, 26, id(font_klein), "Verkabelung");
-        return;
-      }
-
-      /* Ein eingerasteter Alarm verdrängt alles andere.
-       *
-       * Genau hier ist das Feld im Vorteil: Wer zum Fahrzeug zurückkommt,
-       * sieht es beim Aufschliessen - ohne Handy, ohne Netz, ohne App. Die
-       * Adresse darunter kann warten, die steht auch noch nach dem
-       * Quittieren da.
-       *
-       * Nur ASCII: Der Zeichensatz der Schrift kennt keine Umlaute, ein "ä"
-       * bliebe schlicht leer. */
-      if (id(wache_alarm)) {
-        it.print(0,  0, id(font_zeile), "ALARM");
-        it.print(0, 14, id(font_klein), "Lage veraendert");
-        if (id(wache_alarm_uhr) > 0) {
-          auto t = ESPTime::from_epoch_local(id(wache_alarm_uhr));
-          it.print(0, 26, id(font_klein), t.strftime("%d.%m. %H:%M").c_str());
-        } else if (id(wache_alarm_lauf) > 0) {
-          const uint32_t s = millis() / 1000 - id(wache_alarm_lauf);
-          if (s < 3600) it.printf(0, 26, id(font_klein), "vor %u min", (unsigned) (s / 60));
-          else if (s < 86400) it.printf(0, 26, id(font_klein), "vor %u h", (unsigned) (s / 3600));
-          else it.printf(0, 26, id(font_klein), "vor %u d", (unsigned) (s / 86400));
-        }
-        return;
-      }
-
-      const std::string ip   = id(ip_adresse).state;
-      const std::string netz = id(wlan_name).state;
-
-      // Solange keine gültige Adresse aus dem Heimnetz vorliegt, spannt das
-      // Gerät sein eigenes Netz auf - dann gilt die feste Adresse aus der
-      // manual_ip-Angabe der Gerätedatei.
-      const bool im_fremden_netz = !ip.empty() && ip != "0.0.0.0";
-
-      if (im_fremden_netz) {
-        it.printf(0,  0, id(font_klein), "WLAN %.9s", netz.c_str());
-        it.print (0, 12, id(font_zeile), ip.c_str());
-      } else {
-        // Kein Passwort auf dem Display: Ab Werk gibt es keins, und ein selbst
-        // vergebenes gehört dem Nutzer - das steht nicht sichtbar im
-        // Fahrzeug herum.
-        it.print (0,  0, id(font_klein), "Netz CamperMinder");
-        it.print (0, 12, id(font_zeile), "192.168.4.1");
-      }
-
-      // Fußzeile: eigene Version, dazu je ein Kürzel, wenn eine Zentrale
-      // mithört und wenn der Wächter scharf ist. Beides ohne Alarm - der hat
-      // oben schon die ganze Fläche bekommen.
-      it.printf(0, 28, id(font_klein), "v${firmware_version}%s%s",
-                id(zentrale_verbunden).state ? "  HA" : "",
-                id(wache).state ? "  W" : "");
