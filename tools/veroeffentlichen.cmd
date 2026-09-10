@@ -16,10 +16,8 @@ setlocal
 set ROOT=%~dp0..
 set ESPHOME=%ROOT%\.venv\Scripts\esphome.exe
 
-if not exist "%ESPHOME%" (
-  echo FEHLER: ESPHome nicht gefunden. Siehe bauen.cmd.
-  pause & exit /b 1
-)
+call "%~dp0einrichten.cmd"
+if errorlevel 1 exit /b 1
 if not exist "%ROOT%\esphome\level\secrets.yaml" (
   echo FEHLER: esphome\level\secrets.yaml fehlt.
   pause & exit /b 1
