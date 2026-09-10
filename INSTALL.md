@@ -28,9 +28,18 @@ esphome/level/secrets.yaml    ← aus secrets.yaml.example
 esphome/level/camperminder-level.yaml
 ```
 
-Drei Einträge genügen: `camperminder_api_key`, `camperminder_ota_password`,
-`camperminder_fallback_password`. Den API-Schlüssel erzeugt ESPHome auf Wunsch
-selbst; das Passwort des Gerätenetzes brauchst du gleich am Handy.
+**Zwei** Einträge genügen: `camperminder_api_key` und
+`camperminder_ota_password`. Den API-Schlüssel erzeugt ESPHome auf Wunsch
+selbst.
+
+> Ein Passwort für das geräteeigene Netz gehört ausdrücklich **nicht** hierher
+> — das Netz `CamperMinder` ist ab Werk offen, und wer es abschließen will,
+> vergibt sein eigenes auf der Geräteseite. Die Begründung steht in
+> `secrets.yaml.example`.
+>
+> Wer ein Gerät nachbaut, das bereits läuft: **Den API-Schlüssel übernehmen,
+> nicht neu erzeugen.** Er steckt in jedem ausgelieferten Gerät und auf jedem
+> Aufkleber; ein neuer macht beide ungültig.
 
 ```bash
 cd esphome/level
