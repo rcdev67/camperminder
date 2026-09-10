@@ -3,8 +3,21 @@
 #
 #      pwsh ./github_release.ps1            (üblich über veroeffentlichen.cmd)
 #
-#  ABLAUF: erst als ENTWURF anlegen, dann Dateien hochladen, zuletzt
-#  veröffentlichen. Grund: "releases/latest/download/..." zeigt sofort auf ein
+#  DIES IST DIE MPU6050-LINIE (Zweig "mpu6050"). Sie veröffentlicht ZWEI
+#  Releases je Fassung:
+#
+#    v<version>   die Fassung selbst - Tag, Verlauf, HACS, Factory-Datei
+#    mpu          der rollende KANAL, den die Geräte abfragen. Ein einziges
+#                 Release, bei jeder Veröffentlichung neu bestückt.
+#
+#  Und sie setzt NIEMALS make_latest. "releases/latest" gibt es bei GitHub nur
+#  einmal fürs ganze Repository, und dort liegt die Produktlinie mit dem
+#  LSM6DS3TR-C (Zweig "main"). Würden beide Linien es beanspruchen, flashte
+#  die eine der anderen ihre Firmware auf - und der Sensor bliebe stumm.
+#  Ausführlich in esphome/level/camperminder-level.yaml bei update:.
+#
+#  ABLAUF je Release: erst als ENTWURF anlegen, dann Dateien hochladen, zuletzt
+#  veröffentlichen. Grund: Die Kanaladresse zeigt sofort auf ein
 #  veröffentlichtes Release. Legte man es fertig an und lud danach hoch, gäbe
 #  es ein Zeitfenster, in dem Geräte ein Manifest sehen, dessen Firmware noch
 #  fehlt - und einen Update-Versuch ins Leere starten.
@@ -39,6 +52,11 @@ $root = Split-Path -Parent $here
 $owner = 'rcdev67'
 $repo  = 'camperminder'
 
+# Der rollende Kanal dieser Sensorlinie. Muss zeichengleich zu $kanal in
+# build_release.ps1 und zu den Adressen in camperminder-level.yaml sein -
+# die stecken fest in jedem ausgelieferten Geraet.
+$kanal = 'mpu'
+
 # --- Version aus der einen Quelle ------------------------------------------
 $hardware = Join-Path $root 'esphome\level\hardware.yaml'
 $m = [regex]::Match((Get-Content $hardware -Raw), '(?m)^\s*firmware_version\s*:\s*"([^"]+)"')
@@ -55,10 +73,10 @@ $tag = "v$version"
 #
 # Was der Unterschied bewirkt:
 #
-#   GitHub liefert unter "releases/latest" ausdrücklich die neueste Fassung,
-#   die WEDER Entwurf NOCH Vorabversion ist. Genau diese Adresse fragen die
-#   Geräte ab. Eine Vorabversion ist für sie damit nicht vorhanden - sie
-#   bleiben auf der letzten ausgelieferten Fassung stehen.
+#   Eine Vorabfassung wird NICHT in den Kanal "mpu" gespiegelt. Die Geräte
+#   fragen ausschließlich den Kanal ab - eine Vorabfassung ist für sie damit
+#   nicht vorhanden, sie bleiben auf der letzten ausgelieferten stehen. Wer
+#   sie erproben will, spielt sie von Hand auf.
 #
 #   HACS blendet Vorabversionen ebenfalls aus, solange beim Repository nicht
 #   ausdrücklich Betafassungen eingeschaltet sind.
@@ -260,51 +278,103 @@ if ($istVorab) {
 }
 Write-Host ""
 
-# --- Gibt es das Release schon? --------------------------------------------
-# Zuerst über das Tag. Das findet allerdings KEINE Entwürfe: Ein Entwurf legt
-# das Tag noch nicht an. Bricht ein Lauf nach dem Anlegen ab, entstünde beim
-# nächsten Versuch ein zweiter Entwurf. Deshalb danach die Liste durchsehen.
-$release = $null
-try   { $release = Invoke-RestMethod -Uri "$api/releases/tags/$tag" -Headers $kopf -Method Get }
-catch { $release = $null }
+# --- Ein Release anlegen oder auffrischen -----------------------------------
+#
+# Als Funktion, weil dieser Zweig ZWEI Releases bespielt: die Fassung unter
+# ihrem Versions-Tag und den rollenden Kanal. Zweimal derselbe Ablauf, einmal
+# geschrieben.
+function Setze-Release {
+  param(
+    [string]   $Tag,
+    [string]   $Name,
+    [string]   $Text,
+    [bool]     $Vorab,
+    [string[]] $Anhaenge,
+    [switch]   $TextErneuern
+  )
 
-if (-not $release) {
-  try {
-    $alle = Invoke-RestMethod -Uri "$api/releases?per_page=100" -Headers $kopf -Method Get
-    $release = $alle | Where-Object { $_.tag_name -eq $tag } | Select-Object -First 1
-    if ($release) { Write-Host "Vorhandenen Entwurf $tag gefunden - wird weiterverwendet." }
-  } catch { }
+  # Zuerst über das Tag. Das findet allerdings KEINE Entwürfe: Ein Entwurf legt
+  # das Tag noch nicht an. Bricht ein Lauf nach dem Anlegen ab, entstünde beim
+  # nächsten Versuch ein zweiter Entwurf. Deshalb danach die Liste durchsehen.
+  $r = $null
+  try   { $r = Invoke-RestMethod -Uri "$api/releases/tags/$Tag" -Headers $kopf -Method Get }
+  catch { $r = $null }
+
+  if (-not $r) {
+    try {
+      $alle = Invoke-RestMethod -Uri "$api/releases?per_page=100" -Headers $kopf -Method Get
+      $r = $alle | Where-Object { $_.tag_name -eq $Tag } | Select-Object -First 1
+      if ($r) { Write-Host "  vorhandenen Entwurf $Tag gefunden - wird weiterverwendet." }
+    } catch { }
+  }
+
+  if ($r) {
+    Write-Host "  Release $Tag besteht bereits - vorhandene Anhänge werden ersetzt."
+    foreach ($a in $r.assets) {
+      if ($Anhaenge -contains $a.name) {
+        Invoke-RestMethod -Uri "$api/releases/assets/$($a.id)" -Headers $kopf -Method Delete | Out-Null
+        Write-Host "    entfernt: $($a.name)"
+      }
+    }
+    # Zurück in den Entwurf, damit der Kanal nicht auf ein Release ohne
+    # vollständige Dateien zeigt.
+    #
+    # Beschreibung nur beim Kanal auffrischen: Beim Versions-Release wäre es
+    # ein stiller Rückschritt, wenn ein zweiter Lauf einen von Hand
+    # ergänzten Text wieder überschriebe.
+    $daten = @{ draft = $true }
+    if ($TextErneuern) { $daten['name'] = $Name; $daten['body'] = $Text }
+    $r = Sende-Json -Uri "$api/releases/$($r.id)" -Methode Patch -Daten $daten
+  } else {
+    # target_commitish ausdrücklich: Ohne die Angabe legt GitHub das Tag auf
+    # dem STANDARDZWEIG an - also auf "main", wo die LSM6DS3TR-C-Linie liegt.
+    # Das Release zeigte dann auf einen Quelltext, aus dem seine Firmware
+    # nachweislich nicht gebaut wurde. Bei GPLv3 ist das nicht nur unsauber.
+    $r = Sende-Json -Uri "$api/releases" -Methode Post -Daten @{
+      tag_name         = $Tag
+      target_commitish = $zweig
+      name             = $Name
+      body             = $Text
+      draft            = $true
+      prerelease       = $Vorab
+    }
+    Write-Host "  Entwurf $Tag angelegt."
+  }
+
+  $basis = ($r.upload_url -split '\{')[0]
+  foreach ($d in $Anhaenge) {
+    $pfad = Join-Path $out $d
+    Write-Host ("    lade hoch: {0} ({1:N0} Bytes)" -f $d, (Get-Item $pfad).Length)
+    Invoke-RestMethod -Uri "$basis`?name=$d" -Headers $kopf -Method Post `
+      -InFile $pfad -ContentType 'application/octet-stream' | Out-Null
+  }
+
+  # make_latest ausdrücklich 'false', und zwar bei JEDEM Release dieser Linie.
+  # Siehe Kopf der Datei: "latest" gehört der Produktlinie.
+  return Sende-Json -Uri "$api/releases/$($r.id)" -Methode Patch -Daten @{
+    draft       = $false
+    prerelease  = $Vorab
+    make_latest = 'false'
+  }
 }
 
-if ($release) {
-  Write-Host "Release $tag besteht bereits - vorhandene Anhänge werden ersetzt."
-  foreach ($a in $release.assets) {
-    if ($dateien -contains $a.name) {
-      Invoke-RestMethod -Uri "$api/releases/assets/$($a.id)" -Headers $kopf -Method Delete | Out-Null
-      Write-Host "  entfernt: $($a.name)"
-    }
-  }
-  # Zum Hochladen zurück in den Entwurf, damit "latest" nicht auf ein
-  # Release ohne vollständige Dateien zeigt.
-  $release = Sende-Json -Uri "$api/releases/$($release.id)" -Methode Patch -Daten @{ draft = $true }
-} else {
-  if ($istVorab) {
-    $text = @"
+# --- 1) Die Fassung selbst --------------------------------------------------
+if ($istVorab) {
+  $text = @"
 CamperMinder Level $version - interne Vorabfassung
 
 Diese Fassung ist **nicht zur Verwendung bestimmt**. Sie dient der Erprobung
 vor einer Auslieferung.
 
-Geräte erhalten sie nicht von selbst: Die Aktualisierungsprüfung folgt
-``releases/latest``, und dort werden Vorabfassungen ausgelassen. Wer sie
-dennoch aufspielen will, lädt ``level-firmware.ota.bin`` von Hand über
-Geräteseite -> Technik -> Software.
+Geräte erhalten sie nicht von selbst: Sie wird nicht in den Update-Kanal
+``mpu`` gespiegelt. Wer sie dennoch aufspielen will, lädt
+``level-firmware.ota.bin`` von Hand über Geräteseite -> Technik -> Software.
 "@
-  } else {
-    $text = @"
+} else {
+  $text = @"
 CamperMinder Level $version
 
-Firmware für CamperMinder Level.
+Firmware für CamperMinder Level, **Ausführung mit MPU6050**.
 
 **Aktualisieren:** Geräte mit Internet melden das Update von selbst.
 Ohne Internet: Geräteseite -> Technik -> Software -> Datei aufspielen,
@@ -313,52 +383,68 @@ dann ``level-firmware.ota.bin`` wählen.
 **Neues Gerät:** ``level-firmware.factory.bin`` über USB aufspielen, etwa
 mit web.esphome.io. Die OTA-Datei ist dafür nicht geeignet - sie enthält
 keinen Bootloader.
+
+> Diese Linie hat einen eigenen Update-Kanal und beansprucht
+> ``releases/latest`` nicht. Sie ist **nicht** austauschbar mit der Firmware
+> für den LSM6DS3TR-C.
 "@
-  }
-  $release = Sende-Json -Uri "$api/releases" -Methode Post -Daten @{
-    tag_name   = $tag
-    name       = "CamperMinder Level $version"
-    body       = $text
-    draft      = $true
-    prerelease = $istVorab
-  }
-  Write-Host "Entwurf angelegt."
 }
 
-# --- Anhänge hochladen ----------------------------------------------------
-$uploadBase = ($release.upload_url -split '\{')[0]
-foreach ($d in $dateien) {
-  $pfad = Join-Path $out $d
-  Write-Host ("  lade hoch: {0} ({1:N0} Bytes)" -f $d, (Get-Item $pfad).Length)
-  Invoke-RestMethod -Uri "$uploadBase`?name=$d" -Headers $kopf -Method Post `
-    -InFile $pfad -ContentType 'application/octet-stream' | Out-Null
-}
+Write-Host "Fassung ${tag}:"
+$fertig = Setze-Release -Tag $tag -Name "CamperMinder Level $version" `
+                        -Text $text -Vorab $istVorab -Anhaenge $dateien
 
-# --- Erst jetzt veröffentlichen -------------------------------------------
-# make_latest wird bei einer Vorabfassung ausdrücklich auf "false" gesetzt.
-# GitHub würde sie zwar ohnehin nicht als neueste führen, solange prerelease
-# gilt - aber wer den Haken später von Hand entfernt, hätte sonst schlagartig
-# eine ungeprüfte Fassung auf allen Geräten. Zwei Schlösser statt einem.
-$fertig = Sende-Json -Uri "$api/releases/$($release.id)" -Methode Patch -Daten @{
-  draft       = $false
-  prerelease  = $istVorab
-  make_latest = $(if ($istVorab) { 'false' } else { 'true' })
+# --- 2) Der Kanal, den die Geräte abfragen ---------------------------------
+#
+# Eine Vorabfassung bleibt draußen - sonst wäre sie genau das, was sie nicht
+# sein soll: auf allen Geräten.
+#
+# Die Factory-Datei kommt NICHT mit. Sie ist für ein leeres Board über USB da,
+# und dafür holt man sich das Versions-Release. Im Kanal wäre sie 1,3 MB, die
+# bei jeder Veröffentlichung ohne Zweck neu hochgeladen würden.
+if (-not $istVorab) {
+  $kanalDateien = @('level-firmware.ota.bin', 'level-firmware.ota.bin.md5',
+                    'level-manifest.json')
+  $kanalText = @"
+CamperMinder Level - Update-Kanal der MPU6050-Linie
+
+**Dies ist kein Versionsstand, sondern ein Briefkasten.** Die Geräte dieser
+Linie fragen diese Adresse ab; die Dateien darin werden bei jeder
+Veröffentlichung ersetzt. Das Tag bleibt dabei stehen - es beschreibt den
+Kanal, nicht den Quellstand.
+
+Zurzeit liegt hier **$version**. Quelltext, Beschreibung und die Datei für ein
+leeres Board stehen beim Release ``$tag``.
+
+Warum getrennt: Es gibt zwei Firmware-Linien für unterschiedliche Sensoren,
+und ``releases/latest`` gibt es bei GitHub nur einmal.
+"@
+
+  Write-Host ""
+  Write-Host "Kanal ${kanal}:"
+  Setze-Release -Tag $kanal -Name 'CamperMinder Level - Kanal MPU6050' `
+                -Text $kanalText -Vorab $true -Anhaenge $kanalDateien `
+                -TextErneuern | Out-Null
 }
 
 Write-Host ""
 Write-Host "Angelegt: $($fertig.html_url)"
 Write-Host ""
 if ($istVorab) {
-  Write-Host "Als VORABFASSUNG markiert. Kein Gerät und kein HACS holt sie sich."
+  Write-Host "Als VORABFASSUNG markiert. Sie steht NICHT im Kanal '$kanal'."
+  Write-Host "Kein Geraet und kein HACS holt sie sich."
   Write-Host "Zum Erproben von Hand aufspielen:"
-  Write-Host "   Geräteseite -> Technik -> Software -> Datei aufspielen"
+  Write-Host "   Geraeteseite -> Technik -> Software -> Datei aufspielen"
   Write-Host "   oder aus dem Arbeitsstand:  esphome run camperminder-level.yaml"
   Write-Host ""
   Write-Host "Taugt die Fassung, den Bindestrich aus firmware_version und aus"
-  Write-Host "manifest.json entfernen und erneut veröffentlichen. Erst dann"
+  Write-Host "manifest.json entfernen und erneut veroeffentlichen. Erst dann"
   Write-Host "wird daraus eine Auslieferung."
 } else {
-  Write-Host "Als AUSLIEFERUNG markiert."
-  Write-Host "Geräte mit Internet melden das Update innerhalb von 12 Stunden,"
+  Write-Host "Als AUSLIEFERUNG markiert und in den Kanal '$kanal' gespiegelt."
+  Write-Host "Geraete dieser Linie melden das Update innerhalb von 12 Stunden,"
   Write-Host "nach einem Neustart von Home Assistant sofort."
+  Write-Host ""
+  Write-Host "'releases/latest' wurde NICHT angefasst - das gehoert der"
+  Write-Host "Produktlinie mit dem LSM6DS3TR-C."
 }

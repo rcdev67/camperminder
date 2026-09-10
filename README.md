@@ -15,6 +15,20 @@ Beides läuft auf derselben Firmware; niemand muss sich vorher entscheiden.
 | **CamperMinder Gas** | Gasflaschen wiegen, Füllstand bestimmen | geplant |
 | **CamperMinder Base** | vorbereitete Home-Assistant-Zentrale | geplant |
 
+## Zwei Zweige, zwei Sensoren
+
+| Zweig | Lagesensor | Wofür |
+|---|---|---|
+| **`mpu6050`** — dieser hier | MPU6050 | die Geräte der Erprobung. Bekommt weiterhin Verbesserungen an Bedienung und Funktionen. |
+| `main` | LSM6DS3TR-C | die Weiterentwicklung. Der MPU-6050 ist abgekündigt, der Nachfolger ist in laufender Produktion. |
+
+Die beiden Firmwares sind **nicht austauschbar** — jede spricht nur mit ihrem
+Sensor. Deshalb haben sie getrennte Update-Kanäle: Ein Gerät dieser Linie
+bekommt nie versehentlich die Firmware der anderen.
+Einzelheiten in [docs/firmware_update.md](docs/firmware_update.md).
+
+Releases dieser Linie tragen Tags mit `v3.…`, die der anderen `v4.…`.
+
 ## Aufbau des Repositorys
 
 ```

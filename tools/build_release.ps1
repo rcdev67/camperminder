@@ -24,6 +24,19 @@ $here = Join-Path $root 'esphome\level'
 
 $repoUrl = 'https://github.com/rcdev67/camperminder'
 
+# --- Der Update-Kanal DIESER Sensorlinie ------------------------------------
+# Nicht "latest", sondern ein festes Tag. Es gibt zwei Firmware-Linien - diese
+# fuer den MPU6050 und die fuer den LSM6DS3TR-C auf dem Zweig "main" -, und
+# sie sind nicht austauschbar. "releases/latest" gibt es bei GitHub aber nur
+# EINMAL fuer das ganze Repository: Beide Linien darueber zu bedienen hiesse,
+# dass die eine der anderen ihre Firmware aufspielt.
+#
+# Ausfuehrliche Begruendung in esphome/level/camperminder-level.yaml bei
+# update:. Wer das hier aendert, muss die Adressen DORT mitziehen - sie
+# stecken fest in jedem ausgelieferten Geraet und lassen sich danach nur noch
+# ueber genau diesen Kanal erreichen.
+$kanal = 'mpu'
+
 # --- Version aus der einen Quelle lesen ------------------------------------
 $hardware = Join-Path $here 'hardware.yaml'
 if (-not (Test-Path $hardware)) { throw "Nicht gefunden: $hardware" }
@@ -122,9 +135,13 @@ $manifest = [ordered]@{
       chipFamily = 'ESP32-C3'
       ota        = [ordered]@{
         md5         = $md5
-        path        = "$repoUrl/releases/latest/download/level-firmware.ota.bin"
+        # Auf den Kanal, nicht auf das Versions-Release: Diese Adresse muss
+        # dieselbe bleiben, solange Geraete draussen sind.
+        path        = "$repoUrl/releases/download/$kanal/level-firmware.ota.bin"
         summary     = "CamperMinder $version"
-        release_url = "$repoUrl/releases/latest"
+        # Der Verweis fuer den Menschen zeigt dagegen auf die konkrete
+        # Fassung - dort steht, was sich geaendert hat.
+        release_url = "$repoUrl/releases/tag/v$version"
       }
     }
   )
@@ -135,6 +152,8 @@ $json = $manifest | ConvertTo-Json -Depth 6
 Write-Host ""
 Write-Host "Fertig. Diese Dateien an das Release hängen:"
 Get-ChildItem $out | ForEach-Object { "   {0,-24} {1,10:N0} Bytes" -f $_.Name, $_.Length }
+Write-Host ""
+Write-Host ("Update-Kanal dieser Linie: releases/download/{0}/" -f $kanal)
 Write-Host ""
 Write-Host "Zum Veröffentlichen:  veroeffentlichen.cmd"
 Write-Host ""

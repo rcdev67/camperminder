@@ -125,11 +125,21 @@ Zum Schluss einmal im Fahrzeug — wie und warum steht in
 
 ## Anhang: Ohne Bauen aufs Board
 
-Wer nicht selbst bauen will, nimmt die fertige Firmware aus dem
-[jüngsten Release](https://github.com/rcdev67/camperminder/releases/latest):
+Wer nicht selbst bauen will, nimmt die fertige Firmware aus der
+[Release-Übersicht](https://github.com/rcdev67/camperminder/releases):
 `level-firmware.factory.bin` enthält Bootloader und Partitionstabelle und geht
 auf ein leeres Board — mit [ESPHome Web](https://web.esphome.io) oder
 `esptool` an Adresse `0x0`.
+
+> **Das richtige Release wählen: eines mit dem Tag `v3.…`** — das ist die
+> Ausführung mit MPU6050, um die es auf dieser Seite geht. Tags mit `v4.…`
+> gehören zur Linie mit dem LSM6DS3TR-C und passen nicht zu dieser Hardware:
+> Das Gerät startet, und die Anzeige bleibt leer.
+>
+> Ausdrücklich **nicht** über `releases/latest` gehen. Diese Adresse gibt es
+> bei GitHub nur einmal fürs ganze Repository, und sie gehört der anderen
+> Linie — die Gründe stehen in
+> [docs/firmware_update.md](docs/firmware_update.md).
 
 Nicht zu verwechseln mit `level-firmware.ota.bin`: Die ist für Updates über das
 Netz gedacht. Auf einen leeren Chip geschrieben ergibt sie ein Gerät, das nicht

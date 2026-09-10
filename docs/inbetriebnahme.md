@@ -7,11 +7,24 @@ Konto.
 ## Schritt 1: Verbinden (immer nötig)
 
 1. Gerät einschalten.
-2. Am Handy in die WLAN-Liste, **CamperMinder** auswählen, Passwort eingeben.
-3. Die Bedienseite öffnet sich meist von selbst. Falls nicht:
-   **`192.168.4.1`** im Browser eingeben.
+2. Am Handy in die WLAN-Liste, **CamperMinder** auswählen — **ohne Passwort**.
+   Das Netz ist ab Werk offen; das Handy warnt deshalb, dass es ungesichert
+   sei. Das ist so gewollt.
+3. Im Browser **`192.168.4.1`** eingeben. Die Seite öffnet sich **nicht** von
+   selbst — die Adresse muss man eintippen.
 4. Über *Zum Home-Bildschirm hinzufügen* landet ein Symbol auf dem Handy,
    das die Seite im Vollbild öffnet — wie eine App.
+
+> **Warum ohne Passwort:** Ein Passwort ab Werk wäre entweder für alle Geräte
+> gleich — dann stünde es nach dem ersten ausgegebenen Gerät in jedem Forum —
+> oder je Gerät verschieden, dann bräuchte es einen Aufkleber, der nach einem
+> Zurücksetzen nicht mehr stimmt. Das Netz besteht ohnehin nur, solange kein
+> WLAN eingetragen ist.
+>
+> Wer nicht möchte, dass jeder in Funkreichweite die Einstellungen erreicht,
+> vergibt unter *Technik → Eigenes Netz* ein eigenes Passwort (mindestens acht
+> Zeichen). Leer speichern öffnet es wieder, und *Zurücksetzen* am Ende
+> derselben Seite hilft, wenn man es vergessen hat.
 
 Mehr ist für den Betrieb nicht nötig. Wasserwaagen, Anweisungen und
 Kalibrierung stehen sofort zur Verfügung.
@@ -40,6 +53,12 @@ Die Eingabe bleibt dauerhaft gespeichert.
 | Gerät im eigenen Netz | Reiter *Technik* → Firmwaredatei vom Handy aufspielen |
 
 Die laufende Fassung steht im selben Reiter.
+
+> **Für Testgeräte:** Diese Firmware ist die Ausführung mit MPU6050 und holt
+> sich ihre Aktualisierungen aus einem eigenen Kanal. Sie bekommt damit auch
+> künftig Verbesserungen, die aus dem Feedback der Erprobung entstehen — und
+> zwar über dasselbe Gerät, ohne Kabel und ohne Rückgabe. Einzelheiten in
+> [firmware_update.md](firmware_update.md).
 
 > **Für die Werkstatt:** Aktualisierungen nur über OTA einspielen. Ein
 > serielles Aufspielen mit Löschen des Flash nimmt dem Kunden sein

@@ -18,6 +18,11 @@
 #
 #  Wer nicht selbst bauen will, nimmt die fertige level-firmware.factory.bin
 #  aus dem Release - siehe INSTALL.md.
+#
+#  DIES IST DIE MPU6050-LINIE. Sie lebt auf dem Zweig "mpu6050" und versorgt
+#  die Testgeraete. Die Weiterentwicklung mit dem LSM6DS3TR-C steht auf
+#  "main". Beide Linien haben getrennte Update-Kanaele - Begruendung weiter
+#  unten bei update:.
 # ============================================================================
 
 substitutions:
@@ -110,8 +115,9 @@ http_request:
   # abschalten, nicht umgekehrt.
 
   # Die vier folgenden Werte weichen bewusst von der Voreinstellung ab. Sie
-  # sind gemessen, nicht geschätzt - "releases/latest/download/..." führt über
-  # zwei Umleitungen zu release-assets.githubusercontent.com.
+  # sind gemessen, nicht geschätzt - eine Release-Adresse bei GitHub führt über
+  # zwei Umleitungen zu release-assets.githubusercontent.com. Das gilt für
+  # "releases/download/<tag>/..." genauso wie für "releases/latest/...".
   #
   # buffer_size_tx (Voreinstellung 512) ist der wichtigste davon. ESP-IDF legt
   #   die erste Zeile der Anfrage - Methode und Pfad - in diesem Puffer ab und
@@ -134,10 +140,34 @@ http_request:
   timeout: 15s
   redirect_limit: 5
 
-# Alles über GitHub-Releases. "latest/download/<datei>" zeigt immer auf die
-# neueste Veröffentlichung - die Adressen ändern sich also nie, weder in der
-# Firmware noch in der Dokumentation. Neue Version heißt: Release anlegen,
-# Dateien anhängen, fertig.
+# Alles über GitHub-Releases, aber NICHT über "releases/latest".
+#
+# ============================================================================
+#  WARUM DIESE LINIE EINEN EIGENEN KANAL HAT
+# ----------------------------------------------------------------------------
+#  Es gibt zwei Firmware-Linien: diese hier für den MPU6050 und die für den
+#  LSM6DS3TR-C auf dem Zweig "main". Sie sind NICHT austauschbar - jede spricht
+#  nur mit ihrem Sensor. Wer die falsche aufspielt, bekommt ein Gerät, das
+#  startet und dessen Sensor stumm bleibt.
+#
+#  "releases/latest" gibt es bei GitHub genau EINMAL für das ganze Repository.
+#  Beide Linien darüber zu bedienen ist unmöglich: Sobald die andere Linie
+#  eine Auslieferung veröffentlicht, wird die zum "latest", und JEDES Gerät
+#  dieser Linie mit Internet flasht sie sich binnen zwölf Stunden. Bei einem
+#  Testgerät beim Nutzer heißt das: Kabel, und zwar unseres.
+#
+#  Deshalb liegt der Kanal dieser Linie auf einem FESTEN TAG: "mpu". Das ist
+#  ein einziges, rollendes Release, das tools/github_release.ps1 bei jeder
+#  Veröffentlichung neu bestückt. Es kann nie zum "latest" werden - es ist als
+#  Vorabfassung markiert -, und umgekehrt kann kein "latest" es überschreiben.
+#
+#  "releases/latest" bleibt damit dauerhaft der Produktlinie vorbehalten. Die
+#  Trennung braucht danach keine Disziplin mehr: Sie steht in der Adresse,
+#  nicht in einer Regel, an die jemand denken muss.
+#
+#  WER DAS HIER ÄNDERT, muss dieselbe Adresse in tools/build_release.ps1
+#  (Feld "path" im Manifest) und in docs/firmware_update.md mitziehen.
+# ============================================================================
 #
 # Automatische Prüfung - erzeugt in Home Assistant eine Update-Entität unter
 # Einstellungen -> System -> Updates.
@@ -147,7 +177,7 @@ http_request:
 update:
   - platform: http_request
     name: "Firmware"
-    source: https://github.com/rcdev67/camperminder/releases/latest/download/level-manifest.json
+    source: https://github.com/rcdev67/camperminder/releases/download/mpu/level-manifest.json
     update_interval: 12h
 
 # Aktualisierung von Hand - der Weg für die Betriebsart ohne Home Assistant.
@@ -155,8 +185,8 @@ update:
 # Tasten schon. Die Geräteseite kann diese Taste also drücken; in Home
 # Assistant erscheint sie zusätzlich als gewöhnlicher Knopf.
 #
-# Die Adressen sind fest: "latest/download" löst GitHub selbst auf die
-# neueste Veröffentlichung auf.
+# Die Adressen sind fest: Sie zeigen auf das rollende Release "mpu", den
+# eigenen Kanal dieser Sensorlinie - Begründung oben bei update:.
 button:
   - platform: template
     name: "Firmware aktualisieren"
@@ -165,8 +195,8 @@ button:
     entity_category: config
     on_press:
       - ota.http_request.flash:
-          url: https://github.com/rcdev67/camperminder/releases/latest/download/level-firmware.ota.bin
-          md5_url: https://github.com/rcdev67/camperminder/releases/latest/download/level-firmware.ota.bin.md5
+          url: https://github.com/rcdev67/camperminder/releases/download/mpu/level-firmware.ota.bin
+          md5_url: https://github.com/rcdev67/camperminder/releases/download/mpu/level-firmware.ota.bin.md5
 
   # Setzt den Einstellungsbereich des Flash zurück: WLAN-Zugangsdaten,
   # Kalibrierung, Fahrzeugmaße. Danach startet das Gerät neu und öffnet
