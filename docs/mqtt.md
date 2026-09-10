@@ -172,6 +172,13 @@ Diese Themen nehmen auch Befehle entgegen (`…/command`):
 | `camperminder/level/number/waechter_karenzzeit/…` | 0 – 600 Sekunden |
 | `camperminder/level/switch/praezisionsmodus/…` | `ON` / `OFF` |
 | `camperminder/level/switch/waechter/…` | `ON` / `OFF` |
+| `camperminder/level/switch/status_led/…` | `ON` / `OFF` — die Leuchte am Gerät |
+| `camperminder/level/switch/alarmton/…` | `ON` / `OFF` — der Summer beim Alarm |
+
+Die letzten beiden gibt es seit 4.0.0. Sie ersetzen zusammen mit der
+Blinkanzeige das Display des ersten Prototyps: Das ausgelieferte Gerät hat
+keins. **Ein eingerasteter Alarm blinkt auch bei ausgeschalteter Status-LED** —
+der Schalter nimmt die Betriebsanzeige weg, nicht die Meldung.
 
 Fahrzeugmaße, Toleranz und Keilstufe erscheinen ebenfalls als `number` bzw.
 `select` unter ihren jeweiligen Namen.

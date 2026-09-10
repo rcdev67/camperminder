@@ -68,6 +68,9 @@
     target_long: 0, target_lat: 0,
     sleep_long: -2, drain_long: 5, drain_lat: 0,
     drift_limit: 20, temp_offset: 0, frost_limit: 3,
+    /* Beide ab Werk an. Ein Geraet ohne Display, das nicht blinkt und nicht
+     * toent, ist von einem defekten nicht zu unterscheiden. */
+    status_led: true, alarm_sound: true,
     method: "keile", vehicle: "wohnmobil", mounting: "oben"
   };
 
@@ -127,7 +130,13 @@
     guard_alarm: "chter_alarm",
     guard_grace: "chter_karenzzeit",
     guard_ack: "quittieren",
-    last_motion: "letzte_bewegung"
+    last_motion: "letzte_bewegung",
+    /* Ohne Umlaut und ohne Doppeldeutigkeit - hier braucht es keinen Trick
+     * mit Teilstuecken. "status_led" steckt in keiner anderen Kennung, und
+     * "alarmton" ist von "waechter_alarm" verschieden genug, dass indexOf sie
+     * nicht verwechselt. */
+    status_led: "status_led",
+    alarm_sound: "alarmton"
   };
 
   var METHOD_LIFT = "Hydraulik oder Luftkissen";
@@ -1193,6 +1202,7 @@
   var vehicleSelect = null;
   var mountingSelect = null;
   var preciseBox = null;
+  var schalterBoxen = {};
   var profileSelect = null;
   var mqttNote = null;
   var mqttBroker = null;
@@ -1217,8 +1227,33 @@
     return input;
   }
 
+  /* Eine Schalterzeile mit Ankreuzfeld - wie setPrecise, aber ohne render().
+   * Diese Schalter formen keine Bedienelemente, sie schalten nur etwas am
+   * Geraet; ein Neuaufbau der Seite waere hier nur Flackern. */
+  function schalterZeile(ziel, key, label) {
+    var row = el('<div class="set"><span>' + label + "</span></div>");
+    var kasten = el('<input type="checkbox" style="width:26px;height:26px;padding:0">');
+    kasten.checked = cfg[key];
+    kasten.onchange = function () {
+      cfg[key] = kasten.checked;
+      var base = pathFor("switch", IDS[key]);
+      if (!base) {
+        writeError = "Das Gerät kennt keine Einstellung „" + label + "“. " +
+          "Läuft die passende Firmware?";
+        syncSettings();
+        return;
+      }
+      post(base + (kasten.checked ? "/turn_on" : "/turn_off"), check(base));
+    };
+    schalterBoxen[key] = kasten;
+    row.appendChild(kasten);
+    ziel.appendChild(row);
+    return kasten;
+  }
+
   function settings() {
     settingInputs = {};
+    schalterBoxen = {};
     var box = el('<div class="plan"><h2>Fahrzeug</h2></div>');
     // Beim Wohnwagen misst dieselbe Zahl etwas anderes - deshalb die
     // Beschriftung mitführen statt sie fest hinzuschreiben.
@@ -1307,6 +1342,26 @@
       "Thermometer im Fahrzeug ablesen und die Differenz hier eintragen – " +
       "danach taugt der Wert für eine Frostwarnung. Ein Thermometer wird " +
       "daraus nicht." +
+      "</div>"));
+
+    /* Leuchte und Summer. Sie stehen hier, weil sie das GERÄT beschreiben,
+     * und sie stehen ÜBERHAUPT hier, weil dieses Gerät kein Display hat: Wer
+     * es ohne Home Assistant betreibt, käme sonst an zwei Dinge nicht heran,
+     * die im Wohnraum blinken und lärmen. */
+    schalterZeile(geraet, "status_led", "Status-LED");
+    geraet.appendChild(el('<div class="muted" style="margin-bottom:10px">' +
+      "Die Leuchte am Gerät zeigt, dass es läuft, und in welchem Netz es " +
+      "steckt: lang an und lang aus heißt eigenes Netz – dann gilt " +
+      "192.168.4.1 –, ein kurzer Herzschlag alle drei Sekunden heißt Heimnetz. " +
+      "Aus, wenn sie nachts stört. <b>Ein Alarm blinkt trotzdem</b>: Eine " +
+      "Meldung, die sich versehentlich abschalten lässt, ist keine." +
+      "</div>"));
+    schalterZeile(geraet, "alarm_sound", "Alarmton");
+    geraet.appendChild(el('<div class="muted" style="margin-bottom:10px">' +
+      "Beim Wächteralarm tönt der Summer alle zehn Sekunden, fünf Minuten " +
+      "lang. Er ist das Einzige, was jemanden erreicht, der ohne Handy und " +
+      "ohne Netz zum Fahrzeug kommt. Aus, wenn du scharf schaltest, während " +
+      "noch Leute im Fahrzeug sind." +
       "</div>"));
 
     /* Eigener Kasten, weil diese beiden weder die Messung noch die Toleranz
@@ -1417,6 +1472,10 @@
       mountingSelect.value = cfg.mounting === "unten" ? MOUNT_UNDER : "Deckel oben";
     }
     if (preciseBox && preciseBox !== focused) preciseBox.checked = cfg.precise;
+    for (var sk in schalterBoxen) {
+      var sb = schalterBoxen[sk];
+      if (sb !== focused) sb.checked = cfg[sk];
+    }
     if (profileSelect && profileSelect !== focused) profileSelect.value = cfg.profile;
     // Nur, solange dort keine eigene Rueckmeldung steht - sonst ueberschriebe
     // der Zustand die Meldung "Gespeichert, das Geraet startet neu".
@@ -2014,6 +2073,8 @@
         // reicht das Nachziehen der Messwerte nicht.
         if (data.state !== cfg.profile) { cfg.profile = data.state; render(); return; }
       }
+      else if (id.indexOf(IDS.status_led) >= 0) cfg.status_led = data.value === true || data.state === "ON";
+      else if (id.indexOf(IDS.alarm_sound) >= 0) cfg.alarm_sound = data.value === true || data.state === "ON";
       else if (id.indexOf(IDS.calm) >= 0) cfg.calm = num(data.value);
       else if (id.indexOf(IDS.hold_percent) >= 0) cfg.hold_percent = num(data.value);
       else if (id.indexOf(IDS.precise) >= 0) {

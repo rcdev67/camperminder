@@ -445,9 +445,13 @@ class CamperCoordinator:
         """Liefert der Sensor unglaubwürdige Werte?
 
         Ein Fahrzeug steht nie 45 Grad schief, und der Betrag der
-        Erdbeschleunigung ist immer 9,81. Trifft eins davon nicht zu, hat sich
+        Erdbeschleunigung ist immer 1,0 g. Trifft eins davon nicht zu, hat sich
         das Gehäuse gelöst - sonst landet dieser Fehler als "misst falsch" in
         einer Rezension.
+
+        Gerechnet wird das im Geraet, nicht hier. Diese Eigenschaft liest nur
+        den fertigen Binaersensor - deshalb beruehrt der Einheitenwechsel von
+        m/s2 auf g in 4.0.0 diese Datei nicht.
         """
         return bool(self.get_value(CONF_MOUNT_CHECK))
 
