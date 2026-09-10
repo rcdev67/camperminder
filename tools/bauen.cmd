@@ -19,23 +19,21 @@ setlocal
 set ROOT=%~dp0..
 set ESPHOME=%ROOT%\.venv\Scripts\esphome.exe
 
-if not exist "%ESPHOME%" (
-  echo.
-  echo FEHLER: ESPHome nicht gefunden unter
-  echo   %ESPHOME%
-  echo.
-  echo Einmalig einrichten:
-  echo   python -m venv "%ROOT%\.venv"
-  echo   "%ROOT%\.venv\Scripts\python.exe" -m pip install esphome
-  echo.
-  pause
-  exit /b 1
-)
+rem Beim ersten Start auf einem Rechner richtet sich ESPHome selbst ein,
+rem statt mit einer Anleitung abzubrechen, die eine Konsole voraussetzt.
+call "%~dp0einrichten.cmd"
+if errorlevel 1 exit /b 1
 
 if not exist "%ROOT%\esphome\level\secrets.yaml" (
   echo.
   echo FEHLER: esphome\level\secrets.yaml fehlt.
   echo Vorlage: esphome\level\secrets.yaml.example
+  echo.
+  echo ACHTUNG, nicht einfach einen neuen Schluessel erzeugen: Der
+  echo camperminder_api_key steckt in jedem ausgelieferten Geraet und auf
+  echo jedem Aufkleber. Er muss derselbe sein wie auf dem Rechner, auf dem
+  echo bisher gebaut wurde - sonst erreicht Home Assistant die Geraete
+  echo nicht mehr. Die Datei uebernehmen, nicht neu anlegen.
   echo.
   pause
   exit /b 1
