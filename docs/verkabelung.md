@@ -16,7 +16,7 @@ mit GPIO5/GPIO6 verbunden; der MPU6050 kommt einfach parallel dazu.
 
 ## MPU6050 (GY-521) → ESP32-C3 SuperMini
 
-Dieselbe Belegung wie oben, nur ohne OLED auf dem Board. Die Firmware 3.9.1
+Dieselbe Belegung wie oben, nur ohne OLED auf dem Board. Die Firmware ab 3.9.1
 bleibt unverändert: Sie benutzt ebenfalls GPIO5 und GPIO6.
 
 ![GY-521 an den ESP32-C3 SuperMini: VCC an 5V, GND an GND, SDA an GPIO5, SCL an GPIO6](bilder/verkabelung-mpu6050.svg)

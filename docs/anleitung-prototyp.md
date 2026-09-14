@@ -1,7 +1,7 @@
 # CamperMinder Level — Anleitung für Testgeräte
 
 Diese Anleitung ist für alle, die ein **Testgerät** bekommen haben: ein kleines
-Gehäuse mit ESP32-C3 SuperMini und Lagesensor MPU6050, Firmware **3.9.1**.
+Gehäuse mit ESP32-C3 SuperMini und Lagesensor MPU6050, Firmware **3.9.2**.
 Sie erklärt, was das Gerät kann, wie man es einbaut und einrichtet, welche
 Einstellungen wichtig sind und wie es mit Home Assistant und MQTT
 zusammenarbeitet.
@@ -19,7 +19,7 @@ zusammenarbeitet.
 | **Geräteseite** | `192.168.4.1` im Browser eintippen |
 | **Nach jeder Änderung** | eine Minute Strom lassen, dann ist sie gespeichert |
 | **API-Schlüssel** (nur für Home Assistant) | <!--API-->liegt dem Gerät bei<!--/API--> |
-| **Firmware** | 3.9.1 — Updates unter *Technik → Software* |
+| **Firmware** | 3.9.2 — Updates unter *Technik → Software* |
 
 ---
 
