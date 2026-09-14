@@ -43,3 +43,7 @@ enclosure/
 *.step
 *.f3d
 *.FCStd
+
+# Druckfassung der Tester-Anleitung (tools/anleitung-drucken.cmd). Sie enthaelt
+# den API-Schluessel der Testgeraete - weitergeben ja, einchecken nein.
+druck/

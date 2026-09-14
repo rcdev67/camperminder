@@ -15,6 +15,9 @@ Beides läuft auf derselben Firmware; niemand muss sich vorher entscheiden.
 | **CamperMinder Gas** | Gasflaschen wiegen, Füllstand bestimmen | geplant |
 | **CamperMinder Base** | vorbereitete Home-Assistant-Zentrale | geplant |
 
+> **Testgerät bekommen?** Alles zu Einbau, Einrichtung, Home Assistant und MQTT
+> steht in [docs/anleitung-prototyp.md](docs/anleitung-prototyp.md).
+
 ## Zwei Zweige, zwei Sensoren
 
 | Zweig | Lagesensor | Wofür |
