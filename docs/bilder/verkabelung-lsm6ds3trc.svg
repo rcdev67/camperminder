@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-12 -12 744 340" width="744" height="340" role="img" aria-label="Adafruit LSM6DS3TR-C an ESP32-C3 SuperMini: VIN an 3V3, GND an GND, SDA an GPIO5, SCL an GPIO6. Optional ein passiver Piezo zwischen GPIO10 und GND. Die Status-LED an GPIO8 ist auf dem Board.">
+<title>Adafruit LSM6DS3TR-C an ESP32-C3 SuperMini: VIN an 3V3, GND an GND, SDA an GPIO5, SCL an GPIO6. Optional ein passiver Piezo zwischen GPIO10 und GND. Die Status-LED an GPIO8 ist auf dem Board.</title>
+<style>
+.bg{fill:#ffffff;stroke:#d3dae1;stroke-width:1}
+.blk{fill:#f6f8fa;stroke:#d3dae1;stroke-width:1.5}
+.pad{fill:#ffffff;stroke:#8b96a2;stroke-width:2}
+.pad-dim{fill:#ffffff;stroke:#b1bac3;stroke-width:1.5}
+.pad-acc{fill:#ffffff;stroke:#1b8292;stroke-width:2.5}
+.lbl{fill:#1b2430;font:500 13px Consolas,'DejaVu Sans Mono','Courier New',monospace}
+.lbl-dim{fill:#a3adb7;font:500 13px Consolas,'DejaVu Sans Mono','Courier New',monospace}
+.fn{fill:#5a6675;font:400 11.5px Consolas,'DejaVu Sans Mono','Courier New',monospace}
+.ttl{fill:#1b2430;font:700 15px 'Segoe UI',Helvetica,Arial,sans-serif}
+.note{fill:#5a6675;font:400 12px 'Segoe UI',Helvetica,Arial,sans-serif}
+.wlab{fill:#5a6675;font:600 10.5px 'Segoe UI',Helvetica,Arial,sans-serif;letter-spacing:.05em}
+.w{fill:none;stroke-width:4;stroke-linecap:round}
+.w-red{stroke:#cc3333}.w-blue{stroke:#2a64c5}.w-yellow{stroke:#c29400}.w-gnd{stroke:#1b2430}
+.w-opt{fill:none;stroke:#1b8292;stroke-width:3;stroke-dasharray:7 6;stroke-linecap:round}
+.sym{fill:none;stroke:#1b2430;stroke-width:2;stroke-linecap:round}
+.piezo{fill:#ffffff;stroke:#1b8292;stroke-width:2.5}
+.board{fill:#e4eaee;stroke:#c3ccd4;stroke-width:1.5}
+.usb{fill:#d3dae1;stroke:#8b96a2;stroke-width:1.5}
+.chip{fill:none;stroke:#b1bac3;stroke-width:1.5;stroke-dasharray:4 4}
+.f-red{fill:#cc3333}.f-blue{fill:#2a64c5}.f-yellow{fill:#c29400}.f-gnd{fill:#1b2430}.f-acc{fill:#1b8292}
+</style>
+<rect class="bg" x="-11" y="-11" width="743" height="339" rx="10"/>
+          <text class="ttl" x="30" y="24">Adafruit 4503 · LSM6DS3TR-C</text>
+          <text class="ttl" x="690" y="24" text-anchor="end">ESP32-C3 SuperMini</text>
+          <rect class="blk" x="30" y="36" width="200" height="264" rx="8"/>
+          <rect class="blk" x="490" y="36" width="200" height="264" rx="8"/>
+
+          <!-- 5V ungenutzt -->
+          <circle class="pad-dim" cx="490" cy="64" r="6"/><text class="lbl-dim" x="506" y="68">5V</text>
+
+          <!-- 3V3 -->
+          <line class="w w-red" x1="237" y1="100" x2="483" y2="100"/>
+          <text class="wlab" x="360" y="91" text-anchor="middle">VERSORGUNG</text>
+          <circle class="pad" cx="230" cy="100" r="6"/><text class="lbl" x="214" y="104" text-anchor="end">VIN</text>
+          <circle class="pad" cx="490" cy="100" r="6"/><text class="lbl" x="506" y="104">3V3</text>
+
+          <!-- GND -->
+          <line class="w w-gnd" x1="237" y1="136" x2="483" y2="136"/>
+          <text class="wlab" x="360" y="127" text-anchor="middle">MASSE</text>
+          <circle class="pad" cx="230" cy="136" r="6"/><text class="lbl" x="214" y="140" text-anchor="end">GND</text>
+          <circle class="pad" cx="490" cy="136" r="6"/><text class="lbl" x="506" y="140">GND</text>
+
+          <!-- SDA -->
+          <line class="w w-blue" x1="237" y1="172" x2="483" y2="172"/>
+          <text class="wlab" x="360" y="163" text-anchor="middle">SDA · DATEN</text>
+          <circle class="pad" cx="230" cy="172" r="6"/><text class="lbl" x="214" y="176" text-anchor="end">SDA</text>
+          <circle class="pad" cx="490" cy="172" r="6"/><text class="lbl" x="506" y="176">GPIO5<tspan class="fn" dx="8">SDA</tspan></text>
+
+          <!-- SCL -->
+          <line class="w w-yellow" x1="237" y1="208" x2="483" y2="208"/>
+          <text class="wlab" x="360" y="199" text-anchor="middle">SCL · TAKT</text>
+          <circle class="pad" cx="230" cy="208" r="6"/><text class="lbl" x="214" y="212" text-anchor="end">SCL</text>
+          <circle class="pad" cx="490" cy="208" r="6"/><text class="lbl" x="506" y="212">GPIO6<tspan class="fn" dx="8">SCL</tspan></text>
+
+          <!-- LED: auf dem Board -->
+          <circle class="pad-acc" cx="490" cy="244" r="6"/><text class="lbl" x="506" y="248">GPIO8<tspan class="fn" dx="8">LED intern</tspan></text>
+
+          <!-- Piezo, optional -->
+          <line class="w-opt" x1="483" y1="280" x2="416" y2="280"/>
+          <circle class="pad-acc" cx="490" cy="280" r="6"/><text class="lbl" x="506" y="284">GPIO10</text>
+          <text class="wlab" x="400" y="255" text-anchor="middle">PIEZO · OPTIONAL</text>
+          <circle class="piezo" cx="400" cy="280" r="14"/>
+          <line class="sym" x1="393" y1="274" x2="393" y2="286"/>
+          <line class="sym" x1="407" y1="274" x2="407" y2="286"/>
+          <text class="fn" x="424" y="272">+</text>
+          <text class="fn" x="372" y="272">−</text>
+          <line class="sym" x1="386" y1="280" x2="340" y2="280"/>
+          <line class="sym" x1="340" y1="280" x2="340" y2="292"/>
+          <line class="sym" x1="328" y1="292" x2="352" y2="292"/>
+          <line class="sym" x1="333" y1="298" x2="347" y2="298"/>
+          <line class="sym" x1="337" y1="304" x2="343" y2="304"/>
+          <text class="fn" x="296" y="297" text-anchor="end">GND</text>
+
+          <text class="note" x="46" y="248">Frei lassen:</text>
+          <text class="fn" x="46" y="266">3Vo · DO · CS</text>
+          <text class="fn" x="46" y="284">INT1 · INT2</text>
+        </svg>

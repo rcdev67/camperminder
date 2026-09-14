@@ -11,9 +11,15 @@ Wer noch das Board des ersten Prototyps benutzt — ESP32-C3 mit aufgelötetem
 
 ## LSM6DS3TR-C (Adafruit 4503) → ESP32-C3
 
+![LSM6DS3TR-C an den ESP32-C3 SuperMini: VIN an 3V3, GND an GND, SDA an GPIO5, SCL an GPIO6, optional Piezo an GPIO10](bilder/verkabelung-lsm6ds3trc.svg)
+
+Drahtfarben wie beim STEMMA-QT- bzw. Qwiic-Kabel: rot Versorgung, schwarz
+Masse, blau SDA, gelb SCL. Gestrichelt ist optional. Wer das Modul über ein
+STEMMA-QT-Kabel anschließt, hat die Farben also schon richtig.
+
 | Breakout | ESP32-C3 | Hinweis |
 |----------|----------|---------|
-| **VIN**  | **3V3**  | Der Breakout hat eigenen Regler und Pegelwandler und nähme auch 5 V. 3V3 ist trotzdem richtig: Der SuperMini führt an seinem 5-V-Pin nur dann Spannung, wenn er selbst über USB versorgt wird — im Fahrzeug hängt er am Wandler, und dort liegt dort nichts an. |
+| **VIN**  | **3V3**  | Der Breakout hat eigenen Regler und Pegelwandler und nähme auch 5 V. 3V3 ist trotzdem richtig: Der SuperMini führt an seinem 5-V-Pin nur dann Spannung, wenn er selbst über USB versorgt wird — hängt er im Fahrzeug am Wandler, liegt dort unter Umständen nichts an. |
 | **GND**  | GND      | gemeinsame Masse — zwingend |
 | **SDA**  | **GPIO5** | |
 | **SCL**  | **GPIO6** | |
@@ -48,6 +54,13 @@ passives Piezoelement sein.
 ---
 
 ## ESP32-C3 — freie und gesperrte Pins (wichtig!)
+
+![Draufsicht ESP32-C3 SuperMini mit USB-C oben: links 5V, G, 3.3, rechts GPIO5 SDA, GPIO6 SCL, GPIO8 LED, GPIO10 Piezo](bilder/verkabelung-supermini-stifte.svg)
+
+> **Vor dem Löten:** Die Stiftreihenfolge ist nicht bei jedem SuperMini-Nachbau
+> gleich, und die Quellen sind sich bei den unbenutzten Stiften nicht einig.
+> Gegen den Aufdruck auf der eigenen Platine prüfen — der Aufdruck gilt, nicht
+> die Skizze.
 
 Der C3 ist **nicht** wie ein klassischer ESP32:
 
