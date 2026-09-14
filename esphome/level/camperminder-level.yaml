@@ -33,6 +33,36 @@ substitutions:
   # Aufbaubatterie, kostet etwas Reaktionszeit. "high" nur für Messungen.
   wifi_power_save: "none"
 
+  # SENDELEISTUNG - DARF IN KEINEM UPDATE FEHLEN ODER STEIGEN, OHNE DASS DIE
+  # BOARDS DAFUER GEPRUEFT SIND.
+  #
+  # Der ESP32-C3 SuperMini hat einen chargenabhaengigen Antennen- und
+  # Quarzfehler. Gemessen am 14.09.2026 an zwei Boards mit identischer
+  # Firmware 3.9.1:
+  #
+  #   Charge MAC b8:1f:3f  bei 20 dB   eigenes Netz UNSICHTBAR, auch direkt daneben
+  #                        bei 8,5 dB  sichtbar, in 5 m rund 5 dB unter der alten
+  #   Charge MAC 8c:d0:b2  bei 20 dB   sichtbar
+  #   beide                hinter einer Mauer weg
+  #
+  # Das Log meldete dabei in beiden Faellen "Setting up AP" ohne jeden Fehler.
+  # Die Firmware haelt das Netz fuer gestartet - der Fehler ist von innen nicht
+  # zu sehen, nur von aussen.
+  #
+  # WARUM EIN WERT FUER ALLE BOARDS: Alle Geraete einer Linie haengen am selben
+  # Update-Kanal, und niemand weiss, welche Charge in seinem Geraet steckt. Der
+  # Wert muss also fuer die schlechteste Charge taugen. Das kostet die bessere
+  # etwas Reichweite.
+  #
+  # WARUM DIE WARNUNG OBEN: Ein Update mit hoeherem Wert schaltet bei jedem
+  # Geraet der schlechten Charge das eigene Netz ab. Kommt das Geraet dann auch
+  # nicht ins Heimnetz, ist es nur noch per Kabel erreichbar - das Update, das
+  # es reparieren koennte, kaeme ueber genau dieses WLAN.
+  #
+  # Bei einem Boardwechsel (Modul mit ordentlicher Antenne) hier wieder
+  # anheben; ESPHome setzt ohne Angabe 20 dB.
+  wifi_output_power: "8.5dB"
+
 esphome:
   name: ${device_name}
   friendly_name: ${friendly_name}
@@ -282,6 +312,7 @@ text:
 # Zugangspunkt-Betrieb, und dorthin wechselt das Gerät nach ap_timeout von
 # selbst. Ein Neustart-Karussell im Normalbetrieb gibt es also nicht.
 wifi:
+  output_power: ${wifi_output_power}
   power_save_mode: ${wifi_power_save}
   reboot_timeout: 10min
 
