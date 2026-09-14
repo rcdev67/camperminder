@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-12 -12 744 340" width="744" height="340" role="img" aria-label="GY-521 an ESP32-C3 SuperMini: VCC an 5V, GND an GND, SDA an GPIO5, SCL an GPIO6. XDA, XCL, AD0 und INT bleiben frei.">
+<title>GY-521 an ESP32-C3 SuperMini: VCC an 5V, GND an GND, SDA an GPIO5, SCL an GPIO6. XDA, XCL, AD0 und INT bleiben frei.</title>
+<style>
+.bg{fill:#ffffff;stroke:#d3dae1;stroke-width:1}
+.blk{fill:#f6f8fa;stroke:#d3dae1;stroke-width:1.5}
+.pad{fill:#ffffff;stroke:#8b96a2;stroke-width:2}
+.pad-dim{fill:#ffffff;stroke:#b1bac3;stroke-width:1.5}
+.pad-acc{fill:#ffffff;stroke:#1b8292;stroke-width:2.5}
+.lbl{fill:#1b2430;font:500 13px Consolas,'DejaVu Sans Mono','Courier New',monospace}
+.lbl-dim{fill:#a3adb7;font:500 13px Consolas,'DejaVu Sans Mono','Courier New',monospace}
+.fn{fill:#5a6675;font:400 11.5px Consolas,'DejaVu Sans Mono','Courier New',monospace}
+.ttl{fill:#1b2430;font:700 15px 'Segoe UI',Helvetica,Arial,sans-serif}
+.note{fill:#5a6675;font:400 12px 'Segoe UI',Helvetica,Arial,sans-serif}
+.wlab{fill:#5a6675;font:600 10.5px 'Segoe UI',Helvetica,Arial,sans-serif;letter-spacing:.05em}
+.w{fill:none;stroke-width:4;stroke-linecap:round}
+.w-red{stroke:#cc3333}.w-blue{stroke:#2a64c5}.w-yellow{stroke:#c29400}.w-gnd{stroke:#1b2430}
+.w-opt{fill:none;stroke:#1b8292;stroke-width:3;stroke-dasharray:7 6;stroke-linecap:round}
+.sym{fill:none;stroke:#1b2430;stroke-width:2;stroke-linecap:round}
+.piezo{fill:#ffffff;stroke:#1b8292;stroke-width:2.5}
+.board{fill:#e4eaee;stroke:#c3ccd4;stroke-width:1.5}
+.usb{fill:#d3dae1;stroke:#8b96a2;stroke-width:1.5}
+.chip{fill:none;stroke:#b1bac3;stroke-width:1.5;stroke-dasharray:4 4}
+.f-red{fill:#cc3333}.f-blue{fill:#2a64c5}.f-yellow{fill:#c29400}.f-gnd{fill:#1b2430}.f-acc{fill:#1b8292}
+</style>
+<rect class="bg" x="-11" y="-11" width="743" height="339" rx="10"/>
+          <text class="ttl" x="30" y="24">GY-521 · MPU6050</text>
+          <text class="ttl" x="690" y="24" text-anchor="end">ESP32-C3 SuperMini</text>
+          <rect class="blk" x="30" y="36" width="200" height="264" rx="8"/>
+          <rect class="blk" x="490" y="36" width="200" height="264" rx="8"/>
+
+          <!-- 5V -->
+          <line class="w w-red" x1="237" y1="64" x2="483" y2="64"/>
+          <text class="wlab" x="360" y="55" text-anchor="middle">VERSORGUNG</text>
+          <circle class="pad" cx="230" cy="64" r="6"/><text class="lbl" x="214" y="68" text-anchor="end">VCC</text>
+          <circle class="pad" cx="490" cy="64" r="6"/><text class="lbl" x="506" y="68">5V</text>
+
+          <!-- 3V3 ungenutzt -->
+          <circle class="pad-dim" cx="490" cy="100" r="6"/><text class="lbl-dim" x="506" y="104">3V3</text>
+
+          <!-- GND -->
+          <line class="w w-gnd" x1="237" y1="136" x2="483" y2="136"/>
+          <text class="wlab" x="360" y="127" text-anchor="middle">MASSE</text>
+          <circle class="pad" cx="230" cy="136" r="6"/><text class="lbl" x="214" y="140" text-anchor="end">GND</text>
+          <circle class="pad" cx="490" cy="136" r="6"/><text class="lbl" x="506" y="140">GND</text>
+
+          <!-- SDA -->
+          <line class="w w-blue" x1="237" y1="172" x2="483" y2="172"/>
+          <text class="wlab" x="360" y="163" text-anchor="middle">SDA · DATEN</text>
+          <circle class="pad" cx="230" cy="172" r="6"/><text class="lbl" x="214" y="176" text-anchor="end">SDA</text>
+          <circle class="pad" cx="490" cy="172" r="6"/><text class="lbl" x="506" y="176">GPIO5<tspan class="fn" dx="8">SDA</tspan></text>
+
+          <!-- SCL -->
+          <line class="w w-yellow" x1="237" y1="208" x2="483" y2="208"/>
+          <text class="wlab" x="360" y="199" text-anchor="middle">SCL · TAKT</text>
+          <circle class="pad" cx="230" cy="208" r="6"/><text class="lbl" x="214" y="212" text-anchor="end">SCL</text>
+          <circle class="pad" cx="490" cy="208" r="6"/><text class="lbl" x="506" y="212">GPIO6<tspan class="fn" dx="8">SCL</tspan></text>
+
+          <!-- ungenutzt in 3.9.1 -->
+          <circle class="pad-dim" cx="490" cy="244" r="6"/><text class="lbl-dim" x="506" y="248">GPIO8</text>
+          <circle class="pad-dim" cx="490" cy="280" r="6"/><text class="lbl-dim" x="506" y="284">GPIO10</text>
+
+          <text class="note" x="46" y="248">Frei lassen:</text>
+          <text class="fn" x="46" y="266">XDA · XCL</text>
+          <text class="fn" x="46" y="284">AD0 · INT</text>
+        </svg>
