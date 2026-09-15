@@ -16,6 +16,14 @@ setlocal
 set ROOT=%~dp0..
 set ESPHOME=%ROOT%\.venv\Scripts\esphome.exe
 
+rem Werkzeugkette von esp-idf in einen kurzen Pfad. Unter dem Vorgabeort in
+rem AppData\Local reichen die Pfade des Compilers ueber die 260-Zeichen-Grenze
+rem von Windows, und der Bau bricht mit "bits/c++config.h: No such file" ab.
+rem Der Ort liegt auf dem Laufwerk des Repositorys, nicht fest auf C: - die
+rem Rechner unterscheiden sich darin. Wer die Variable schon selbst gesetzt
+rem hat, behaelt seinen Ort.
+if not defined ESPHOME_ESP_IDF_PREFIX set ESPHOME_ESP_IDF_PREFIX=%~d0\ESPHome\idf
+
 call "%~dp0einrichten.cmd"
 if errorlevel 1 exit /b 1
 if not exist "%ROOT%\esphome\level\secrets.yaml" (
