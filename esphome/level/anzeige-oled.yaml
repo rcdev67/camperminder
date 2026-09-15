@@ -8,10 +8,10 @@
 #  von 72 x 40 Pixeln an der Einbaustelle nicht hergibt. Wer Keile unterlegt,
 #  steht draußen und sieht es ohnehin nicht.
 #
-#  Was das Feld dafür konnte, übernehmen jetzt Status-LED und Summer aus
+#  Was ein Feld dafür könnte, übernehmen Status-LED und Summer aus
 #  hardware.yaml. Eines nicht: die IP-Adresse im Heimnetz buchstabieren. Wer
-#  das braucht - Werkstatt, Messplatz, ein Board mit aufgelötetem OLED, das
-#  noch herumliegt -, baut mit dieser Datei.
+#  das braucht - Werkstatt, Messplatz -, steckt ein SSD1306-OLED an die
+#  Stiftleiste J4 der Platine (3V3, GND, SDA, SCL) und baut mit dieser Datei.
 #
 #  Verwendung: in camperminder-level.yaml unter packages: die dort
 #  vorbereitete Zeile einkommentieren.
