@@ -55,6 +55,11 @@ esphome run camperminder-level.yaml
   cc1plus` ab**, ging der Arbeitsspeicher aus — `compile_process_limit: 1`
   steht bereits in der Datei; dann hilft nur ein Neustart des Bauwerkzeugs
   oder ein größerer Rechner.
+- ✔ Unter Windows meldet ESPHome sonst `bits/c++config.h: No such file`: Die
+  esp-idf-Werkzeuge liegen dann unter einem zu langen Pfad. `tools\bauen.cmd`
+  legt sie nach `\ESPHome\idf` auf dem Laufwerk des Repositorys; wer `esphome`
+  von Hand aufruft, setzt vorher `ESPHOME_ESP_IDF_PREFIX` auf einen ebenso
+  kurzen Pfad.
 - ✔ Im Log erscheint der I²C-Scan mit **0x6A** (LSM6DS3TR-C). Fehlt er, hat
   die Platine ein Bestückungsproblem am Sensor — die Prüfschritte stehen in
   [docs/verkabelung.md](docs/verkabelung.md).
