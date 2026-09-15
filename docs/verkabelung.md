@@ -1,79 +1,97 @@
-# Verkabelung
+# Platine und Anschlüsse
 
-Ab Version 4.0.0 besteht das Gerät aus zwei Teilen: einem **ESP32-C3 ohne
-Display** und einem **LSM6DS3TR-C** auf einem Adafruit-Breakout. Sie hängen an
-einem I²C-Bus.
+Ab Version 4.0.0 läuft die Firmware auf der eigenen Platine **CamperMinder
+Level** (Rev B, 90 × 45 mm). Funkmodul, Sensor, Versorgung, LEDs und Summer
+sitzen darauf — zu verkabeln ist nur noch die Stromversorgung.
 
-Wer noch das Board des ersten Prototyps benutzt — ESP32-C3 mit aufgelötetem
-0,42″-OLED und MPU6050 —, findet am Ende dieser Seite, was sich für ihn ändert.
-
----
-
-## LSM6DS3TR-C (Adafruit 4503) → ESP32-C3
-
-![LSM6DS3TR-C an den ESP32-C3 SuperMini: VIN an 3V3, GND an GND, SDA an GPIO5, SCL an GPIO6, optional Piezo an GPIO10](bilder/verkabelung-lsm6ds3trc.svg)
-
-Drahtfarben wie beim STEMMA-QT- bzw. Qwiic-Kabel: rot Versorgung, schwarz
-Masse, blau SDA, gelb SCL. Gestrichelt ist optional. Wer das Modul über ein
-STEMMA-QT-Kabel anschließt, hat die Farben also schon richtig.
-
-| Breakout | ESP32-C3 | Hinweis |
-|----------|----------|---------|
-| **VIN**  | **3V3**  | Der Breakout hat eigenen Regler und Pegelwandler und nähme auch 5 V. 3V3 ist trotzdem richtig: Der SuperMini führt an seinem 5-V-Pin nur dann Spannung, wenn er selbst über USB versorgt wird — hängt er im Fahrzeug am Wandler, liegt dort unter Umständen nichts an. |
-| **GND**  | GND      | gemeinsame Masse — zwingend |
-| **SDA**  | **GPIO5** | |
-| **SCL**  | **GPIO6** | |
-| 3Vo      | offen lassen | Ausgang des Reglers auf dem Breakout, wird nicht gebraucht |
-| INT1, INT2 | offen lassen | ESPHome fragt den Sensor im 100-ms-Takt ab; ein Interrupt ist nicht vorgesehen |
-| Lötbrücke auf der Rückseite | **offen lassen** | offen → Adresse **0x6A**. Geschlossen → 0x6B, dann in `hardware.yaml` unter `motion:` die Adresse mitändern |
-
-Die Pins stehen als Substitutionen in
-[`esphome/level/hardware.yaml`](../esphome/level/hardware.yaml) unter
-`i2c_sda_pin` und `i2c_scl_pin` — wer anders verdrahtet, ändert sie dort und
-nicht im Code.
-
-> **Löten ist nicht zwingend.** Der Breakout hat zwei STEMMA-QT-Buchsen
-> (steckerkompatibel mit SparkFun Qwiic). Mit einem JST-SH-Kabel auf vier
-> Einzeldrähte hängt der Sensor am Steckbrett, ohne dass an ihm eine
-> Lötstelle entsteht. Für den Prototyp ist das der schnellere Weg; für den
-> Einbau ins Fahrzeug ist gelötet oder gecrimpt besser — ein Steckverbinder,
-> der sich über Jahre durchrüttelt, sieht als Fehlerbild aus wie ein defekter
-> Sensor.
-
-### Anschlüsse ohne weitere Aufgabe
-
-| ESP32-C3 | Wofür |
-|---|---|
-| **GPIO8** | eingebaute LED des SuperMini, Betriebs- und Alarmanzeige — schon auf der Platine verbunden, nichts zu tun |
-| **GPIO10** | Summer, passives Piezoelement gegen GND. Optional: Hängt nichts daran, passiert nichts. |
-
-Ein **aktiver** Summer mit eigener Elektronik taugt hier nicht — der pfeift
-stur auf seiner eigenen Frequenz und ignoriert die Tonfolge. Es muss ein
-passives Piezoelement sein.
+Diese Seite beschreibt, was die Firmware auf der Platine vorfindet und woran
+man erkennt, dass es stimmt.
 
 ---
 
-## ESP32-C3 — freie und gesperrte Pins (wichtig!)
+## Anschlüsse nach außen
 
-![Draufsicht ESP32-C3 SuperMini mit USB-C oben: links 5V, G, 3.3, rechts GPIO5 SDA, GPIO6 SCL, GPIO8 LED, GPIO10 Piezo](bilder/verkabelung-supermini-stifte.svg)
+| Anschluss | Was | Hinweis |
+|---|---|---|
+| **J2** Schraubklemme | **VIN** 7–36 V, **GND** | Bordnetz 12 V oder 24 V. Dahinter Sicherung (0,5 A, selbstrückstellend), Überspannungsschutz und Verpolschutz — falsch herum angeklemmt passiert nichts, es geht nur nichts. |
+| **J1** USB-C | Flashen, Log, 5 V | Dieselbe Buchse für alles; ein Seriellwandler ist nicht nötig, der ESP32-C3 spricht USB selbst. Darf gleichzeitig mit der Klemme stecken: Die höhere Quelle versorgt, nichts fließt zurück. |
 
-> **Vor dem Löten:** Die Stiftreihenfolge ist nicht bei jedem SuperMini-Nachbau
-> gleich, und die Quellen sind sich bei den unbenutzten Stiften nicht einig.
-> Gegen den Aufdruck auf der eigenen Platine prüfen — der Aufdruck gilt, nicht
-> die Skizze.
+Beide Anschlüsse sitzen an derselben Stirnkante. Das ist **hinten** — der Pfeil
+auf der Platine und auf der Gehäusewand zeigt von ihnen weg nach vorn, die
+Kabel laufen nach hinten ab.
 
-Der C3 ist **nicht** wie ein klassischer ESP32:
+## Was die Firmware benutzt
 
-- **GPIO0/1** = 32-kHz-Quarz → für I²C unbrauchbar
-- **GPIO2/8/9** = Strapping (Boot) · **GPIO11** = VDD_SPI · **GPIO12–17** = Flash
-- **GPIO18/19** = USB · **GPIO20/21** = UART0 (Log)
-- **frei nutzbar:** GPIO4, 5, 6, 7, 10
+| GPIO | Bauteil | In `hardware.yaml` |
+|---|---|---|
+| **5** | SDA — Sensor U5 und Stiftleiste J4 | `i2c_sda_pin` |
+| **6** | SCL — Sensor U5 und Stiftleiste J4 | `i2c_scl_pin` |
+| **8** | Status-LED **D10** (rot), über 470 Ω gegen 3V3, leuchtet bei LOW | `status_led_pin`, `status_led_inverted` |
+| **10** | Summer **BZ1** über Transistor Q1 | `buzzer_pin` |
+| 4 | INT1 des Sensors — verdrahtet, von der Firmware nicht benutzt | — |
+| 20 / 21 | UART RX / TX an J5 — Notzugang | — |
+| 18 / 19 | USB | — |
 
-**GPIO8 ist Strapping-Pin und trägt trotzdem die LED.** Das geht gut, weil der
-Pin beim Start Eingang ist und der Widerstand der LED ihn dabei nach oben zieht
-— genau in den Zustand, den der Bootlader erwartet. ESPHome warnt beim Bauen
-trotzdem; die Warnung ist an dieser Stelle richtig verstanden und harmlos. Auf
-einer eigenen Platine gehört die LED an einen Pin ohne Nebenaufgabe.
+GPIO8 ist ein Strapping-Pin und trägt trotzdem die LED. Das geht, weil R10 den
+Pin beim Start auf HIGH zieht und die LED dabei dunkel bleibt — genau der
+Zustand, den der Bootlader erwartet. ESPHome warnt beim Bauen; die Warnung ist
+hier verstanden und harmlos.
+
+### Sensor
+
+**U5 LSM6DS3TR-C**, direkt auf der Platine. SDO/SA0 liegt fest an Masse, die
+Adresse ist damit **0x6A** und nicht umschaltbar. CS liegt an 3V3, der Chip
+arbeitet über I²C. Die Hilfsschnittstelle SDx/SCx ist nach Datenblatt auf
+Masse gelegt, INT2 offen. Pull-ups für SDA und SCL bringt die Platine mit.
+
+Die Achszuordnung der Firmware ist aus dem Layout abgeleitet — Herleitung bei
+den Substitutions in [`hardware.yaml`](../esphome/level/hardware.yaml) — und
+wird am ersten bestückten Muster bestätigt, siehe unten.
+
+### LEDs
+
+| | Farbe | Bedeutung |
+|---|---|---|
+| **D8** | grün | Betrieb: hängt fest an 3V3, leuchtet, sobald Strom da ist. Die Firmware kann sie nicht schalten. |
+| **D10** | rot | Status: die Blinkmuster der Firmware (eigenes Netz, Heimnetz, Sensor stumm, Alarm) |
+
+Beide sitzen nebeneinander an der Längskante gegenüber dem Summer.
+
+### Summer
+
+**BZ1 MLT-8530**, magnetisch, Resonanz 2700 Hz, an +5 V. Q1 schaltet ihn nach
+Masse, GPIO10 steuert die Basis über 470 Ω. Die Firmware steuert den Pin **nicht
+invertiert** an: Im Ruhezustand LOW, Q1 gesperrt, kein Strom durch die Spule.
+Die Alarmtöne liegen auf e7 (2637 Hz), dicht an der Resonanz.
+
+Der Summer ist nicht dicht — seine Schallöffnung zeigt zur Platinenkante, das
+Schallloch im Gehäuse gehört seitlich daneben, nicht darüber.
+
+### Taster
+
+**SW1 BOOT** und **SW2 RESET**. Im Betrieb braucht sie niemand; sie sind für
+den Fall, dass ein Modul nicht mehr über USB in den Bootlader findet: BOOT
+halten, RESET tippen, BOOT loslassen.
+
+### Stiftleisten — unbestückt
+
+| | Belegung | Wofür |
+|---|---|---|
+| **J4** I²C | 3V3, GND, SDA, SCL | weitere I²C-Teilnehmer; für Werkstatt und Messplatz ein 0,42"-OLED (`anzeige-oled.yaml`) |
+| **J5** UART | 3V3, GND, TX (GPIO21), RX (GPIO20) | Notzugang, falls USB einmal nicht geht |
+
+---
+
+## Ausrichtung im Fahrzeug
+
+Der Pfeil **VORN** auf der Platine zeigt in Fahrtrichtung, von USB-Buchse und
+Klemme weg. Der Pfeil auf der Gehäusewand zeigt in dieselbe Richtung. Um 90
+Grad verdreht eingebaut vertauscht das Gerät Längs- und Querneigung, und das
+sieht auf der Anzeige plausibel aus — deshalb der Pfeil.
+
+Kopfüber montiert, etwa unter einem Regalbrett, hilft der Pfeil nicht; dafür
+gibt es in der Firmware die Einstellung **Einbaulage** — siehe
+[kalibrierung.md](kalibrierung.md), Schritt 1.
 
 ---
 
@@ -85,35 +103,31 @@ Nach dem Flashen im ESPHome-Log auf den I²C-Scan achten:
 Found device at address 0x6A   ← LSM6DS3TR-C
 ```
 
-Beim Bausatz mit Display steht **0x3C** (OLED) zusätzlich da.
+Mit einem OLED an J4 steht **0x3C** zusätzlich da.
 
 | Was im Log steht | Was es heißt |
 |---|---|
-| **0x6A fehlt ganz** | SDA/SCL testweise tauschen, GND prüfen, Versorgung am VIN messen |
-| **0x6B statt 0x6A** | Die Lötbrücke auf der Rückseite ist geschlossen. Entweder öffnen oder in `hardware.yaml` unter `motion:` `address: 0x6B` eintragen. |
-| **0x68 oder 0x69** | Das ist ein MPU6050, kein LSM6DS3TR-C — falsches Modul erwischt |
-| **`Unknown WHO_AM_I value`** | Etwas antwortet auf 0x6A, ist aber nicht dieser Chip. Bei einem gekauften Adafruit-Modul praktisch ausgeschlossen; bei Ware aus unklarer Quelle der übliche Befund. |
-
-Pull-Widerstände sind **keine** zu ergänzen: Der Breakout bringt je 10 kΩ auf
-SDA und SCL mit, dazu schaltet die Firmware die des ESP32 hinzu.
+| **0x6A fehlt ganz** | Der Sensor antwortet nicht. Bei einem LGA-Gehäuse ist das fast immer eine Lötstelle unter dem Chip — mit der Lupe ist da nichts zu sehen. Erst prüfen, ob 3V3 am Sensor anliegt (FB1 sitzt in der Zuleitung), dann Nacharbeit oder Austausch der Platine. |
+| **`Unknown WHO_AM_I value`** | Etwas antwortet auf 0x6A, ist aber kein LSM6DS3TR-C. Ein anderes Bauteil bestückt — Reklamation beim Bestücker. |
+| **0x6B statt 0x6A** | Kann auf dieser Platine nicht vorkommen; SA0 liegt fest an Masse. |
 
 ---
 
-## Umstieg vom ersten Prototyp
+## Das erste bestückte Muster
 
-Wer das Board mit aufgelötetem OLED und MPU6050 weiterbenutzen will:
+Was maschinell prüfbar war, ist am Entwurf geprüft. Vier Dinge sind es nur am
+Aufbau, und sie gehören an das erste Muster jeder Revision:
 
-1. **Den MPU6050 abklemmen.** Zwei Sensoren gleichzeitig gehen nicht — die
-   Firmware kennt nur noch den einen.
-2. Den Breakout wie oben an dieselben zwei Leitungen hängen. Die Adressen
-   beißen sich nicht (0x3C, 0x6A).
-3. In [`esphome/level/camperminder-level.yaml`](../esphome/level/camperminder-level.yaml)
-   unter `packages:` die Zeile `anzeige: !include anzeige-oled.yaml`
-   einkommentieren, dann bleibt das Display in Betrieb.
-4. **Neu kalibrieren.** Der neue Sensor sitzt anders herum auf seiner Platine
-   als der alte — Achszuordnung, Vorzeichen und Nullpunkt gelten nicht mehr.
-   Das Verfahren steht in [kalibrierung.md](kalibrierung.md).
-
-Punkt 4 ist keine Formsache. Bis die Achsen geprüft sind, kann das Gerät
-Längs- und Querneigung vertauschen oder mit falschem Vorzeichen anzeigen — und
-das sieht auf der Anzeige völlig plausibel aus.
+1. **I²C-Scan zeigt 0x6A**, die rote LED blinkt, das eigene Netz
+   `CamperMinder` ist am Handy sichtbar.
+2. **Achszuordnung und Vorzeichen** nach [kalibrierung.md](kalibrierung.md),
+   Schritte 2 und 3: vorn anheben gibt positiven Pitch, rechts anheben
+   positiven Roll. Stimmt es nicht, die Substitutionen in `hardware.yaml`
+   anpassen — dort steht die Herleitung, an der man sieht, welche Annahme
+   nicht gestimmt hat.
+3. **Summer** — Wächter scharf schalten, Gerät kippen: drei kurze Töne,
+   deutlich hörbar. Ein magnetischer Summer arbeitet auch verpolt, nur leiser;
+   klingt er dünn, die Polung von BZ1 gegen das Datenblatt prüfen.
+4. **Sendeleistung** — das eigene Netz muss durch eine Fahrzeugwand hindurch
+   auf dem Stellplatz sichtbar sein. Die Firmware lässt das Modul auf seiner
+   Voreinstellung.

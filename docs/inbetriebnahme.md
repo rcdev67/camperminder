@@ -7,7 +7,7 @@ Konto.
 ## Schritt 1: Verbinden (immer nötig)
 
 1. Gerät einschalten.
-2. Am Handy in die WLAN-Liste, **CamperMinder** auswählen, Passwort eingeben.
+2. Am Handy in die WLAN-Liste, **CamperMinder** auswählen — ohne Passwort.
 3. Die Bedienseite öffnet sich meist von selbst. Falls nicht:
    **`192.168.4.1`** im Browser eingeben.
 4. Über *Zum Home-Bildschirm hinzufügen* landet ein Symbol auf dem Handy,

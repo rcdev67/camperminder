@@ -335,8 +335,7 @@ und hätte sie sonst teuer gemacht.
 | | |
 |---|---|
 | **Einheit** | Die neue Plattform liefert die Beschleunigung in **g**, der MPU6050 lieferte sie in **m/s²**. Betroffen sind der Diagnosewert „Betrag", die Montageprüfung und die Kalibrierprüfung. Pitch und Roll nicht — `atan2` rechnet mit Verhältnissen. |
-| **Gespeicherte Kalibrierung** | Ein Gerät aus 3.9.0 hat einen Kalibrierbetrag von rund 9,81 gespeichert. Nach dem Update läge er um den Faktor 9,81 daneben, und die Kalibrierprüfung schlüge dauerhaft an — ein harmloses Update erzeugte eine Störung, die keine ist. Die Firmware verwirft ihn deshalb beim ersten Start. |
-| **Achsen** | Der Adafruit-Breakout trägt den Chip anders herum auf der Platine als ein GY-521. Zuordnung und Vorzeichen sind **am Prototyp neu zu bestimmen**, bevor etwas davon in eine Serie geht. |
+| **Achsen** | Der Chip sitzt auf der Platine Rev B anders als der alte Sensor auf seinem Modul. Zuordnung und Vorzeichen sind aus dem Layout abgeleitet und **am ersten Muster zu bestätigen**, bevor etwas davon in eine Serie geht. |
 | **Aufzeichnungen** | Die Driftmessreihe aus `docs/drift_messung.md` beginnt von vorn. Sie stammte von einem anderen Bauteil und sagt über dieses hier nichts. |
 
 **Was der neue Sensor mitbringt:** rund viermal weniger Rauschen auf der
@@ -382,24 +381,36 @@ beschallt sonst eine halbe Nacht den Stellplatz, ohne dass es jemandem hilft.
 Eine Sirene, die stundenlang läuft, schaltet der Nachbar ab, und dann ist die
 Meldung weg.
 
-Das OLED bleibt als **Bauvariante** bestehen (`anzeige-oled.yaml`, in der
-Gerätedatei eine auskommentierte Zeile). Es ist kein zweites Produkt, sondern
-das Werkzeug für Werkstatt und Messplatz — und der Weg, die Boards der ersten
-Runde weiterzubenutzen.
+Das OLED bleibt als **Werkstattvariante** bestehen (`anzeige-oled.yaml`, in der
+Gerätedatei eine auskommentierte Zeile, Anschluss an der Stiftleiste J4 der
+Platine). Es ist kein zweites Produkt, sondern das Werkzeug für Werkstatt und
+Messplatz.
 
-### 3. Das Board — noch nicht entschieden
+### 3. Das Board — entschieden am 14. September 2026: eigene Platine
 
-Der Prototyp läuft auf einem **ESP32-C3 SuperMini**, weil davon welche da sind.
-**Für die Serie ist das keine Entscheidung**, und der Unterschied ist teuer:
+Das Gerät läuft auf einer **eigenen Platine „CamperMinder Level"**, 90 × 45 mm,
+mit einem **ESP32-C3-WROOM-02-N4** als Funkmodul und dem LSM6DS3TR-C direkt
+bestückt. Dazu Versorgung 7–36 V über Schraubklemme mit Sicherung, Verpol- und
+Überspannungsschutz, USB-C zum Flashen und für 5 V, Status-LED, Betriebs-LED
+und ein magnetischer Summer. **Rev B** ist am 14. September 2026 bei PCBWay
+bestellt, zehn Stück bestückt, als Prototypenreihe. **Rev C** ändert nur
+Siebdruck und Sensor-Pads und wird später bestellt.
 
-Der SuperMini trägt den Chip ungekapselt auf der eigenen Platine, mit eigener
-Leiterbahnantenne. Damit fällt das Argument aus dem Abschnitt „Zulassung" weg,
-die Funkeigenschaften nach Artikel 3.2 vom vorzertifizierten
-**ESP32-C3-WROOM-02 zu erben** — und das ist der teuerste Posten der
-CE-Prüfung. Wer die Serie auf einem SuperMini aufbaut, zahlt eine
-Funkmessung, die auf einem Modulboard geschenkt wäre.
+Warum ein Modul und kein nackter Chip: Das WROOM-02 ist mit seiner Antenne
+funkzertifiziert, die Funkeigenschaften nach Artikel 3.2 werden geerbt — der
+teuerste Posten der CE-Prüfung entfällt. Die Erfahrungen mit den lose
+gekauften ESP32-C3-Boards des Prototyps waren außerdem schlecht: chargenweise
+unsichtbare Netze, unklare Stiftbelegung.
 
-Zum Erproben ist das gleichgültig. **Vor der ersten Serienbestellung nicht.**
+**Alte Hardware gibt es nicht im Feld.** Kein Kunde hat ein Gerät mit MPU6050,
+SuperMini oder aufgelötetem OLED. Firmware und Dokumentation beschreiben
+deshalb nur noch die Platine; Migrationspfade von der alten Bestückung werden
+nicht gepflegt.
+
+Für die Firmware folgt daraus: Board-Profil `esp32-c3-devkitc-02`, Pins
+unverändert (GPIO5/6 I²C, GPIO8 LED, GPIO10 Summer), Sendeleistung auf der
+Voreinstellung, Achszuordnung aus dem Layout abgeleitet — siehe die offenen
+Punkte.
 
 ## Fernalarm — entschieden am 22. August 2026
 
@@ -458,15 +469,16 @@ den kritischen Pfad** vor der ersten Serie.
    Vor jeder Empfehlung in diese Richtung nachzurüsten, und dabei gegen den
    Flash-Verbrauch zu prüfen: Stand 3.9.0 sind 71,7 % belegt.
 9. Push-Dienst als Fernalarm (Stufe 2), nach dem Verkaufsstart.
-10. **Achszuordnung und Vorzeichen am LSM6DS3TR-C bestimmen.** Die Werte in
-    den Substitutions stammen vom GY-521. Bis das erledigt ist, kann das
-    Gerät Längs und Quer vertauschen — und das sieht auf der Anzeige
-    plausibel aus. Verfahren in `docs/kalibrierung.md`, Schritte 2 und 3.
+10. **Achszuordnung und Vorzeichen am ersten Rev-B-Muster bestätigen.** Die
+    Werte in den Substitutions sind aus dem Platinenlayout und der Achsfigur
+    des ST-Datenblatts abgeleitet, nicht gemessen. Verfahren in
+    `docs/kalibrierung.md`, Schritte 2 und 3. Am selben Muster: I²C-Scan
+    zeigt 0x6A, Status-LED blinkt, Summer tönt hörbar, eigenes Netz sichtbar.
 11. **Glättung und Bewegungsschwelle am neuen Sensor nachmessen.** Beide
-    stehen auf den am MPU6050 erprobten Werten und lassen Genauigkeit liegen.
-12. **Board für die Serie festlegen.** Der SuperMini des Prototyps kostet die
-    geerbte Funkzertifizierung — siehe „Der Hardwarewechsel", Punkt 3. Das
-    gehört vor Punkt 5 (Prüflabor) entschieden, nicht danach.
+    stehen auf den am Vorgängersensor erprobten Werten und lassen Genauigkeit
+    liegen. Braucht eine Messreihe am stehenden Fahrzeug mit einem Rev-B-Gerät.
+12. ~~Board für die Serie festlegen~~ — entschieden, siehe „Der
+    Hardwarewechsel", Punkt 3: eigene Platine mit ESP32-C3-WROOM-02.
 
 ## Marktumfeld, zur Einordnung
 

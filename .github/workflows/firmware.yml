@@ -1,0 +1,63 @@
+# Baut die Firmware bei jeder Änderung an esphome/ einmal durch.
+#
+# Warum: Auf dem Entwicklungsrechner steht ESPHome nicht immer bereit, und ein
+# Fehler in der Konfiguration - ein unbekanntes Board-Profil, ein Tippfehler in
+# einer Substitution - fiele sonst erst beim Flashen auf. Hier fällt er beim
+# Push auf. Veröffentlicht wird dabei nichts; das bleibt bei
+# tools/veroeffentlichen.cmd.
+name: Firmware
+
+on:
+  push:
+    paths:
+      - "esphome/**"
+      - ".github/workflows/firmware.yml"
+  pull_request:
+    paths:
+      - "esphome/**"
+      - ".github/workflows/firmware.yml"
+  workflow_dispatch:
+
+jobs:
+  bauen:
+    name: ESPHome baut camperminder-level.yaml
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      # Werkzeugketten von PlatformIO und esp-idf sind groß; ohne Zwischenspeicher
+      # lädt jeder Lauf sie neu.
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.platformio
+            esphome/level/.esphome
+          key: platformio-${{ runner.os }}-${{ hashFiles('esphome/level/*.yaml') }}
+          restore-keys: platformio-${{ runner.os }}-
+
+      - name: ESPHome einrichten
+        run: pip install esphome
+
+      # Schlüssel nur für den Probelauf. Die echte secrets.yaml mit dem
+      # API-Schlüssel der ausgelieferten Geräte liegt bewusst nicht im
+      # Repository; zum Prüfen genügt irgendein gültiger 32-Byte-Schlüssel.
+      - name: secrets.yaml für den Probelauf
+        working-directory: esphome/level
+        run: |
+          {
+            echo "camperminder_api_key: \"$(head -c 32 /dev/urandom | base64)\""
+            echo "camperminder_ota_password: \"probelauf\""
+          } > secrets.yaml
+
+      - name: Konfiguration prüfen
+        working-directory: esphome/level
+        run: esphome config camperminder-level.yaml > /dev/null
+
+      - name: Firmware bauen
+        working-directory: esphome/level
+        run: esphome compile camperminder-level.yaml

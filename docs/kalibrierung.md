@@ -42,12 +42,12 @@ Der Sensor misst auf drei Achsen. Welche davon die Längsneigung trägt, hängt
 davon ab, **wie herum das Board eingebaut ist** — das lässt sich nicht durch ein
 Vorzeichen korrigieren.
 
-> **Mit 4.0.0 ist dieser Schritt Pflicht, nicht Kür.** Die Werte in den
-> Substitutions stammen vom MPU6050 auf einem GY-521. Der Adafruit-Breakout des
-> LSM6DS3TR-C trägt den Chip anders herum, also stimmen Zuordnung und
-> Vorzeichen erst einmal nicht zwangsläufig. Wer diesen und den nächsten
-> Schritt überspringt, bekommt eine Anzeige, die plausibel aussieht und
-> Längs mit Quer verwechselt.
+> **Für die Platine Rev B sind Zuordnung und Vorzeichen aus dem Layout
+> abgeleitet** (Herleitung bei den Substitutions in `hardware.yaml`) und am
+> ersten bestückten Muster **einmal zu bestätigen** — dieser und der nächste
+> Schritt. Danach gelten sie für jede Platine dieser Revision; ein Kunde muss
+> hier nichts tun. Wer die Prüfung überspringt, riskiert eine Anzeige, die
+> plausibel aussieht und Längs mit Quer verwechselt.
 
 Test: Fahrzeug (oder Board) **vorne anheben**.
 

@@ -40,12 +40,13 @@
 #  statt der hier eingestellten.
 #
 #  WICHTIG: Im Assistenten muss als Gerätetyp ESP32-C3 gewählt sein. Steht in
-#  der erzeugten Datei "board: esp32dev", auf "board: esp32-c3-devkitm-1"
+#  der erzeugten Datei "board: esp32dev", auf "board: esp32-c3-devkitc-02"
 #  ändern - sonst passen die Pins nicht.
 #
-#  ANSCHLÜSSE: I2C auf GPIO5/GPIO6, Status-LED auf GPIO8, Summer auf GPIO10.
-#  Alle vier stehen als Substitution weiter unten; verkabelt wird nach
-#  docs/verkabelung.md.
+#  ANSCHLÜSSE: I2C auf GPIO5/GPIO6, Status-LED auf GPIO8, Summer auf GPIO10 -
+#  die Belegung der Platine "CamperMinder Level" Rev B. Alle vier stehen als
+#  Substitution weiter unten; die Platine ist in docs/verkabelung.md
+#  beschrieben.
 # ============================================================================
 
 substitutions:
@@ -71,42 +72,46 @@ substitutions:
   # veröffentlicht werden soll - Einzelheiten in docs/firmware_update.md.
   firmware_version: "4.0.0"
 
-  # --- Anschluesse ---------------------------------------------------------
+  # --- Anschluesse: Platine "CamperMinder Level" Rev B -----------------------
   #
-  # I2C-Bus. Auf dem ESP32-C3 sind GPIO4 bis GPIO7 und GPIO10 frei belegbar:
-  # GPIO0/1 tragen den 32-kHz-Quarz, GPIO2/8/9 sind Strapping-Pins, GPIO11 ist
-  # VDD_SPI, GPIO12-17 der Flash, GPIO18/19 der USB-Anschluss und GPIO20/21 die
-  # Log-Schnittstelle.
+  # Die Belegung ist die der eigenen Platine (camperminder-hardware, pcb/level,
+  # Rev B, bestellt am 14.09.2026). Sie steht hier als Substitution und nicht im
+  # Code, damit eine spaetere Revision an EINER Stelle nachgezogen wird.
   #
-  # 5 und 6 stehen hier weiter, obwohl sie im ersten Prototyp vom aufgeloeteten
-  # OLED vorgegeben waren und auf einem Board ohne Display frei waehlbar sind.
-  # Der Grund ist die Verkabelung: EINE Belegung fuer beide Ausfuehrungen
-  # bedeutet eine Anleitung, einen Kabelbaum und eine Loetstelle weniger, an
-  # der man sich vertun kann.
+  #   GPIO5  SDA   } I2C zum LSM6DS3TR-C (U5) und zur Stiftleiste J4
+  #   GPIO6  SCL   }
+  #   GPIO8  Status-LED D10 (rot), ueber 470 Ohm gegen 3V3
+  #   GPIO10 Summer BZ1 ueber Transistor Q1
+  #   GPIO4  INT1 des Sensors - verdrahtet, von der Firmware nicht benutzt
+  #
+  # Nicht belegbar auf dem ESP32-C3: GPIO0/1 (32-kHz-Quarz), GPIO2/8/9
+  # (Strapping), GPIO11 (VDD_SPI), GPIO12-17 (Flash), GPIO18/19 (USB),
+  # GPIO20/21 (UART, auf der Platine an J5).
   i2c_sda_pin: GPIO5
   i2c_scl_pin: GPIO6
 
-  # Status-LED. Sie ersetzt am Geraet ohne Display die drei Auskuenfte, die
-  # bisher auf dem OLED standen: Laeuft das Geraet? Unter welcher Adresse ist
-  # es zu erreichen? Liegt ein Alarm an? Die Muster stehen im interval-Block.
+  # Status-LED. Sie beantwortet am Geraet ohne Display drei Fragen: Laeuft das
+  # Geraet? Eigenes Netz oder Heimnetz? Liegt ein Alarm an? Die Muster stehen
+  # im interval-Block.
   #
-  # Auf dem ESP32-C3 SuperMini sitzt die eingebaute LED an GPIO8 und haengt
-  # gegen 3V3 - sie leuchtet also bei LOW, deshalb inverted. Dass GPIO8
-  # zugleich Strapping-Pin ist, stoert nicht: Beim Start ist der Pin Eingang,
-  # und der Widerstand der LED zieht ihn dabei nach oben - genau in den
+  # D10 haengt ueber R13 gegen 3V3 und leuchtet bei LOW - deshalb inverted.
+  # Dass GPIO8 zugleich Strapping-Pin ist, stoert nicht: Beim Start ist der Pin
+  # Eingang, R10 zieht ihn auf HIGH, und die LED bleibt dunkel - genau der
   # Zustand, den der Bootlader erwartet.
   #
-  # Auf einer eigenen Platine gehoert die LED an einen freien Pin ohne
-  # Nebenaufgabe. Deshalb steht sie hier und nicht im Code.
+  # Die gruene D8 daneben haengt fest an 3V3 und zeigt nur "Strom da"; die
+  # Firmware kann sie nicht schalten.
   status_led_pin: GPIO8
   status_led_inverted: "true"
 
   # Summer fuer den Waechteralarm. Ohne Display ist er das Einzige, was jemanden
   # erreicht, der ohne Handy zum Fahrzeug kommt.
   #
-  # GPIO10 ist frei und hat keine Nebenaufgabe. Haengt nichts daran, passiert
-  # nichts - der Pin schaltet dann ins Leere, und niemand muss deswegen eine
-  # andere Firmware bauen.
+  # BZ1 ist ein magnetischer Summer (MLT-8530) an +5V; Q1 schaltet ihn nach
+  # Masse, die Basis haengt ueber R14 an GPIO10. NICHT invertiert ansteuern:
+  # Im Ruhezustand muss der Pin LOW sein, sonst fliesst Dauerstrom durch die
+  # Spule. Resonanz laut Datenblatt 2700 Hz - die Tonfolge im interval-Block
+  # liegt deshalb auf e7 (2637 Hz).
   buzzer_pin: GPIO10
   # Vorgabe für "Toleranz genau" - die Gradtoleranz des Präzisionsmodus.
   # Nur der Anfangswert; verstellt wird sie danach über die Entität, damit
@@ -123,34 +128,38 @@ substitutions:
   # LEVEL_RELEASE in const.py passen - die Zahl dort gilt, solange kein Gerät
   # den Wert führt, etwa bei einem fremden Neigungssensor.
   level_release_default: "125"
-  # Achsen-Vorzeichen - nur "1" oder "-1".
-  # Konvention: pitch > 0 = Front höher, roll > 0 = rechte Seite höher.
-  pitch_sign: "1"
-  roll_sign: "1"
-  # Achs-ZUORDNUNG: auf welcher Beschleunigungsachse liegt welche Neigung?
-  # Nur "x" oder "y" (z ist immer die Schwerkraft-Achse).
+  # --- Achsen: aus dem Layout der Platine Rev B abgeleitet -------------------
   #
-  # Die vier Werte oben und hier gelten für den Serienaufbau: Sensormodul flach
-  # auf die Lochrasterplatine gelötet, Gehäuse mit dem Pfeil nach vorn, Deckel
-  # oben. Front anheben gibt positiven Pitch, rechte Seite anheben positiven
-  # Roll.
+  # Konvention der Firmware: pitch > 0 = Front höher, roll > 0 = rechte Seite
+  # höher. Zuordnung nur "x" oder "y" (z ist immer die Schwerkraftachse),
+  # Vorzeichen nur "1" oder "-1".
   #
-  # MIT 4.0.0 NEU ZU PRÜFEN: Diese Werte wurden am MPU6050 auf einem GY-521
-  # ermittelt. Der Adafruit-Breakout des LSM6DS3TR-C trägt den Chip anders
-  # herum auf der Platine, also liegen Zuordnung und Vorzeichen erst einmal
-  # NICHT fest. Sie sind am Prototyp neu zu bestimmen - Verfahren in
-  # docs/kalibrierung.md, Schritte 2 und 3 -, bevor irgendetwas davon in eine
-  # Serie geht. Eine falsche Zuordnung fällt sonst erst auf dem Stellplatz auf.
+  # Herleitung, damit sie nachvollziehbar bleibt:
   #
-  # Frühere Fassungen dieses Kommentars nannten "y / x" den Standard-Einbau.
-  # Das war falsch beschriftet, nicht falsch eingestellt: Die Werte stimmten,
-  # die Erklärung daneben nicht. Wer den Sensor um 90 Grad gedreht aufbaut,
-  # tauscht auf "y / x" - Verfahren in docs/kalibrierung.md.
+  #   * U5 sitzt mit Drehung 0 auf der Platine, Pin 1 zeigt zur Ecke links
+  #     oben (Draufsicht auf die Bestückung, USB-Buchse und Klemme rechts).
+  #     Nach ST-Konvention weist +X dann nach rechts, +Y zur oberen
+  #     Platinenkante, +Z aus der Platine heraus.
+  #   * Fahrtrichtung ist -X: Der Pfeil auf Platine und Gehäusewand zeigt von
+  #     USB-Buchse und Klemme weg. Die Längsachse des Fahrzeugs liegt also
+  #     auf X, die Querachse auf Y.
+  #   * Front anheben kippt die -X-Seite nach oben, accel_x wird negativ,
+  #     atan2 liefert einen negativen Winkel: pitch_sign = -1.
+  #   * Rechts ist bei Fahrtrichtung -X die +Y-Kante (Seite des Summers).
+  #     Rechts anheben macht accel_y positiv, die Roll-Rechnung mit -accel_y
+  #     negativ: roll_sign = -1.
+  #
+  # AM ERSTEN BESTÜCKTEN MUSTER BESTÄTIGEN - docs/kalibrierung.md, Schritte 2
+  # und 3. Die Herleitung stützt sich auf die Achsfigur im ST-Datenblatt, nicht
+  # auf eine Messung; eine falsche Zuordnung sieht auf der Anzeige plausibel
+  # aus und fällt sonst erst auf dem Stellplatz auf.
   #
   # Wird an ALLEN drei Stellen benutzt (Pitch, Roll, Kalibrier-Button) - genau
   # deshalb als Substitution: eine falsch mitgezogene Stelle war hier schon
   # einmal die Ursache dafür, dass Anzeige und gespeicherter Offset
   # auseinanderliefen.
+  pitch_sign: "-1"
+  roll_sign: "-1"
   axis_pitch: "x"
   axis_roll: "y"
 
@@ -158,20 +167,20 @@ substitutions:
   # gelernten Nullpunkt, nicht als Absolutwert - Bewegung gilt. Bei einem
   # ruhenden Sensor bleibt das Rauschen deutlich darunter.
   #
-  # Der Wert stammt vom MPU6050. Der LSM6DS3TR-C rauscht auf der Drehrate
-  # erheblich weniger, nach unten ist also Luft - und erst die macht die
-  # zurückgestellte Windwarnung überhaupt denkbar. Gesenkt wird er trotzdem
-  # nicht auf Verdacht, sondern nach einer Messreihe am stehenden Fahrzeug: Zu
-  # niedrig heißt, "In Bewegung" klebt dauerhaft an, und dieser eine Fehler hat
-  # hier schon einmal drei Symptome auf einmal erzeugt (siehe globals,
-  # gyro_null_x).
+  # Der Wert ist am Vorgängersensor erprobt und für den LSM6DS3TR-C großzügig:
+  # Der rauscht auf der Drehrate erheblich weniger, nach unten ist also Luft -
+  # und erst die macht die zurückgestellte Windwarnung überhaupt denkbar.
+  # Gesenkt wird er trotzdem nicht auf Verdacht, sondern nach einer Messreihe
+  # am stehenden Fahrzeug: Zu niedrig heißt, "In Bewegung" klebt dauerhaft an,
+  # und dieser eine Fehler hat hier schon einmal drei Symptome auf einmal
+  # erzeugt (siehe globals, gyro_null_x).
   motion_deg_s: "3.0"
 
   # --- Ruhige Anzeige: adaptive Glättung -----------------------------------
   #
   # Das Problem, das diese Rechnung löst: Ein Grad Neigung sind rund 17
-  # Milli-g. Das Rauschen eines MPU6050 lag in derselben Größenordnung, und
-  # über einen Radstand von 3500 mm werden aus zwei, drei Zehntelgrad ein
+  # Milli-g. Das Rauschen des Vorgängersensors lag in derselben Größenordnung,
+  # und über einen Radstand von 3500 mm werden aus zwei, drei Zehntelgrad ein
   # ganzer Zentimeter. Bei 5 cm Toleranz sprang die Anzeige dadurch im Stand
   # zwischen 4,3 und 5,2 cm hin und her - das Fahrzeug stand längst, die
   # Anzeige aber nicht.
@@ -228,11 +237,12 @@ substitutions:
   # Ruhe 5 ergibt exakt das Verhalten, mit dem 2.0.5 ausgeliefert wurde. Wer
   # die Abbildung ändert, verschiebt damit die Voreinstellung für alle.
   #
-  # Auch diese sechs Zahlen sind am MPU6050 ermittelt. Der LSM6DS3TR-C rauscht
-  # rund viermal weniger - 90 statt etwa 400 Mikro-g je Wurzel Hertz -, die
-  # Rauschgrenze dürfte also deutlich enger gehen und die Anzeige damit
-  # schneller werden, ohne unruhig zu wirken. Vor einer Messreihe wird hier
-  # aber nichts gedreht: Die Abbildung verschiebt die Voreinstellung für alle.
+  # Auch diese sechs Zahlen sind am Vorgängersensor ermittelt. Der LSM6DS3TR-C
+  # rauscht rund viermal weniger - 90 statt etwa 400 Mikro-g je Wurzel Hertz -,
+  # die Rauschgrenze dürfte also deutlich enger gehen und die Anzeige damit
+  # schneller werden, ohne unruhig zu wirken. Vor einer Messreihe an der
+  # Platine Rev B wird hier aber nichts gedreht: Die Abbildung verschiebt die
+  # Voreinstellung für alle.
   calm_default: "5"
   calm_noise_base: "0.05"
   calm_noise_step: "0.04"
@@ -268,27 +278,6 @@ esp32:
 # bereits offen.
 esphome:
   on_boot:
-    # ZUERST: die gespeicherte Kalibrierung auf die neue Einheit pruefen.
-    #
-    # Bis 3.9.0 lieferte der MPU6050 die Beschleunigung in m/s2, der
-    # Kalibrierbetrag lag also bei rund 9,81. Der LSM6DS3TR-C liefert sie in g,
-    # also bei rund 1,0. Ein aus der alten Fassung uebernommener Wert laege um
-    # den Faktor 9,81 daneben - die Kalibrierpruefung schluege danach dauerhaft
-    # an, und der Kunde saehe nach einem harmlosen Update eine Stoerung, die
-    # keine ist.
-    #
-    # Alles ueber 5 kann nur aus der alten Einheit stammen: Der Betrag der
-    # Erdbeschleunigung in g ist immer rund 1,0, auch bei schief haengendem
-    # Geraet. Verworfen statt umgerechnet, weil auch der NULLPUNKT neu zu
-    # setzen ist - der Sensor ist ein anderer, und ein umgerechneter Betrag
-    # taeuschte eine Kalibrierung vor, die es nicht mehr gibt.
-    - priority: 600
-      then:
-        - lambda: |-
-            if (id(kal_betrag) > 5.0f) {
-              ESP_LOGW("level", "Kalibrierbetrag stammt aus der alten Einheit (m/s2) - verworfen. Bitte neu kalibrieren.");
-              id(kal_betrag) = -1.0f;
-            }
     - priority: 600
       then:
         - lambda: |-
@@ -445,19 +434,21 @@ i2c:
   scan: true
   # 100 kHz ist die vorsichtige Wahl und reicht: Bei 100 ms Takt sind sechs
   # 16-Bit-Register zu lesen, das sind rund 1,5 ms Busbelegung. 400 kHz gingen
-  # bei sauberem Aufbau, brächten aber nichts, was man merkt - und der
-  # LSM6DS3TR-C sitzt auf einem Steckkabel, nicht auf der Platine.
+  # auf der Platine, brächten aber nichts, was man merkt.
+  #
+  # Die Platine bringt eigene Pull-ups mit. Die internen des ESP32 zusätzlich
+  # einzuschalten schadet nicht und hilft, wenn an J4 ein weiterer Teilnehmer
+  # mit längerem Kabel hängt.
   frequency: 100kHz
   sda_pullup_enabled: true
   scl_pullup_enabled: true
 
-# --- Lagesensor: LSM6DS3TR-C -----------------------------------------------
+# --- Lagesensor: LSM6DS3TR-C (U5 auf der Platine Rev B) --------------------
 #
-# Loest den MPU6050 ab. Der Grund steht in docs/produktentscheidungen.md und
-# ist kein technischer Ehrgeiz: TDK fuehrt den MPU-6050 als abgekuendigt, der
-# Markt ist voller Faelschungen, und bei einem Geraet, dessen Genauigkeit am
-# Temperaturdrift des Sensors haengt, ist das die schlechteste Stelle zum
-# Sparen. Der LSM6DS3TR-C ist in laufender Produktion.
+# Warum dieser Chip, steht in docs/produktentscheidungen.md: in laufender
+# Produktion, rauscharm, driftstabil - und bei einem Geraet, dessen
+# Genauigkeit am Temperaturdrift des Sensors haengt, ist der Sensor die
+# schlechteste Stelle zum Sparen.
 #
 # ESPHome bringt ihn seit 2026.6 selbst mit - als "motion"-Plattform, nicht als
 # gewoehnliche Sensorplattform. Der Unterschied ist wichtig fuer jeden, der
@@ -465,11 +456,10 @@ i2c:
 # einzelnen Achsen erscheinen weiter unten unter sensor: als "platform: motion"
 # und verweisen mit motion_id hierher.
 #
-# ACHTUNG, EINHEITEN: Diese Plattform liefert die Beschleunigung in g, der
-# MPU6050 lieferte sie in m/s2. Wer Schwellen anfasst, die auf den Betrag des
+# EINHEITEN: Die Plattform liefert die Beschleunigung in g, die Drehrate in
+# Grad je Sekunde. Wer Schwellen anfasst, die auf den Betrag des
 # Beschleunigungsvektors gehen, rechnet mit 1,0 - nicht mit 9,81. Betroffen
-# sind die Montagepruefung und die Kalibrierpruefung; beide sind dort
-# entsprechend kommentiert. Die Drehrate ist in beiden Faellen Grad je Sekunde.
+# sind die Montagepruefung und die Kalibrierpruefung.
 #
 # WARUM DIESE VIER EINSTELLUNGEN:
 #
@@ -494,8 +484,8 @@ motion:
   - platform: lsm6ds
     id: lagesensor
     i2c_id: grove
-    # 0x6A ist die Werkseinstellung des Adafruit-Breakouts (Artikel 4503).
-    # 0x6B gilt, wenn auf der Platine die Bruecke SDO/SA0 geschlossen ist.
+    # SDO/SA0 liegt auf der Platine fest an Masse - Adresse 0x6A, nicht
+    # umschaltbar. 0x6B gaebe es nur mit SA0 an 3V3.
     address: 0x6A
     accelerometer_range: 2G
     accelerometer_odr: 104HZ
@@ -519,8 +509,9 @@ motion:
 # die Ausführung ohne Display schlechter ist als die mit, und er wird
 # ausdrücklich nicht schöngeredet.
 output:
-  # Die LED hängt gegen 3V3 und leuchtet bei LOW - deshalb inverted. Steht in
-  # den Substitutions, weil eine eigene Platine sie woandershin legt.
+  # D10 hängt gegen 3V3 und leuchtet bei LOW - deshalb inverted. Pin und
+  # Polung stehen in den Substitutions, weil eine spätere Platinenrevision sie
+  # woandershin legen kann.
   - platform: gpio
     id: led_ausgang
     pin:
@@ -528,9 +519,9 @@ output:
       inverted: ${status_led_inverted}
 
   # ledc, weil rtttl eine einstellbare Frequenz braucht - ein einfacher
-  # Schaltausgang kann keinen Ton erzeugen. Passives Piezoelement vorausgesetzt;
-  # ein aktiver Summer mit eigener Elektronik pfeift stur auf seiner eigenen
-  # Frequenz und ignoriert die Melodie.
+  # Schaltausgang kann keinen Ton erzeugen. Der Pin treibt nicht den Summer
+  # selbst, sondern Q1; der schaltet den magnetischen Summer BZ1 an +5V. Ohne
+  # inverted: Im Ruhezustand LOW, Q1 gesperrt, kein Strom durch die Spule.
   - platform: ledc
     id: summer_ausgang
     pin: ${buzzer_pin}
@@ -538,8 +529,10 @@ output:
 rtttl:
   id: summer
   output: summer_ausgang
-  # 60 % statt voller Aussteuerung: Ein Piezo direkt am Pin wird sonst
-  # unangenehm laut für ein Gerät, das im Wohnraum sitzt.
+  # Tastverhältnis der Rechteckspannung an Q1. 50 % gäbe den kräftigsten
+  # Grundton, 60 % liegen knapp darunter - der Summer schafft 80 dB in 10 cm,
+  # für ein Gerät im Wohnraum ist das reichlich. Wer es leiser will, geht
+  # weiter von 50 % weg, etwa auf 20 %.
   gain: 60%
 
 # --- Uhr ---------------------------------------------------------------------
@@ -692,11 +685,11 @@ globals:
   # --- Nullpunkt der Drehraten ----------------------------------------------
   #
   # Ein Gyro zeigt im Stillstand NICHT null, sondern einen Versatz - je Achse
-  # und je Bauteil verschieden. Beim MPU6050 waren das oft mehrere Grad je
-  # Sekunde, beim LSM6DS3TR-C ist er erheblich kleiner, aber er ist da und er
-  # wandert mit der Temperatur. Die erste Fassung addierte die Absolutwerte der drei Achsen
-  # und verglich mit 3 Grad/s; damit überschritt allein der Versatz die
-  # Schwelle, und "In Bewegung" klebte dauerhaft an.
+  # und je Bauteil verschieden. Beim LSM6DS3TR-C ist er klein, aber er ist da
+  # und er wandert mit der Temperatur. Die erste Fassung addierte die
+  # Absolutwerte der drei Achsen und verglich mit 3 Grad/s; damit überschritt
+  # allein der Versatz des damaligen Sensors die Schwelle, und "In Bewegung"
+  # klebte dauerhaft an.
   #
   # Das war nicht nur eine falsche Meldung: Die Glättung schaltet bei Bewegung
   # auf flott, also war der Regler "Anzeigeruhe" wirkungslos, und die Ruhelage
@@ -1514,14 +1507,14 @@ sensor:
 
   # --- Lagesensor: schnelle Rohwerte ----------------------------------------
   #
-  # Sechs Einzeleintraege statt eines Blocks wie beim MPU6050: Die
-  # motion-Plattform gibt jede Achse als eigenen Sensor heraus, der ueber
-  # motion_id auf den Hub weiter oben zeigt. Das ist geschwaetziger, hat aber
-  # einen Vorteil - eine Achse, die niemand abfragt, wird auch nicht berechnet.
+  # Sechs Einzeleintraege: Die motion-Plattform gibt jede Achse als eigenen
+  # Sensor heraus, der ueber motion_id auf den Hub weiter oben zeigt. Das ist
+  # geschwaetziger als ein Block, hat aber einen Vorteil - eine Achse, die
+  # niemand abfragt, wird auch nicht berechnet.
   #
-  # EINHEIT: acceleration_* liefert g, NICHT m/s2 wie frueher. Wer hier etwas
-  # anhaengt, das mit dem Betrag rechnet, prueft "Diagnose Betrag" weiter unten
-  # und die beiden Schwellen in der Selbstueberwachung mit.
+  # EINHEIT: acceleration_* liefert g. Wer hier etwas anhaengt, das mit dem
+  # Betrag rechnet, prueft "Diagnose Betrag" weiter unten und die beiden
+  # Schwellen in der Selbstueberwachung mit.
   #
   # internal: true bei allen sechs. Es sind Zwischenwerte im 100-ms-Takt; in
   # Home Assistant waeren sie sechs Datenreihen, die niemand ansieht und die
@@ -1570,12 +1563,6 @@ sensor:
   # Nicht internal: Ohne diesen Wert in Home Assistant lässt sich der
   # Nullpunktdrift des Sensors über Temperatur nicht messen - und genau der
   # begrenzt die Genauigkeit eines Neigungsmessers, nicht das Rauschen.
-  #
-  # Der Name hat sich mit 4.0.0 geändert - aus "MPU6050 Temperatur" wurde
-  # "Sensortemperatur". Das bricht die Aufzeichnung in Home Assistant, und das
-  # ist hier richtig so: Die alte Messreihe stammt von einem anderen Bauteil
-  # und sagt über dieses hier nichts aus. Sie jetzt fortzuschreiben hieße, zwei
-  # verschiedene Sensoren in eine Kurve zu zeichnen.
   - platform: lsm6ds
     lsm6ds_id: lagesensor
     type: temperature
@@ -1842,10 +1829,8 @@ sensor:
   # Fahrzeug kommen. Das ist der einzige Wert der Messreihe, den weder
   # Reifendruck noch Federung noch ein Umparken verfälschen können.
   #
-  # BIS 3.9.0 STAND HIER m/s² UND DAMIT 9,81. Der LSM6DS3TR-C liefert g; alle
-  # Schwellen, die auf diesen Wert gehen, sind entsprechend umgerechnet. Eine
-  # aufgezeichnete Messreihe aus 3.9.0 lässt sich mit dieser nicht in ein
-  # Diagramm legen.
+  # Einheit g: Der LSM6DS3TR-C liefert Vielfache der Erdbeschleunigung; alle
+  # Schwellen, die auf diesen Wert gehen, rechnen mit 1,0.
   - platform: template
     name: "Diagnose Betrag"
     id: accel_magnitude
@@ -2282,7 +2267,10 @@ interval:
 
   # --- Summer beim Wächteralarm ---------------------------------------------
   #
-  # Alle zehn Sekunden ein kurzer Dreiklang, und nach fünf Minuten ist Ruhe.
+  # Alle zehn Sekunden drei kurze Töne, und nach fünf Minuten ist Ruhe.
+  #
+  # Tonhöhe e7 (2637 Hz): so nah wie der Notenraum an die Resonanz des Summers
+  # BZ1 bei 2700 Hz kommt. Dort ist er am lautesten, daneben fällt er rasch ab.
   #
   # Warum nicht dauerhaft: Wer den Alarm hört, ist entweder da - dann reichen
   # fünf Minuten - oder er ist es nicht, und dann beschallt das Gerät eine
@@ -2310,13 +2298,13 @@ interval:
           if (id(summer_seit) == 0) {
             id(summer_seit)  = jetzt;
             id(summer_letzt) = jetzt;
-            id(summer).play("alarm:d=16,o=6,b=180:a,p,a,p,a");
+            id(summer).play("alarm:d=16,o=7,b=180:e,p,e,p,e");
             return;
           }
           if (jetzt - id(summer_seit)  > 300) return;   // nach fünf Minuten Ruhe
           if (jetzt - id(summer_letzt) <  10) return;
           id(summer_letzt) = jetzt;
-          id(summer).play("alarm:d=16,o=6,b=180:a,p,a,p,a");
+          id(summer).play("alarm:d=16,o=7,b=180:e,p,e,p,e");
 
 binary_sensor:
   # id, weil die OLED-Anzeige daran abliest, ob eine Zentrale mithört. Ohne
@@ -2427,10 +2415,9 @@ binary_sensor:
 
       /* Der Betrag des Beschleunigungsvektors muss immer 1,0 g sein, ganz
        * gleich wie das Fahrzeug steht. Wandert er, war es der Sensor - das
-       * kann weder der Reifendruck noch der Untergrund gewesen sein. 0,0153
+       * kann weder der Reifendruck noch der Untergrund gewesen sein. 0,0153 g
        * entspricht rund 1,5 Prozent und liegt weit über dem Rauschen des
-       * über eine Minute gemittelten Werts. Es ist derselbe Anteil wie die
-       * 0,15 m/s² bis 3.9.0, nur in der Einheit dieses Sensors. */
+       * über eine Minute gemittelten Werts. */
       if (id(kal_betrag) > 0.0f && !isnan(id(accel_magnitude).state)
           && fabsf(id(accel_magnitude).state - id(kal_betrag)) > 0.0153f) {
         return true;
@@ -2515,7 +2502,7 @@ binary_sensor:
   #
   # Die Entscheidung fällt im 100-ms-Block weiter oben, weil sie den gelernten
   # Nullpunkt der Drehraten braucht. Hier stand einmal die Summe der
-  # ABSOLUTWERTE gegen 3 Grad/s - und weil der damalige MPU6050 im Stillstand
+  # ABSOLUTWERTE gegen 3 Grad/s - und weil der damalige Sensor im Stillstand
   # einen Versatz von mehreren Grad je Sekunde zeigte, war die Meldung
   # dauerhaft an. Der LSM6DS3TR-C hat einen kleineren Versatz; der gelernte
   # Nullpunkt bleibt trotzdem richtig, denn er wandert bei jedem Bauteil mit

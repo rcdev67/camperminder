@@ -25,7 +25,7 @@ das Gerät es selbst.
 |---|---|
 | **Diagnose Pitch Mittel** | Längsneigung, geglättet und je Minute gemittelt, drei Nachkommastellen |
 | **Diagnose Roll Mittel** | dasselbe quer |
-| **Diagnose Betrag** | Betrag des Beschleunigungsvektors, vier Nachkommastellen |
+| **Diagnose Betrag** | Betrag des Beschleunigungsvektors in g, fünf Nachkommastellen |
 | **Sensortemperatur** | Temperatur im Sensor selbst, nicht der Raumluft |
 
 Die beiden Neigungswerte gibt es zusätzlich zu den Live-Anzeigen, weil jene auf
@@ -37,15 +37,6 @@ Erdbeschleunigung beträgt immer 1,0 g, ganz gleich wie das Fahrzeug steht —
 Neigung verteilt sie nur anders auf die drei Achsen. Jede Abweichung, die mit
 der Temperatur mitwandert, stammt deshalb zwingend vom Sensor. Reifendruck,
 Federung, Beladung oder ein Umparken können diesen Wert nicht verfälschen.
-
-> **Die Einheit hat sich mit 4.0.0 geändert.** Bis 3.9.0 lieferte der MPU6050
-> m/s², der Wert lag also bei 9,81; der LSM6DS3TR-C liefert g und damit 1,0.
-> Eine Messreihe von vor dem Wechsel lässt sich mit einer danach nicht in ein
-> Diagramm legen — und zwar nicht nur wegen der Einheit: Es ist ein anderes
-> Bauteil, und genau dessen Drift soll hier gemessen werden. Aus demselben
-> Grund heißt der Temperaturwert jetzt **Sensortemperatur** und nicht mehr
-> „MPU6050 Temperatur"; die alte Aufzeichnung in Home Assistant bricht dabei
-> ab. Das ist beabsichtigt.
 
 ## Auswerten
 

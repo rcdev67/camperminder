@@ -11,7 +11,7 @@ Hier geht es um den Selbstbau: Hardware, Firmware, Home Assistant.
 
 | Was | Wofür |
 |---|---|
-| ESP32-C3-Board ohne Display und ein LSM6DS3TR-C (Adafruit 4503) | die Hardware — [docs/verkabelung.md](docs/verkabelung.md) |
+| Platine **CamperMinder Level** Rev B, bestückt | die Hardware — [docs/verkabelung.md](docs/verkabelung.md) |
 | ESPHome | Firmware bauen (Add-on in Home Assistant oder `pip install esphome`) |
 | HACS | Integration und Karte, nur für den Betrieb **mit** Home Assistant |
 
@@ -41,28 +41,32 @@ selbst.
 > nicht neu erzeugen.** Er steckt in jedem ausgelieferten Gerät und auf jedem
 > Aufkleber; ein neuer macht beide ungültig.
 
+Platine per USB-C an den Rechner, dann:
+
 ```bash
 cd esphome/level
 esphome run camperminder-level.yaml
 ```
 
+- ✔ Die Platine meldet sich als serielle Schnittstelle. Tut sie es nicht:
+  **BOOT** halten, **RESET** tippen, BOOT loslassen — dann steht der
+  Bootlader des Moduls bereit.
 - ✔ Der Build läuft durch. **Bricht er mit `Killed signal terminated program
   cc1plus` ab**, ging der Arbeitsspeicher aus — `compile_process_limit: 1`
   steht bereits in der Datei; dann hilft nur ein Neustart des Bauwerkzeugs
   oder ein größerer Rechner.
-- ✔ Im Log erscheint der I²C-Scan mit **0x6A** (LSM6DS3TR-C).
-  Fehlt er, stimmt die Verkabelung nicht — erst
-  [docs/verkabelung.md](docs/verkabelung.md), nicht weitersuchen. Steht dort
-  **0x6B**, ist die Lötbrücke auf der Rückseite des Breakouts geschlossen.
-- ✔ Die eingebaute LED blinkt. Lang an, lang aus heißt „eigenes Netz",
-  ein kurzer Herzschlag alle drei Sekunden heißt „im WLAN". Fünfmal
-  gleichmäßig blinken heißt: Der Sensor antwortet nicht.
+- ✔ Im Log erscheint der I²C-Scan mit **0x6A** (LSM6DS3TR-C). Fehlt er, hat
+  die Platine ein Bestückungsproblem am Sensor — die Prüfschritte stehen in
+  [docs/verkabelung.md](docs/verkabelung.md).
+- ✔ Die grüne LED leuchtet (Strom da), die rote blinkt. Lang an, lang aus
+  heißt „eigenes Netz", ein kurzer Herzschlag alle drei Sekunden heißt „im
+  WLAN". Fünfmal gleichmäßig blinken heißt: Der Sensor antwortet nicht.
 
 Ein Display hat die ausgelieferte Ausführung nicht — die Wasserwaage gehört
-aufs Handy, und dorthin geht es im nächsten Schritt. Wer noch ein Board mit
-aufgelötetem OLED aus der ersten Runde hat, kommentiert in
+aufs Handy, und dorthin geht es im nächsten Schritt. Für Werkstatt und
+Messplatz lässt sich ein 0,42"-OLED an die Stiftleiste J4 stecken; dann in
 `camperminder-level.yaml` unter `packages:` die Zeile
-`anzeige: !include anzeige-oled.yaml` ein.
+`anzeige: !include anzeige-oled.yaml` einkommentieren.
 
 ---
 
