@@ -479,6 +479,16 @@ den kritischen Pfad** vor der ersten Serie.
     liegen. Braucht eine Messreihe am stehenden Fahrzeug mit einem Rev-B-Gerät.
 12. ~~Board für die Serie festlegen~~ — entschieden, siehe „Der
     Hardwarewechsel", Punkt 3: eigene Platine mit ESP32-C3-WROOM-02.
+13. **Icon bei `home-assistant/brands` eintragen.** HACS und Home Assistant
+    laden Integrations-Icons ausschließlich von `brands.home-assistant.io`;
+    der Ordner `custom_components/camperminder/brand/` ist dafür unsichtbar
+    und nur die Vorlage. Nötig ist ein Pull Request mit diesem Ordner unter
+    `custom_integrations/camperminder/` — die Dateien haben bereits die
+    geforderten Maße (icon 256², icon@2x 512², logo 256 hoch, logo@2x 512).
+    Geht erst, wenn das Repository wieder öffentlich ist: Die Betreuer
+    verlangen eine öffentlich installierbare Integration. Das gelegentlich
+    fehlende ESPHome-Icon am Gerät hat dieselbe Quelle und fehlt ohne
+    Internet im Camper; daran ändert der Eintrag nichts.
 
 ## Marktumfeld, zur Einordnung
 
