@@ -25,10 +25,12 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
+      # Ohne "cache: pip": Der Zwischenspeicher verlangt eine requirements.txt
+      # oder pyproject.toml im Repository und bricht sonst ab - ESPHome wird
+      # hier direkt installiert, eine Abhängigkeitsdatei gibt es nicht.
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-          cache: pip
 
       # Werkzeugketten von PlatformIO und esp-idf sind groß; ohne Zwischenspeicher
       # lädt jeder Lauf sie neu.
