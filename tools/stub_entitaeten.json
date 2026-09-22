@@ -506,6 +506,20 @@
       "wert": null
     },
     {
+      "kennung": "button/Fernalarm speichern",
+      "name": "Fernalarm speichern",
+      "bereich": "button",
+      "zustand": "",
+      "wert": null
+    },
+    {
+      "kennung": "button/Fernalarm testen",
+      "name": "Fernalarm testen",
+      "bereich": "button",
+      "zustand": "",
+      "wert": null
+    },
+    {
       "kennung": "button/MQTT speichern",
       "name": "MQTT speichern",
       "bereich": "button",
@@ -543,6 +557,13 @@
     {
       "kennung": "text/Netz Passwort neu",
       "name": "Netz Passwort neu",
+      "bereich": "text",
+      "zustand": "",
+      "wert": null
+    },
+    {
+      "kennung": "text/Fernalarm Adresse",
+      "name": "Fernalarm Adresse",
       "bereich": "text",
       "zustand": "",
       "wert": null
