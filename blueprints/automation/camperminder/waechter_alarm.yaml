@@ -1,0 +1,104 @@
+blueprint:
+  name: CamperMinder Level - Wächteralarm
+  description: >-
+    Meldet, wenn das Fahrzeug seine Lage verlassen hat, während der Wächter
+    scharf war — angehoben, aufgebockt, abgeschleppt.
+
+
+    **Warum nicht „Lageänderung"?** Die ist ein Messwert und geht wieder aus,
+    sobald das Fahrzeug in seine Lage zurückkommt. Wer schläft, verpasst sie.
+    Der Wächter rastet ein und bleibt stehen, bis er quittiert wird — und er
+    übersteht einen Stromausfall. Deshalb hängt diese Automatisierung an
+    *Wächter Alarm*.
+
+
+    Der Meldetext kommt vom Gerät und nennt die Uhrzeit, soweit das Gerät eine
+    gültige Uhr hatte — auf einem Stellplatz ohne Internet nennt er stattdessen
+    eine Zeitspanne.
+
+
+    **Das ist eine Meldung im Netz, kein Fernalarm.** Sie erreicht dich nur,
+    solange dein Handy dasselbe Netz erreicht wie das Fahrzeug.
+  domain: automation
+  source_url: https://github.com/rcdev67/camperminder/blob/main/blueprints/automation/camperminder/waechter_alarm.yaml
+  input:
+    alarm:
+      name: Wächter Alarm
+      description: Der eingerastete Alarm (`binary_sensor`, endet auf „Wächter Alarm").
+      selector:
+        entity:
+          filter:
+            - domain: binary_sensor
+    text:
+      name: Meldetext des Geräts
+      description: >-
+        Der Textsensor „Wächter". Er liefert den fertigen Satz, etwa
+        „ALARM - Lage verändert am 22.08. um 03:14".
+      default: {}
+      selector:
+        entity:
+          filter:
+            - domain: sensor
+            - domain: text_sensor
+    wiederholen:
+      name: Wiederholen alle … Minuten
+      description: >-
+        Solange der Alarm nicht quittiert ist, erneut melden. 0 schaltet das
+        ab. Ein Alarm um drei Uhr nachts, der einmal piept und dann schweigt,
+        ist keiner.
+      default: 0
+      selector:
+        number:
+          min: 0
+          max: 120
+          unit_of_measurement: min
+          mode: box
+    benachrichtigung:
+      name: Was soll passieren?
+      description: >-
+        Frei wählbar — Handymeldung, Sirene, Licht, alles zusammen. Der Text
+        steht in `meldung` bereit. Für einen Alarm lohnt sich eine Meldung, die
+        auch bei stillgestelltem Telefon durchkommt (bei der Home-Assistant-App
+        unter `data.push.sound` bzw. `channel`).
+      selector:
+        action: {}
+
+mode: single
+max_exceeded: silent
+
+variables:
+  text_entitaet: !input text
+  wiederholung: !input wiederholen
+  meldung: >-
+    {% if text_entitaet is string and text_entitaet | length > 0 %}
+      {{ states(text_entitaet) }}
+    {% else %}
+      Das Fahrzeug hat seine Lage verlassen - der Waechter hat ausgeloest.
+    {% endif %}
+
+trigger:
+  - platform: state
+    entity_id: !input alarm
+    to: "on"
+
+action:
+  - choose: []
+    default: !input benachrichtigung
+  # Wiederholen, solange nicht quittiert. Die Schleife endet von selbst,
+  # sobald der Alarm ausgeht - quittiert wird am Gerät oder über den Knopf
+  # "Alarm quittieren".
+  - condition: template
+    value_template: "{{ (wiederholung | int(0)) > 0 }}"
+  - repeat:
+      while:
+        - condition: state
+          entity_id: !input alarm
+          state: "on"
+      sequence:
+        - delay:
+            minutes: !input wiederholen
+        - condition: state
+          entity_id: !input alarm
+          state: "on"
+        - choose: []
+          default: !input benachrichtigung

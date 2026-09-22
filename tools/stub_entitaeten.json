@@ -478,6 +478,13 @@
       "wert": false
     },
     {
+      "kennung": "switch/Auffahrton",
+      "name": "Auffahrton",
+      "bereich": "switch",
+      "zustand": "OFF",
+      "wert": false
+    },
+    {
       "kennung": "switch/Wächter",
       "name": "Wächter",
       "bereich": "switch",

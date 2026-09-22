@@ -216,8 +216,14 @@ Diese Themen nehmen auch Befehle entgegen (`…/command`):
 | `camperminder/level/switch/waechter/…` | `ON` / `OFF` |
 | `camperminder/level/switch/status_led/…` | `ON` / `OFF` — die Leuchte am Gerät |
 | `camperminder/level/switch/alarmton/…` | `ON` / `OFF` — der Summer beim Alarm |
+| `camperminder/level/switch/auffahrton/…` | `ON` / `OFF` — die akustische Auffahrhilfe. Kommt nach einem Neustart immer **aus** zurück und schaltet sich selbst ab, sobald das Ziel erreicht ist |
 
-Die letzten beiden gibt es seit 4.0.0. Sie ersetzen zusammen mit der
+Der Auffahrton taktet umso schneller, je kleiner der größte Hub einer Ecke
+ist — 1000 ms ab zehn Zentimetern, 120 ms am Ziel, dann ein langer Ton. Er
+folgt dabei dem **Zielprofil**: Wer im Profil „Schlafen“ auffährt, wird zu
+dessen Ziel geführt, nicht nach null.
+
+Die drei letzten gibt es seit 4.0.0. Sie ersetzen zusammen mit der
 Blinkanzeige das Display des ersten Prototyps: Das ausgelieferte Gerät hat
 keins. **Ein eingerasteter Alarm blinkt auch bei ausgeschalteter Status-LED** —
 der Schalter nimmt die Betriebsanzeige weg, nicht die Meldung.

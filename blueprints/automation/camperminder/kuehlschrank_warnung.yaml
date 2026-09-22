@@ -1,0 +1,68 @@
+blueprint:
+  name: CamperMinder Level - Kühlschrankwarnung
+  description: >-
+    Meldet, wenn das Fahrzeug so lange schief steht, dass der
+    Absorberkühlschrank darunter leidet.
+
+
+    **Warum nicht die Schräglage selbst?** Ein Absorberkühlschrank nimmt keinen
+    Schaden vom Winkel, sondern vom Winkel **mal der Zeit** — kurz schief beim
+    Rangieren ist folgenlos. Das Gerät zählt die Zeit über dem Grenzwert
+    ununterbrochen mit, auch wenn Home Assistant neu startet, und meldet erst,
+    wenn es darauf ankommt. Deshalb hängt diese Automatisierung an
+    *Kühlschrank Warnung* und nicht an *Schräglage*.
+
+
+    Der Meldetext kommt vom Gerät selbst — zum Beispiel
+    „3.4° schief seit 42 min - die Kühlleistung fällt ab".
+  domain: automation
+  source_url: https://github.com/rcdev67/camperminder/blob/main/blueprints/automation/camperminder/kuehlschrank_warnung.yaml
+  input:
+    warnung:
+      name: Kühlschrank Warnung
+      description: Der Melder des Geräts (`binary_sensor`, endet auf „Kühlschrank Warnung").
+      selector:
+        entity:
+          filter:
+            - domain: binary_sensor
+    text:
+      name: Meldetext des Geräts
+      description: >-
+        Der Textsensor „Kühlschrank". Er liefert den fertigen Satz mit Winkel
+        und Dauer. Ohne Auswahl wird ein allgemeiner Text gemeldet.
+      default: {}
+      selector:
+        entity:
+          filter:
+            - domain: sensor
+            - domain: text_sensor
+    benachrichtigung:
+      name: Was soll passieren?
+      description: >-
+        Frei wählbar: Meldung auf das Handy (`notify.mobile_app_…`), eine
+        anhaltende Meldung in Home Assistant, ein Lautsprecher, ein Licht —
+        was du hier einträgst, wird ausgeführt. Der Text steht in
+        `meldung` bereit.
+      selector:
+        action: {}
+
+mode: single
+max_exceeded: silent
+
+variables:
+  text_entitaet: !input text
+  meldung: >-
+    {% if text_entitaet is string and text_entitaet | length > 0 %}
+      {{ states(text_entitaet) }}
+    {% else %}
+      Das Fahrzeug steht zu lange schief - der Absorberkühlschrank kühlt nicht mehr richtig.
+    {% endif %}
+
+trigger:
+  - platform: state
+    entity_id: !input warnung
+    to: "on"
+
+action:
+  - choose: []
+    default: !input benachrichtigung
