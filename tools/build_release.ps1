@@ -60,6 +60,34 @@ Ein Release hat eine Nummer. Beide angleichen, dann erneut bauen.
 }
 Write-Host "Integration traegt dieselbe Nummer: $integrationsVersion"
 
+# --- Die Bedienoberflaeche muss dieselbe Nummer tragen ----------------------
+# webui.js kennt ihre eigene Fassung (SEITE_VERSION) und vergleicht sie im
+# Browser mit der, die das Geraet meldet. Weichen sie ab, zeigt die Seite dem
+# Kunden einen Balken "Seite veraltet".
+#
+# Das ist noetig, weil das Geraet /0.js ohne Cache-Control, ohne ETag und ohne
+# Last-Modified ausliefert (handle_js_request in ESPHomes web_server.cpp): Der
+# Browser darf seine alte Kopie behalten, und nach einem Update laeuft neue
+# Firmware mit alter Oberflaeche - ohne jeden Hinweis.
+#
+# Vergessen wir hier das Nachziehen, warnt die Seite bei JEDEM Kunden vor sich
+# selbst. Deshalb bricht der Bau ab statt still durchzulaufen.
+$webui = Join-Path $here 'webui.js'
+if (-not (Test-Path $webui)) { throw "Nicht gefunden: $webui" }
+$m = [regex]::Match((Get-Content $webui -Raw), 'var SEITE_VERSION = "([^"]+)"')
+if (-not $m.Success) { throw "SEITE_VERSION nicht gefunden in $webui" }
+$seitenVersion = $m.Groups[1].Value
+if ($seitenVersion -cne $version) {
+  throw @"
+Versionen weichen ab:
+    esphome/level/hardware.yaml  firmware_version = $version
+    esphome/level/webui.js       SEITE_VERSION    = $seitenVersion
+Die Seite wuerde sich beim Kunden selbst als veraltet melden. Beide
+angleichen, dann erneut bauen.
+"@
+}
+Write-Host "Bedienoberflaeche traegt dieselbe Nummer: $seitenVersion"
+
 # --- Gebaute Firmware suchen -----------------------------------------------
 # esphome legt sie unter .esphome/build/<name>/.pioenvs/<name>/ ab.
 # Gesucht wird der Name, den ESPHome vergibt. Das Produktpräfix bekommt erst

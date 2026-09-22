@@ -1,0 +1,143 @@
+# ============================================================================
+#  CamperMinder Level - Handmuster auf ESP32-C3 SuperMini
+# ----------------------------------------------------------------------------
+#  NUR FUER DEN EIGENEN PROTOTYP. Die auszuliefernde Firmware ist
+#  camperminder-level.yaml; diese Datei bindet sie unveraendert als Paket ein
+#  und aendert genau das, was der Handaufbau anders braucht. So laeuft auf dem
+#  Muster derselbe Stand wie auf der Platine - ohne dass eine Ruecksicht auf
+#  das Bastelboard in die Produktfirmware wandert.
+#
+#  Aufbau: ESP32-C3 SuperMini, Adafruit-Breakout mit LSM6DS3TR-C an I2C.
+#  Kein Summer, keine eigene Status-LED - die blaue LED des SuperMini haengt
+#  an GPIO8 und leuchtet bei LOW, also genau wie D10 auf der Platine.
+#
+#  Bauen und seriell aufspielen:
+#      esphome run muster-supermini.yaml --device COMx
+#
+#  Spaeter drahtlos:
+#      esphome run muster-supermini.yaml --device camperminder-muster.local
+# ============================================================================
+
+substitutions:
+  # Eigener Name, damit Muster und Platine nebeneinander im Netz sein koennen.
+  # Sonst streiten sich zwei Geraete um camperminder-level.local, und welches
+  # man gerade vor sich hat, ist nicht mehr zu erkennen.
+  device_name: camperminder-muster
+  friendly_name: CamperMinder Muster
+
+  # --- Achsen -------------------------------------------------------------
+  #
+  # Die Vorgaben der Produktdatei sind aus dem LAYOUT DER PLATINE abgeleitet.
+  # Auf diesem Aufbau liegt das Breakout anders, die Zuordnung kann also
+  # abweichen. Pruefung nach docs/kalibrierung.md, Schritte 2 und 3:
+  #
+  #   vorne anheben  -> "Neigung Pitch" muss sich aendern und POSITIV werden
+  #   rechts anheben -> "Neigung Roll"  muss sich aendern und POSITIV werden
+  #
+  # GEMESSEN am 22.09.2026, Kipptest am Aufbau selbst:
+  #
+  #   Vorderkante hoch  -> ay 12 -> 467 mg, ax blieb bei null
+  #                        -> die Laengsachse des Fahrzeugs liegt auf Y
+  #                        -> atan2(0,467 / 0,878) = +28 Grad, und "Front hoch"
+  #                           soll positiv sein, also pitch_sign 1
+  #   Rechte Kante hoch -> ax 22 -> 512 mg, ay blieb bei null
+  #                        -> die Querachse liegt auf X
+  #                        -> die Roll-Formel dreht das Vorzeichen selbst um
+  #                           (atan2f(-accel_x ...)), mit roll_sign -1 steht am
+  #                           Ende +29,6 Grad: "rechte Seite hoch" ist positiv
+  #
+  # Das Breakout liegt also um 90 Grad gedreht zur Bestueckung der Platine.
+  #
+  # DAS GILT NUR FUER DIESES MUSTER. Die Zuordnung der Platine Rev B ist damit
+  # NICHT bestaetigt - dort ist sie aus dem Layout abgeleitet und bleibt am
+  # ersten bestueckten Board zu pruefen (docs/verkabelung.md).
+  #
+  # Nach jeder Aenderung hier: neu flashen UND neu kalibrieren.
+  axis_pitch: "y"
+  axis_roll: "x"
+  pitch_sign: "1"
+  roll_sign: "-1"
+
+packages:
+  produkt: !include camperminder-level.yaml
+
+# --- Fehlersuche: Messwerte im Log sichtbar machen --------------------------
+#
+# Die Produktfirmware stellt sensor, i2c und lsm6ds auf INFO - sonst schreibt
+# das Geraet zehnmal je Sekunde jede Achse mit. Fuer die Fehlersuche am Muster
+# ist genau das aber die Frage: Kommen ueberhaupt Werte vom Sensor, und wenn
+# ja, welche? Diesen Block auskommentieren, sobald die Ursache gefunden ist.
+# logger:
+#   # VERBOSE, nicht DEBUG: Seit 2026.8 schreibt sensor.cpp den Messwert mit
+#   # ESP_LOGV heraus ("'Name' >> 0.123 g"). Auf DEBUG bleibt der Log deshalb
+#   # still, auch wenn der Sensor laufend liefert - das sieht wie ein toter
+#   # Sensor aus und ist keiner.
+#   level: VERBOSE
+#   logs:
+#     sensor: VERBOSE
+#     motion: VERBOSE
+#     lsm6ds: VERBOSE
+#     i2c: DEBUG
+#     # Dauerredner ruhigstellen, sonst geht der Messwert darin unter.
+#     scheduler: INFO
+#     component: INFO
+#     wifi: INFO
+#     api: INFO
+#     api.service: INFO
+#     web_server_idf: INFO
+#     json: INFO
+#     mqtt: INFO
+#     preferences: INFO
+
+wifi:
+  # DER GRUND FUER DIESE DATEI.
+  #
+  # Bei den voreingestellten 20 dB erscheint das eigene Netz des SuperMini gar
+  # nicht erst: Die Keramikantenne und die Versorgung ueber den USB-Wandler
+  # tragen die Sendeleistung nicht, der Funkteil bricht im Sendeimpuls weg.
+  # 8,5 dB ist der kleinste Wert, den ESPHome zulaesst; im Fahrzeug reicht er
+  # bequem, weil das Handy einen Meter danebensteht.
+  #
+  # Auf der Platine Rev B bleibt es bei 20 dB: Das ESP32-C3-WROOM-02 ist mit
+  # seiner Antenne zertifiziert, und eine Drosselung dort waere eine
+  # Verschlechterung fuer jedes verkaufte Geraet.
+  output_power: 8.5dB
+
+# --- Fehlersuche: Kipptest mitschreiben -------------------------------------
+#
+# Zeigt je Sekunde, was der Sensor liefert und was die Rechenkette daraus
+# macht. Auf INFO, damit nur die Hauptdatei neu uebersetzt wird - die
+# Messwerte selbst liegen auf VERBOSE, und deren Stufe steht zur Bauzeit fest.
+#
+# Ablesen laesst sich damit genau das, was sonst niemand sieht: ob eine
+# Achsaenderung schon am Sensor ausbleibt, oder erst hinter Glaettung und
+# delta-Filter haengenbleibt.
+# interval:
+#   - interval: 1s
+#     then:
+#       # EINE Zahl je Aufruf. Die Fassung mit fuenf Argumenten lieferte
+#       # wiederkehrende Muster (62 62 62, 996 1280 996) - ob das an der
+#       # nano-Variante von printf lag oder an den Werten selbst, war daraus
+#       # nicht zu entscheiden. Mit einem Argument je Zeile gibt es diese Frage
+#       # nicht mehr.
+#       - logger.log:
+#           level: INFO
+#           format: "MUSTER ax %d"
+#           args: ["(int) (id(accel_x).state * 1000.0f)"]
+#       - logger.log:
+#           level: INFO
+#           format: "MUSTER ay %d"
+#           args: ["(int) (id(accel_y).state * 1000.0f)"]
+#       - logger.log:
+#           level: INFO
+#           format: "MUSTER az %d"
+#           args: ["(int) (id(accel_z).state * 1000.0f)"]
+#       - logger.log:
+#           level: INFO
+#           format: "MUSTER pitch %d"
+#           args: ["(int) (id(pitch).state * 100.0f)"]
+#       - logger.log:
+#           level: INFO
+#           format: "MUSTER roll %d"
+#           args: ["(int) (id(roll).state * 100.0f)"]
+#

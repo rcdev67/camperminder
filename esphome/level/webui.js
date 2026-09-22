@@ -21,31 +21,621 @@
   var COLORS = { ok: "#37d67a", warn: "#ffb020", bad: "#ff5c5c", off: "#6b7280" };
   var CHIP = { "#37d67a": "#37d67a", "#ffb020": "#ffb020", "#ff5c5c": "#ff7a7a", "#6b7280": "#b0b7c3" };
 
-  var WHEEL_NAMES = {
-    vorne_links: "Vorne links",
-    vorne_rechts: "Vorne rechts",
-    hinten_links: "Hinten links",
-    hinten_rechts: "Hinten rechts",
-    stuetzrad: "Stützrad"
+  /* --- Sprache ---------------------------------------------------------------
+   *
+   * Zwei Sprachen, ein Woerterbuch: TEXTE.de und TEXTE.en. Jeder sichtbare
+   * Satz steht dort und wird mit t("schluessel") geholt; Platzhalter in
+   * geschweiften Klammern werden beim Holen ersetzt.
+   *
+   * WARUM DIE SEITE UND NICHT DIE FIRMWARE UEBERSETZT: Namen von Entitaeten
+   * stehen in ESPHome beim Bauen fest und liessen sich im Betrieb nicht
+   * umstellen. Die Seite dagegen baut jeden Satz selbst - sie bekommt vom
+   * Geraet Zahlen und Zustaende (Sensor "Statuswerte", siehe hardware.yaml)
+   * und formuliert daraus. Deutsch bleibt im Geraet nur, was Home Assistant
+   * und MQTT lesen.
+   *
+   * Die Sprache kommt aus der Einstellung des Handys und laesst sich unter
+   * Technik umstellen. Die Wahl liegt im Browser (localStorage), nicht im
+   * Geraet: Sie gehoert zum Betrachter, nicht zum Fahrzeug - zwei Leute mit
+   * verschiedenen Sprachen schauen sonst gegeneinander.
+   */
+  var TEXTE = {
+    de: {
+      achse_laengs: "LÄNGS",
+      achse_quer: "QUER",
+      acht_zeichen: "Mindestens acht Zeichen – so verlangt es WPA2. Oder leer lassen, dann bleibt das Netz offen.",
+      alarm_quittieren: "Alarm quittieren",
+      ansicht_heck: "HECK · quer",
+      ansicht_seite: "SEITE · längs",
+      bereich_auswahl: "Auswahl",
+      bereich_einstellwerte: "Einstellwerte",
+      bereich_informationen: "Informationen",
+      bereich_messwerte: "Messwerte",
+      bereich_schalter: "Schalter",
+      bereich_software: "Software",
+      bereich_tasten: "Tasten",
+      bereich_texteingaben: "Texteingaben",
+      bereich_zustaende: "Zustände",
+      bewegung_jetzt: "gerade jetzt",
+      bewegung_nie: "seit dem Einschalten nichts",
+      bewegung_vor: "vor {dauer}",
+      datei_aufspielen: "Datei aufspielen",
+      datei_aufspielen_hinweis: "Oder Firmwaredatei vom Handy aufspielen:",
+      eben_stop: "✅ EBEN – STOP",
+      eingabe_nicht_angenommen: "Das Gerät hat die Eingabe nicht angenommen.",
+      erst_datei: "Erst eine Datei auswählen.",
+      gegen_hinten: "Front",
+      gegen_hinten_links: "Front rechts",
+      gegen_hinten_rechts: "Front links",
+      gegen_links: "rechte Seite",
+      gegen_rechts: "linke Seite",
+      gegen_vorn: "Heck",
+      gegen_vorn_links: "Heck rechts",
+      gegen_vorn_rechts: "Heck links",
+      hilfe_ablassen: "Der Tropfen in der Skizze sitzt am Ablass – dorthin soll das Wasser laufen. Das <b>+</b> markiert die Seite, die dafür angehoben wird. Links und rechts gelten <b>in Fahrtrichtung</b>.<br><br>{satz}",
+      hilfe_alarmton: "Beim Wächteralarm tönt der Summer alle zehn Sekunden, fünf Minuten lang. Aus, wenn du scharf schaltest, während noch Leute im Fahrzeug sind.",
+      hilfe_anzeigeruhe: "Klein: Die Anzeige folgt jeder Regung, zappelt im Stand aber mehr. Groß: Sie steht im Stand still und reagiert dafür etwas später. Die Genauigkeit ändert sich nicht, nur die Geduld.",
+      hilfe_bewegung: "Erschütterung – jemand steigt ein, Wind, der Nachbar rangiert. Kein Alarm.",
+      hilfe_driftwarnung: "Ändert sich die Temperatur so weit gegenüber der Kalibrierung, rät das Gerät zum Nachkalibrieren – Wärme verschiebt den Nullpunkt. 20 Kelvin sind ein guter Wert, kleiner meldet sich öfter.",
+      hilfe_einbaulage: "„Deckel unten“ heißt: unter ein Regalbrett oder eine Decke geklebt, der Pfeil zeigt weiterhin nach vorn. Nach dem Umstellen einmal neu kalibrieren.",
+      hilfe_frost: "Das Gerät misst seine eigene Temperatur, nicht die der Raumluft. Für eine Frostwarnung reicht das, sobald du den Abgleich unter „Gerät“ einmal gegen ein Thermometer gesetzt hast.",
+      hilfe_haltebereich: "Wie weit die Neigung über die Toleranz hinausgehen darf, bevor die Anzeige „eben“ zurücknimmt. Höher setzen, wenn sie an der Grenze hin und her springt.",
+      hilfe_karenzzeit: "So lange nach dem Scharfschalten meldet der Wächter nichts – Zeit zum Aussteigen.",
+      hilfe_kuehlschrank: "Kurz schief beim Rangieren schadet nicht, eine Nacht schief schon. Das Gerät warnt nach einem Drittel dieser Zeit und wird nach der vollen Zeit dringend.",
+      hilfe_lage: "Weicht die Neigung um mehr als {grenze}° von der Ruhelage ab, wurde das Fahrzeug bewegt.",
+      hilfe_lageaenderung: "Ab welcher Abweichung von der Ruhelage der Wächter anschlägt. Bei 3500 mm Radstand ist ein Grad rund 6 cm: Wind und Einsteigen bleiben darunter, Anheben und Abschleppen liegen darüber.",
+      hilfe_masse: "Aus diesen Maßen rechnet das Gerät Grad in Zentimeter um. <b>Radstand</b>: Mitte Vorderachse bis Mitte Hinterachse. <b>Spurweite</b>: Mitte linkes bis Mitte rechtes Rad. <b>Toleranz</b>: ab wie viel Höhenunterschied es dich stört – 5 cm ist ein guter Anfang. <b>Keilstufe</b>: Höhengewinn einer Stufe deiner Auffahrkeile; bei 0 wird in Zentimetern angesagt.",
+      hilfe_masse_wagen: "Aus diesen Maßen rechnet das Gerät Grad in Zentimeter um. <b>Achse → Stützrad</b>: von der Achsmitte bis zum Stützrad – meist deutlich mehr als ein Radstand, also nachmessen. <b>Spurweite</b>: Mitte linkes bis Mitte rechtes Rad. <b>Toleranz</b>: ab wie viel Höhenunterschied es dich stört – 5 cm ist ein guter Anfang. <b>Keilstufe</b>: Höhengewinn einer Stufe deiner Auffahrkeile.",
+      hilfe_mqtt: "Meldet Neigung, Hubhöhe je Ecke und die Anweisung an einen MQTT-Broker – für Victron Cerbo GX, ioBroker, openHAB, Node-RED oder was du sonst einsetzt. Für Home Assistant ist es nicht nötig. Themen unter <b>camperminder/level/…</b>",
+      hilfe_netz_geschuetzt: "Das Netz „CamperMinder“ ist <b>mit Passwort</b> geschützt. Leer lassen und speichern öffnet es wieder.",
+      hilfe_netz_offen: "Das Netz „CamperMinder“ ist derzeit <b>ohne Passwort</b> erreichbar. Es besteht nur, solange oben kein WLAN eingetragen ist. Wer es abschließen möchte, vergibt hier eines – mindestens acht Zeichen.",
+      hilfe_praezision: "Aus: Die Toleranz gilt in Zentimetern, und was innerhalb liegt, zeigt die Anzeige als eben – dort ist nichts mehr zu tun. Ein: feste Gradtoleranz für beide Achsen, die Blase bleibt an ihrer echten Stelle, Winkel mit zwei Nachkommastellen. Für Werkstatt und Messplatz.",
+      hilfe_schlafen: "Links und rechts gelten <b>in Fahrtrichtung</b>. Die Skizze zeigt das Fahrzeug von oben, vorn ist oben: die Fläche ist das Bett, das farbige Ende das Kopfende, und das <b>+</b> markiert die Seite, die höher kommt.<br><br>{satz}",
+      hilfe_schraeglage: "Ein Absorberkühlschrank arbeitet über etwa 3° nicht mehr zuverlässig, und das merkt niemand, bis das Essen warm ist. Diese Warnung ist unabhängig von deiner Toleranz beim Ausrichten.",
+      hilfe_sprache: "Vorausgewählt ist die Sprache deines Handys. Die Wahl gilt nur für dieses Handy – wer mit einem anderen Telefon auf dasselbe Gerät schaut, kann eine andere Sprache sehen. Die Namen in Home Assistant bleiben deutsch.",
+      hilfe_status_led: "Die Leuchte zeigt, dass das Gerät läuft, und in welchem Netz es steckt: lang an und lang aus heißt eigenes Netz – dann gilt 192.168.4.1 –, ein kurzer Herzschlag alle drei Sekunden heißt Heimnetz. Aus, wenn sie nachts stört. <b>Ein Alarm blinkt trotzdem.</b>",
+      hilfe_temp_abgleich: "Einmal gegen ein Thermometer im Fahrzeug ablesen und die Differenz hier eintragen. Danach taugt der Wert für die Frostwarnung – ein Thermometer wird daraus nicht.",
+      hilfe_update: "Holt die neue Fassung von GitHub – dafür braucht das Gerät Internet. Im eigenen Netz auf dem Stellplatz gibt es keins; dann hilft der Weg darunter.",
+      hilfe_waechter_aus: "Beim Einschalten merkt sich das Gerät die jetzige Lage. Ab dann meldet es, wenn das Fahrzeug sie verlässt. Eine Erschütterung – jemand steigt ein, Wind – löst nichts aus; die steht unter „Bewegung“.",
+      hilfe_waechter_scharf: "Scharf gilt die Lage vom Einschalten. Wird das Fahrzeug angehoben, abgeschleppt oder aufgebockt, rastet der Alarm ein und bleibt stehen, bis du ihn quittierst – auch wenn längst wieder Ruhe ist.",
+      hilfe_wlan: "Nur nötig für automatische Updates und Home Assistant. Ohne WLAN läuft alles Übrige weiter.",
+      hilfe_womit: "<b>Auffahrkeile</b>: Das Gerät nennt eine Ecke nach der anderen – beim Auffahren kippt das Fahrzeug mit, deshalb lohnt kein zweiter Schritt im Voraus. <b>Hydraulik oder Luftkissen</b>: alle Stützen auf einmal, weil sie sich unabhängig voneinander ausfahren lassen.",
+      hilfe_ziele: "Hier richtest du die beiden Profile ein. Gewählt werden sie oben auf der Anzeige unter „Zielprofil“.",
+      hilfe_zuruecksetzen: "Löscht WLAN-Zugangsdaten, Kalibrierung, Fahrzeugmaße und ein selbst vergebenes Netz-Passwort. Das Gerät startet danach neu und öffnet wieder sein eigenes, offenes Netz.",
+      hinweis_hebesystem: "Alle Stützen auf einmal, höchste zuerst. Nicht genannte Räder bleiben stehen.",
+      hinweis_keile_einzeln: "Eine Anweisung nach der anderen – nach dem Auffahren neu messen.",
+      hinweis_neu_messen: "Danach neu messen.",
+      hinweis_wagen_reihenfolge: "Erst das Rad auf den Keil, dann das Stützrad – das Auffahren kippt den Wagen längs mit.",
+      hoch_front: "FRONT hoch",
+      hoch_heck: "HECK hoch",
+      hoch_links: "LINKE Seite hoch",
+      hoch_rechts: "RECHTE Seite hoch",
+      in_bewegung: "in Bewegung",
+      kal_gut: "{wann} bei {temp} °C",
+      kal_nie: "noch nie kalibriert – einmal im Stand nachholen",
+      kal_ohne_uhr: "Zeitpunkt unbekannt",
+      kal_ohne_werte: "kalibriert, aber ohne Vergleichswerte – einmal neu kalibrieren, dann überwacht das Gerät den Drift",
+      kal_pruefen: "{wann} bei {temp} °C – jetzt {jetzt} °C, bitte prüfen",
+      kalibriere_laeuft: "Kalibriere …",
+      kalibrieren: "Neigung kalibrieren",
+      keilstufe: "Keilstufe {n}",
+      kein_wert: "⚠️ Kein Sensorwert",
+      keine_bestaetigung: "Das Gerät bestätigt die Eingabe nicht. Nichts wurde gespeichert.",
+      keine_verbindung: "Keine Verbindung zum Gerät.",
+      keine_werte_warnung: "Das Nivelliergerät liefert gerade keine Werte – Anzeige nicht verwenden.",
+      keine_wlan_felder: "Das Gerät meldet keine WLAN-Eingabefelder. Auf diesem Gerät läuft eine Firmware ohne diese Funktion.",
+      kennt_einstellung_nicht: "Das Gerät kennt diese Einstellung nicht. Läuft die passende Firmware?",
+      kennt_mqtt_nicht: "Das Gerät kennt MQTT nicht. Läuft die passende Firmware?",
+      kennt_praezision_nicht: "Das Gerät kennt keinen Präzisionsmodus. Läuft die passende Firmware?",
+      kennt_wert_nicht: "Das Gerät kennt keine Einstellung „{was}“. Läuft die passende Firmware?",
+      kennzeichen_bewegung: "Bewegung",
+      kennzeichen_lage: "Lage",
+      kennzeichen_neigung: "Neigung",
+      kopf_ablassen: "Ablassen",
+      kopf_anzeige: "Anzeige",
+      kopf_ausrichten: "Ausrichten",
+      kopf_eigenes_netz: "Eigenes Netz",
+      kopf_fahrzeug: "Fahrzeug",
+      kopf_geraet: "Gerät",
+      kopf_schlafen: "Schlafen",
+      kopf_software: "Software",
+      kopf_sprache: "Sprache",
+      kopf_technik: "Technik",
+      kopf_waechter: "Wächter",
+      kopf_warnungen: "Warnungen",
+      kopf_wlan: "WLAN",
+      kopf_ziele: "Ziele",
+      kopf_zielprofil: "Zielprofil",
+      kopf_zuruecksetzen: "Zurücksetzen",
+      kuehl_ok: "Unter {grenze}° – der Absorberkühlschrank arbeitet zuverlässig.",
+      kuehl_stufe_1: "{grad}° schief seit {dauer} – noch unkritisch.",
+      kuehl_stufe_2: "{grad}° schief seit {dauer} – die Kühlleistung fällt ab.",
+      kuehl_stufe_3: "{grad}° schief seit {dauer} – bitte ausrichten.",
+      kurz_kuehlschrank: "Kühlschrank!",
+      kurz_ok: "ok",
+      kurz_schief: "schief",
+      label_ablassneigung: "Neigung zum Ablass (cm)",
+      label_ablasspunkt: "Wo sitzt der Ablass?",
+      label_achse_stuetzrad: "Achse → Stützrad (mm)",
+      label_alarmton: "Alarmton",
+      label_anzeigeruhe: "Anzeigeruhe (0–10)",
+      label_driftwarnung: "Driftwarnung ab (K)",
+      label_einbaulage: "Einbaulage",
+      label_fahrzeugart: "Fahrzeugart",
+      label_frost: "Frostwarnung unter (°C)",
+      label_haltebereich: "Haltebereich (%)",
+      label_karenzzeit: "Karenzzeit Wächter (s)",
+      label_keilstufe: "Keilstufe (cm, 0 = aus)",
+      label_kopfende: "Kopfende anheben (cm)",
+      label_kuehlschrank: "Kühlschrank kritisch nach (min)",
+      label_lageaenderung: "Lageänderung ab (°)",
+      label_praezision: "Präzisionsmodus",
+      label_radstand: "Radstand (mm)",
+      label_schlafrichtung: "Wo liegt der Kopf?",
+      label_schraeglage: "Schräglage ab (°)",
+      label_sprache: "Sprache",
+      label_spurweite: "Spurweite (mm)",
+      label_status_led: "Status-LED",
+      label_temp_abgleich: "Temperatur Abgleich (K)",
+      label_toleranz_cm: "Toleranz (cm)",
+      label_toleranz_grad: "Toleranz genau (°)",
+      label_womit: "Womit ausrichten",
+      lage_unveraendert: "unverändert",
+      lage_veraendert: "verändert!",
+      laufende_fassung: "Laufende Fassung: {version}",
+      letzte_bewegung: "Letzte Bewegung am Fahrzeug: {wann}",
+      mqtt_aus: "Gespeichert. MQTT ist wieder aus.",
+      mqtt_gespeichert: "Gespeichert. Das Gerät startet neu und meldet sich beim Broker.\n\nDanach steht der Zustand hier oben – bei einem Tippfehler „keine Verbindung“.",
+      mqtt_speichern: "MQTT speichern",
+      mqtt_zustand_aus: "MQTT ist aus – keine Adresse eingetragen.",
+      mqtt_zustand_getrennt: "Keine Verbindung zu {broker} – Adresse, Port, Benutzer und Passwort prüfen.",
+      mqtt_zustand_verbunden: "Verbunden mit {broker}.",
+      name_nicht_angenommen: "Das Gerät hat den Netzwerknamen nicht angenommen ({pfad}/set).",
+      netz_jetzt_geschuetzt: "Gespeichert. Das Gerät startet neu.\n\nDanach fragt dein Handy nach dem neuen Passwort. Merke es dir gut: Ohne WLAN und ohne dieses Passwort kommst du nur noch über ein USB-Kabel an das Gerät – oder über Zurücksetzen weiter unten, das es wieder öffnet.",
+      netz_passwort_speichern: "Netz-Passwort speichern",
+      netz_wieder_offen: "Gespeichert. Das Gerät startet neu – das Netz ist danach wieder ohne Passwort erreichbar.",
+      netzname_fehlt: "Netzwerkname fehlt.",
+      nicht_uebernommen: "Das Gerät hat die Einstellung nicht übernommen (Status {status} bei {pfad}). Sie steht nur auf diesem Handy.",
+      noch_keine_daten: "Noch keine Daten empfangen.",
+      noch_keine_messwerte: "Noch keine Messwerte empfangen.",
+      notfalls_dashboard: "Notfalls über das ESPHome-Dashboard einrichten.",
+      opt_ablass_hinten: "hinten",
+      opt_ablass_hinten_links: "hinten links",
+      opt_ablass_hinten_rechts: "hinten rechts",
+      opt_ablass_links: "links",
+      opt_ablass_rechts: "rechts",
+      opt_ablass_vorn: "vorn",
+      opt_ablass_vorn_links: "vorn links",
+      opt_ablass_vorn_rechts: "vorn rechts",
+      opt_fahrzeug_wohnmobil: "Wohnmobil",
+      opt_fahrzeug_wohnwagen: "Wohnwagen",
+      opt_lage_deckel_oben: "Deckel oben",
+      opt_lage_deckel_unten: "Deckel unten",
+      opt_methode_auffahrkeile: "Auffahrkeile",
+      opt_methode_hydraulik_oder_luftkissen: "Hydraulik oder Luftkissen",
+      opt_profil_ablassen: "Ablassen",
+      opt_profil_ausrichten: "Ausrichten",
+      opt_profil_schlafen: "Schlafen",
+      opt_schlaf_kopf_hinten: "hinten – Füße zur Front",
+      opt_schlaf_kopf_links: "links – quer im Fahrzeug",
+      opt_schlaf_kopf_rechts: "rechts – quer im Fahrzeug",
+      opt_schlaf_kopf_vorn: "vorn – Füße zum Heck",
+      passwort_nicht_angenommen: "Das Gerät hat das Passwort nicht angenommen ({pfad}/set).",
+      platzhalter_benutzer: "Benutzer (optional)",
+      platzhalter_broker: "Broker, z. B. 192.168.1.10 (leer = aus)",
+      platzhalter_mqtt_passwort: "Passwort (leer = unverändert)",
+      platzhalter_netz_passwort: "Neues Passwort (leer = offen)",
+      platzhalter_netzname: "Netzwerkname",
+      platzhalter_passwort: "Passwort",
+      platzhalter_port: "Port",
+      profil_ablassen_erklaerung: "Das Fahrzeug neigt sich zum Ablasspunkt, damit Boiler und Tank wirklich leer laufen. Wer eben steht, behält einen Rest drin – und der friert im Winter.",
+      profil_ausrichten_erklaerung: "Eben ausrichten, wie gewohnt.",
+      profil_schlafen_erklaerung: "Das Kopfende liegt etwas höher – das schläft sich für viele besser. Die Anzeige rechnet ab jetzt gegen dieses Ziel: „EBEN“ heißt dann „steht, wie du es wolltest“. Eingerichtet wird es weiter unten in den Einstellungen, Abschnitt „Ziele“.",
+      rad_hinten: "Hinten",
+      rad_hinten_links: "Hinten links",
+      rad_hinten_rechts: "Hinten rechts",
+      rad_links: "Linke Seite",
+      rad_rechts: "Rechte Seite",
+      rad_stuetzrad: "Stützrad",
+      rad_vorne: "Vorne",
+      rad_vorne_links: "Vorne links",
+      rad_vorne_rechts: "Vorne rechts",
+      reiter_anzeige: "Anzeige",
+      reiter_technik: "Technik",
+      richtung_hoch: "hoch",
+      richtung_runter: "runter",
+      satz_ablassen: "Ziel im Profil „Ablassen“: {gegen} {cm} cm höher, damit es zum Ablass {punkt} läuft.",
+      satz_ablassen_null: "Neigung steht auf 0 – im Profil „Ablassen“ richtet das Gerät dann eben aus.",
+      satz_schlafen: "Ziel im Profil „Schlafen“: {seite} {cm} cm höher.",
+      satz_schlafen_null: "Höhe steht auf 0 – im Profil „Schlafen“ richtet das Gerät dann eben aus.",
+      scharf_schalten: "Scharf schalten",
+      seite_front: "Front",
+      seite_heck: "Heck",
+      seite_links: "linke Seite",
+      seite_rechts: "rechte Seite",
+      steht_ruhig: "steht ruhig",
+      uebertrage: "Übertrage …",
+      uebertragen_fehler: "Fehlgeschlagen (Status {status}). Notfalls über das ESPHome-Dashboard aufspielen.",
+      uebertragen_neustart: "Übertragen. Das Gerät startet neu.",
+      unbekannt: "unbekannt",
+      unscharf_schalten: "Unscharf schalten",
+      update_frage: "Neue Firmware von GitHub laden und installieren?\n\nDas Gerät startet dabei neu. Nicht während der Fahrt.",
+      update_laeuft: "Lade und installiere …",
+      update_neustart: "Läuft – das Gerät startet gleich neu.",
+      update_pruefen: "Auf Updates prüfen und installieren",
+      vorne: "VORNE",
+      vorne_kurz: "VORN",
+      wache_alarm_um: "ALARM – Lage verändert am {zeit}",
+      wache_alarm_unbekannt: "ALARM – Zeitpunkt unbekannt",
+      wache_alarm_vor: "ALARM – Lage verändert vor {dauer}",
+      wache_aus: "aus",
+      wache_karenz: "scharf in {s} s",
+      wache_scharf: "scharf seit {dauer}",
+      wagen_rad_hinten_links: "Linkes Rad",
+      wagen_rad_hinten_rechts: "Rechtes Rad",
+      wagen_rad_stuetzrad: "Stützrad",
+      warnung_kalibrierung: "Kalibrierung: {satz}",
+      seite_wird_geholt: "Seite wird neu geladen …",
+      warnung_seite_alt: "Diese Seite ist älter als das Gerät (Seite {seite}, Gerät {geraet}). Zum Neuladen hier tippen.",
+      warnung_montage: "Der Sensor liefert unglaubwürdige Werte – sitzt das Gehäuse noch fest? Solange das so ist, stimmt die Anzeige nicht.",
+      warte_auf_geraet: "Warte auf das Gerät …",
+      warte_bestaetigung: "Warte auf Bestätigung des Geräts …",
+      werte_im_geraet: "Diese Werte stehen im Gerät. Jedes Handy sieht dieselben.",
+      winkel_zeile: "Längs {laengs}° · Quer {quer}°",
+      wlan_gespeichert: "Gespeichert. Das Gerät startet jetzt neu und verbindet sich mit „{netz}“.\n\nAchte auf die WLAN-Liste deines Handys: Verschwindet das Netz CamperMinder innerhalb einer Minute, hat es geklappt. Bleibt es bestehen, stimmt Name oder Passwort nicht – dann einfach erneut verbinden und korrigieren.",
+      wlan_speichern: "Speichern und verbinden",
+      zentimeter: "{n} cm",
+      ziel: "Ziel",
+      ziel_front_hoeher: "Front {cm} cm höher",
+      ziel_heck_hoeher: "Heck {cm} cm höher",
+      ziel_ist: "Ziel: {was}",
+      ziel_ist_eben: "Ziel: <b>eben</b> – die Höhe dieses Profils steht auf 0.",
+      ziel_links_hoeher: "linke Seite {cm} cm höher",
+      ziel_rechts_hoeher: "rechte Seite {cm} cm höher",
+      zurueckgesetzt: "Zurückgesetzt. Das Gerät startet neu – verbinde dich anschließend wieder mit dem Netz CamperMinder.",
+      zuruecksetzen: "Auf Werkseinstellungen zurücksetzen",
+      zuruecksetzen_frage: "Wirklich zurücksetzen?\n\nWLAN, Kalibrierung und Fahrzeugmaße gehen verloren. Das Gerät muss danach neu eingerichtet und neu kalibriert werden.\n\nEin selbst vergebenes Netz-Passwort wird ebenfalls gelöscht – das eigene Netz ist danach wieder offen.",
+      zuruecksetzen_laeuft: "Setze zurück …"
+    },
+    en: {
+      achse_laengs: "ALONG",
+      achse_quer: "ACROSS",
+      acht_zeichen: "At least eight characters – that is what WPA2 requires. Or leave it empty and the network stays open.",
+      alarm_quittieren: "Acknowledge alarm",
+      ansicht_heck: "REAR · across",
+      ansicht_seite: "SIDE · along",
+      bereich_auswahl: "Selections",
+      bereich_einstellwerte: "Settings",
+      bereich_informationen: "Information",
+      bereich_messwerte: "Readings",
+      bereich_schalter: "Switches",
+      bereich_software: "Software",
+      bereich_tasten: "Buttons",
+      bereich_texteingaben: "Text fields",
+      bereich_zustaende: "States",
+      bewegung_jetzt: "right now",
+      bewegung_nie: "nothing since power-on",
+      bewegung_vor: "{dauer} ago",
+      datei_aufspielen: "Upload file",
+      datei_aufspielen_hinweis: "Or upload a firmware file from your phone:",
+      eben_stop: "✅ LEVEL – STOP",
+      eingabe_nicht_angenommen: "The device did not accept the entry.",
+      erst_datei: "Pick a file first.",
+      gegen_hinten: "the front",
+      gegen_hinten_links: "the front right",
+      gegen_hinten_rechts: "the front left",
+      gegen_links: "the right side",
+      gegen_rechts: "the left side",
+      gegen_vorn: "the rear",
+      gegen_vorn_links: "the rear right",
+      gegen_vorn_rechts: "the rear left",
+      hilfe_ablassen: "The drop in the sketch marks the drain – that is where the water should run. The <b>+</b> marks the side that gets raised for it. Left and right are <b>seen facing forwards</b>.<br><br>{satz}",
+      hilfe_alarmton: "On a guard alarm the buzzer sounds every ten seconds for five minutes. Switch it off if you arm the guard while people are still in the vehicle.",
+      hilfe_anzeigeruhe: "Low: the display follows every movement, but jitters more when parked. High: it stands still when parked and reacts a little later. Accuracy does not change, only patience.",
+      hilfe_bewegung: "A shake – someone getting in, wind, the neighbour manoeuvring. Not an alarm.",
+      hilfe_driftwarnung: "If the temperature moves this far from the one at calibration, the device suggests calibrating again – heat shifts the zero point. 20 kelvin is a good value, lower means more reminders.",
+      hilfe_einbaulage: "“Lid facing down” means: stuck under a shelf or a ceiling, with the arrow still pointing forwards. Calibrate once after changing it.",
+      hilfe_frost: "The device measures its own temperature, not the air in the room. That is good enough for a frost warning once you have set the offset under “Device” against a thermometer.",
+      hilfe_haltebereich: "How far the tilt may go beyond the tolerance before the display takes back “level”. Set it higher if the display flips back and forth at the limit.",
+      hilfe_karenzzeit: "For this long after arming, the guard stays quiet – time to get out.",
+      hilfe_kuehlschrank: "A moment off level while manoeuvring does no harm, a whole night does. The device warns after a third of this time and becomes urgent after the full time.",
+      hilfe_lage: "If the tilt differs from the resting position by more than {grenze}°, the vehicle has been moved.",
+      hilfe_lageaenderung: "How far the vehicle may deviate from its resting position before the guard reacts. On a 3500 mm wheelbase one degree is about 6 cm: wind and people getting in stay below that, lifting and towing are above it.",
+      hilfe_masse: "The device turns degrees into centimetres using these dimensions. <b>Wheelbase</b>: centre of the front axle to centre of the rear axle. <b>Track width</b>: centre of the left wheel to centre of the right wheel. <b>Tolerance</b>: how much height difference still feels fine to you – 5 cm is a good start. <b>Ramp step</b>: height gained per step of your levelling ramps; at 0 the distance is given in centimetres.",
+      hilfe_masse_wagen: "The device turns degrees into centimetres using these dimensions. <b>Axle → jockey wheel</b>: from the centre of the axle to the jockey wheel – usually much more than a wheelbase, so measure it. <b>Track width</b>: centre of the left wheel to centre of the right wheel. <b>Tolerance</b>: how much height difference still feels fine to you – 5 cm is a good start. <b>Ramp step</b>: height gained per step of your levelling ramps.",
+      hilfe_mqtt: "Publishes tilt, lift height per corner and the instruction to an MQTT broker – for Victron Cerbo GX, ioBroker, openHAB, Node-RED or whatever you use. Not needed for Home Assistant. Topics under <b>camperminder/level/…</b>",
+      hilfe_netz_geschuetzt: "The “CamperMinder” network is <b>protected with a password</b>. Leaving the field empty and saving opens it again.",
+      hilfe_netz_offen: "The “CamperMinder” network is currently open <b>without a password</b>. It only exists while no Wi-Fi is entered above. If you want to lock it, set a password here – at least eight characters.",
+      hilfe_praezision: "Off: the tolerance counts in centimetres, and anything inside it shows as level – nothing left to do there. On: a fixed tolerance in degrees for both axes, the bubble stays where it really is, angles with two decimals. For the workshop and the test bench.",
+      hilfe_schlafen: "Left and right are <b>seen facing forwards</b>. The sketch shows the vehicle from above with the front at the top: the panel is the bed, the coloured end is the head end, and the <b>+</b> marks the side that will be raised.<br><br>{satz}",
+      hilfe_schraeglage: "An absorber fridge stops working reliably above roughly 3°, and nobody notices until the food is warm. This warning is independent of your levelling tolerance.",
+      hilfe_sprache: "Preselected is the language of your phone. The choice applies to this phone only – someone looking at the same device with another phone may see a different language. The entity names in Home Assistant stay German.",
+      hilfe_status_led: "The light shows that the device is running and which network it is on: long on and long off means its own network – then 192.168.4.1 applies – while a short heartbeat every three seconds means your home network. Switch it off if it disturbs you at night. <b>An alarm still flashes.</b>",
+      hilfe_temp_abgleich: "Compare the reading with a thermometer in the vehicle once and enter the difference here. After that the value is good enough for the frost warning – it does not turn into a thermometer.",
+      hilfe_update: "Fetches the new version from GitHub – the device needs internet for that. On its own network at the pitch there is none; then use the way below.",
+      hilfe_waechter_aus: "When you arm it, the device remembers the current position. From then on it reports when the vehicle leaves it. A shake – someone getting in, wind – does not trigger anything; that is shown under “Motion”.",
+      hilfe_waechter_scharf: "While armed, the position at switch-on counts. If the vehicle is lifted, towed or jacked up, the alarm latches and stays on until you acknowledge it – even if all has been quiet again for hours.",
+      hilfe_wlan: "Only needed for automatic updates and Home Assistant. Everything else works without Wi-Fi.",
+      hilfe_womit: "<b>Levelling ramps</b>: the device names one corner at a time – driving up tilts the vehicle as well, so a second step planned ahead would be wrong anyway. <b>Hydraulics or air suspension</b>: all jacks at once, because they extend independently of each other.",
+      hilfe_ziele: "Set the two profiles up here. You pick them at the top of the display page under “Target profile”.",
+      hilfe_zuruecksetzen: "Deletes the Wi-Fi credentials, the calibration, the vehicle dimensions and any network password you set. The device then restarts and opens its own, open network again.",
+      hinweis_hebesystem: "All jacks at once, the highest first. Wheels not listed stay where they are.",
+      hinweis_keile_einzeln: "One step at a time – measure again after driving up.",
+      hinweis_neu_messen: "Then measure again.",
+      hinweis_wagen_reihenfolge: "Drive the wheel onto the ramp first, then crank the jockey wheel – driving up tilts the caravan lengthwise as well.",
+      hoch_front: "Raise the FRONT",
+      hoch_heck: "Raise the REAR",
+      hoch_links: "Raise the LEFT side",
+      hoch_rechts: "Raise the RIGHT side",
+      in_bewegung: "moving",
+      kal_gut: "{wann} at {temp} °C",
+      kal_nie: "never calibrated – do it once while parked",
+      kal_ohne_uhr: "time unknown",
+      kal_ohne_werte: "calibrated, but without reference values – calibrate once more and the device will watch for drift",
+      kal_pruefen: "{wann} at {temp} °C – now {jetzt} °C, please check",
+      kalibriere_laeuft: "Calibrating …",
+      kalibrieren: "Calibrate level",
+      keilstufe: "ramp step {n}",
+      kein_wert: "⚠️ No sensor reading",
+      keine_bestaetigung: "The device does not confirm the entry. Nothing was saved.",
+      keine_verbindung: "No connection to the device.",
+      keine_werte_warnung: "The levelling device is not delivering readings – do not rely on this display.",
+      keine_wlan_felder: "The device reports no Wi-Fi input fields. It is running firmware without this function.",
+      kennt_einstellung_nicht: "The device does not have this setting. Is the matching firmware running?",
+      kennt_mqtt_nicht: "The device does not know about MQTT. Is the matching firmware running?",
+      kennt_praezision_nicht: "The device has no precision mode. Is the matching firmware running?",
+      kennt_wert_nicht: "The device has no setting “{was}”. Is the matching firmware running?",
+      kennzeichen_bewegung: "Motion",
+      kennzeichen_lage: "Position",
+      kennzeichen_neigung: "Tilt",
+      kopf_ablassen: "Draining",
+      kopf_anzeige: "Display",
+      kopf_ausrichten: "Levelling",
+      kopf_eigenes_netz: "Own network",
+      kopf_fahrzeug: "Vehicle",
+      kopf_geraet: "Device",
+      kopf_schlafen: "Sleeping",
+      kopf_software: "Software",
+      kopf_sprache: "Language",
+      kopf_technik: "System",
+      kopf_waechter: "Guard",
+      kopf_warnungen: "Warnings",
+      kopf_wlan: "Wi-Fi",
+      kopf_ziele: "Targets",
+      kopf_zielprofil: "Target profile",
+      kopf_zuruecksetzen: "Factory reset",
+      kuehl_ok: "Below {grenze}° – the absorber fridge works reliably.",
+      kuehl_stufe_1: "{grad}° off level for {dauer} – still harmless.",
+      kuehl_stufe_2: "{grad}° off level for {dauer} – cooling performance is dropping.",
+      kuehl_stufe_3: "{grad}° off level for {dauer} – please level the vehicle.",
+      kurz_kuehlschrank: "Fridge!",
+      kurz_ok: "ok",
+      kurz_schief: "tilted",
+      label_ablassneigung: "Tilt towards the drain (cm)",
+      label_ablasspunkt: "Where is the drain?",
+      label_achse_stuetzrad: "Axle → jockey wheel (mm)",
+      label_alarmton: "Alarm sound",
+      label_anzeigeruhe: "Display steadiness (0–10)",
+      label_driftwarnung: "Drift warning above (K)",
+      label_einbaulage: "Mounting",
+      label_fahrzeugart: "Vehicle type",
+      label_frost: "Frost warning below (°C)",
+      label_haltebereich: "Hold range (%)",
+      label_karenzzeit: "Guard grace period (s)",
+      label_keilstufe: "Ramp step (cm, 0 = off)",
+      label_kopfende: "Raise head end (cm)",
+      label_kuehlschrank: "Fridge critical after (min)",
+      label_lageaenderung: "Position change above (°)",
+      label_praezision: "Precision mode",
+      label_radstand: "Wheelbase (mm)",
+      label_schlafrichtung: "Where is your head?",
+      label_schraeglage: "Tilt warning above (°)",
+      label_sprache: "Language",
+      label_spurweite: "Track width (mm)",
+      label_status_led: "Status LED",
+      label_temp_abgleich: "Temperature offset (K)",
+      label_toleranz_cm: "Tolerance (cm)",
+      label_toleranz_grad: "Precise tolerance (°)",
+      label_womit: "How you level",
+      lage_unveraendert: "unchanged",
+      lage_veraendert: "changed!",
+      laufende_fassung: "Running version: {version}",
+      letzte_bewegung: "Last movement of the vehicle: {wann}",
+      mqtt_aus: "Saved. MQTT is switched off again.",
+      mqtt_gespeichert: "Saved. The device is restarting and will report to the broker.\n\nThe state then shows up here – with a typo it says “no connection”.",
+      mqtt_speichern: "Save MQTT",
+      mqtt_zustand_aus: "MQTT is off – no address entered.",
+      mqtt_zustand_getrennt: "No connection to {broker} – check address, port, user and password.",
+      mqtt_zustand_verbunden: "Connected to {broker}.",
+      name_nicht_angenommen: "The device did not accept the network name ({pfad}/set).",
+      netz_jetzt_geschuetzt: "Saved. The device is restarting.\n\nAfter that your phone will ask for the new password. Remember it well: without Wi-Fi and without this password the only way in is a USB cable – or the factory reset further down, which opens the network again.",
+      netz_passwort_speichern: "Save network password",
+      netz_wieder_offen: "Saved. The device is restarting – afterwards the network is open again without a password.",
+      netzname_fehlt: "The network name is missing.",
+      nicht_uebernommen: "The device did not accept the setting (status {status} at {pfad}). It now only exists on this phone.",
+      noch_keine_daten: "No data received yet.",
+      noch_keine_messwerte: "No readings received yet.",
+      notfalls_dashboard: "If all else fails, set it up through the ESPHome dashboard.",
+      opt_ablass_hinten: "rear",
+      opt_ablass_hinten_links: "rear left",
+      opt_ablass_hinten_rechts: "rear right",
+      opt_ablass_links: "left",
+      opt_ablass_rechts: "right",
+      opt_ablass_vorn: "front",
+      opt_ablass_vorn_links: "front left",
+      opt_ablass_vorn_rechts: "front right",
+      opt_fahrzeug_wohnmobil: "Motorhome",
+      opt_fahrzeug_wohnwagen: "Caravan",
+      opt_lage_deckel_oben: "Lid facing up",
+      opt_lage_deckel_unten: "Lid facing down",
+      opt_methode_auffahrkeile: "Levelling ramps",
+      opt_methode_hydraulik_oder_luftkissen: "Hydraulics or air suspension",
+      opt_profil_ablassen: "Draining",
+      opt_profil_ausrichten: "Levelling",
+      opt_profil_schlafen: "Sleeping",
+      opt_schlaf_kopf_hinten: "at the rear – feet towards the front",
+      opt_schlaf_kopf_links: "on the left – bed across the vehicle",
+      opt_schlaf_kopf_rechts: "on the right – bed across the vehicle",
+      opt_schlaf_kopf_vorn: "at the front – feet towards the rear",
+      passwort_nicht_angenommen: "The device did not accept the password ({pfad}/set).",
+      platzhalter_benutzer: "User (optional)",
+      platzhalter_broker: "Broker, e.g. 192.168.1.10 (empty = off)",
+      platzhalter_mqtt_passwort: "Password (empty = unchanged)",
+      platzhalter_netz_passwort: "New password (empty = open)",
+      platzhalter_netzname: "Network name",
+      platzhalter_passwort: "Password",
+      platzhalter_port: "Port",
+      profil_ablassen_erklaerung: "The vehicle tilts towards the drain point so boiler and tank really run empty. Standing level leaves a remainder behind – and that freezes in winter.",
+      profil_ausrichten_erklaerung: "Level as usual.",
+      profil_schlafen_erklaerung: "The head end sits a little higher, which many people find more comfortable. The display now works towards that target: “LEVEL” then means “standing the way you wanted”. You set it up in the settings below, section “Targets”.",
+      rad_hinten: "Rear",
+      rad_hinten_links: "Rear left",
+      rad_hinten_rechts: "Rear right",
+      rad_links: "Left side",
+      rad_rechts: "Right side",
+      rad_stuetzrad: "Jockey wheel",
+      rad_vorne: "Front",
+      rad_vorne_links: "Front left",
+      rad_vorne_rechts: "Front right",
+      reiter_anzeige: "Display",
+      reiter_technik: "System",
+      richtung_hoch: "up",
+      richtung_runter: "down",
+      satz_ablassen: "Target in the “Draining” profile: {gegen} {cm} cm higher, so the water runs to the drain at the {punkt}.",
+      satz_ablassen_null: "The tilt is 0 – with that the “Draining” profile levels the vehicle as usual.",
+      satz_schlafen: "Target in the “Sleeping” profile: {seite} {cm} cm higher.",
+      satz_schlafen_null: "The height is 0 – with that the “Sleeping” profile levels the vehicle as usual.",
+      scharf_schalten: "Arm",
+      seite_front: "front",
+      seite_heck: "rear",
+      seite_links: "left side",
+      seite_rechts: "right side",
+      steht_ruhig: "at rest",
+      uebertrage: "Sending …",
+      uebertragen_fehler: "Failed (status {status}). If needed, upload it through the ESPHome dashboard.",
+      uebertragen_neustart: "Uploaded. The device is restarting.",
+      unbekannt: "unknown",
+      unscharf_schalten: "Disarm",
+      update_frage: "Download and install new firmware from GitHub?\n\nThe device will restart. Not while driving.",
+      update_laeuft: "Downloading and installing …",
+      update_neustart: "Running – the device will restart in a moment.",
+      update_pruefen: "Check for updates and install",
+      vorne: "FRONT",
+      vorne_kurz: "FRONT",
+      wache_alarm_um: "ALARM – position changed on {zeit}",
+      wache_alarm_unbekannt: "ALARM – time unknown",
+      wache_alarm_vor: "ALARM – position changed {dauer} ago",
+      wache_aus: "off",
+      wache_karenz: "arming in {s} s",
+      wache_scharf: "armed for {dauer}",
+      wagen_rad_hinten_links: "Left wheel",
+      wagen_rad_hinten_rechts: "Right wheel",
+      wagen_rad_stuetzrad: "Jockey wheel",
+      warnung_kalibrierung: "Calibration: {satz}",
+      seite_wird_geholt: "Reloading the page …",
+      warnung_seite_alt: "This page is older than the device (page {seite}, device {geraet}). Tap here to reload.",
+      warnung_montage: "The sensor is delivering implausible readings – is the housing still firmly in place? Until that is fixed, the display is not trustworthy.",
+      warte_auf_geraet: "Waiting for the device …",
+      warte_bestaetigung: "Waiting for the device to confirm …",
+      werte_im_geraet: "These values live in the device. Every phone sees the same ones.",
+      winkel_zeile: "Along {laengs}° · Across {quer}°",
+      wlan_gespeichert: "Saved. The device is restarting now and will connect to “{netz}”.\n\nWatch the Wi-Fi list on your phone: if the CamperMinder network disappears within a minute, it worked. If it stays, the name or password is wrong – just connect again and correct it.",
+      wlan_speichern: "Save and connect",
+      zentimeter: "{n} cm",
+      ziel: "Target",
+      ziel_front_hoeher: "front {cm} cm higher",
+      ziel_heck_hoeher: "rear {cm} cm higher",
+      ziel_ist: "Target: {was}",
+      ziel_ist_eben: "Target: <b>level</b> – the height of this profile is set to 0.",
+      ziel_links_hoeher: "left side {cm} cm higher",
+      ziel_rechts_hoeher: "right side {cm} cm higher",
+      zurueckgesetzt: "Reset done. The device is restarting – connect to the CamperMinder network again afterwards.",
+      zuruecksetzen: "Reset to factory settings",
+      zuruecksetzen_frage: "Really reset?\n\nWi-Fi, calibration and vehicle dimensions will be lost. The device has to be set up and calibrated again afterwards.\n\nAny network password you set is deleted as well – the own network is open again after that.",
+      zuruecksetzen_laeuft: "Resetting …"
+    }
   };
 
-  /* Beim Wohnwagen heißen zwei Dinge anders, weil sie anderes bedeuten:
-   * die Räder sitzen auf einer Achse, und das Längenmaß geht bis zum
-   * Stützrad statt zur zweiten Achse. */
-  var CARAVAN_WHEEL_NAMES = {
-    hinten_links: "Linkes Rad",
-    hinten_rechts: "Rechtes Rad",
-    stuetzrad: "Stützrad"
-  };
+  var sprache = (function () {
+    try {
+      var gewaehlt = window.localStorage.getItem("cm_sprache");
+      if (gewaehlt === "de" || gewaehlt === "en") return gewaehlt;
+    } catch (e) {
+      /* Privates Fenster oder blockierte Website-Daten: dann eben die
+       * Handy-Einstellung. Kein Grund, die Seite anzuhalten. */
+    }
+    var b = String(navigator.language || navigator.userLanguage || "de").toLowerCase();
+    return b.indexOf("de") === 0 ? "de" : "en";
+  })();
 
-  /* Wenn zwei Räder derselben Seite dasselbe Maß brauchen, ist das EINE
-   * Anweisung und nicht zwei. Dann steht hier der Name der Seite. */
-  var SIDE_NAMES = {
-    links: "Linke Seite",
-    rechts: "Rechte Seite",
-    vorne: "Vorne",
-    hinten: "Hinten"
-  };
+  /* Ein fehlender Schluessel faellt auf Deutsch zurueck und zuletzt auf den
+   * Schluessel selbst. Eine leere Stelle in der Oberflaeche waere der
+   * schlechteste Ausgang: Sie sieht aus wie ein Fehler des Geraets. */
+  function t(schluessel, werte) {
+    var wort = TEXTE[sprache][schluessel];
+    if (wort === undefined) wort = TEXTE.de[schluessel];
+    if (wort === undefined) return schluessel;
+    if (werte) {
+      for (var k in werte) {
+        if (Object.prototype.hasOwnProperty.call(werte, k)) {
+          wort = wort.split("{" + k + "}").join(String(werte[k]));
+        }
+      }
+    }
+    return wort;
+  }
+
+  /* Zahlen: Deutsch schreibt das Komma, Englisch den Punkt. An EINER Stelle,
+   * weil sonst die Haelfte der Anzeige das eine und die andere Haelfte das
+   * andere tut - und genau so war es vorher. */
+  function zahl(wert, stellen) {
+    var s = Number(wert).toFixed(stellen === undefined ? 1 : stellen);
+    return sprache === "de" ? s.replace(".", ",") : s;
+  }
+
+  function spracheSetzen(neu) {
+    if (neu !== "de" && neu !== "en") return;
+    sprache = neu;
+    try {
+      window.localStorage.setItem("cm_sprache", neu);
+    } catch (e) { /* siehe oben */ }
+    document.documentElement.lang = neu;
+    render();
+  }
+
+  /* Werte, die das GERAET fuehrt, bleiben deutsch: Sie stehen so in Home
+   * Assistant, in MQTT und in den Auswahlen der Firmware. Angezeigt wird die
+   * Uebersetzung, geschrieben wird der Wert des Geraets.
+   *
+   * Aus "Kopf vorn" wird der Schluessel "opt_schlaf_kopf_vorn". */
+  function kennung(wert) {
+    return String(wert).toLowerCase()
+      .replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
+  }
+
+  function auswahl(werte, gruppe, aktuell, beiWechsel) {
+    var sel = el("<select></select>");
+    werte.forEach(function (wert) {
+      var opt = el("<option></option>");
+      opt.value = wert;
+      opt.textContent = t("opt_" + gruppe + "_" + kennung(wert));
+      sel.appendChild(opt);
+    });
+    sel.value = aktuell;
+    sel.onchange = function () { beiWechsel(sel.value); };
+    return sel;
+  }
+
+  /* Rad-, Seiten- und Richtungsnamen kommen aus dem Woerterbuch. Beim
+   * Wohnwagen heissen zwei Dinge anders, weil sie anderes bedeuten: Die
+   * Raeder sitzen auf einer Achse, und das Laengenmass geht bis zum Stuetzrad
+   * statt zur zweiten Achse. Brauchen zwei Raeder derselben Seite dasselbe
+   * Mass, ist das EINE Anweisung - dann steht dort der Name der Seite. */
+  function radName(kennung) {
+    var schluessel = (isCaravan() ? "wagen_" : "") + "rad_" + kennung;
+    return TEXTE[sprache][schluessel] !== undefined || TEXTE.de[schluessel] !== undefined
+      ? t(schluessel) : t("rad_" + kennung);
+  }
 
   var VEHICLE_CARAVAN = "Wohnwagen";
 
@@ -66,7 +656,8 @@
     guard_grace: 120,
     profile: "Ausrichten",
     target_long: 0, target_lat: 0,
-    sleep_long: -2, drain_long: 5, drain_lat: 0,
+    sleep_dir: "Kopf hinten", sleep_height: 2,
+    drain_point: "hinten", drain_amount: 5,
     drift_limit: 20, temp_offset: 0, frost_limit: 3,
     /* Beide ab Werk an. Ein Geraet ohne Display, das nicht blinkt und nicht
      * toent, ist von einem defekten nicht zu unterscheiden. */
@@ -77,6 +668,17 @@
   /* Objekt-Kennungen der Firmware. Die Schreibwege gehen über diese Namen,
    * gelesen wird über Teilstrings - so hält beides auch, wenn dem Gerät
    * ein anderer Name gegeben wird. */
+  /* Die Fassung DIESER Datei. Muss zeichengleich mit firmware_version in
+   * hardware.yaml sein; tools/build_release.ps1 bricht sonst ab - dieselbe
+   * Pruefung, die schon die manifest.json der Integration abdeckt.
+   *
+   * Wofuer: Das Geraet liefert /0.js ohne Cache-Control, ohne ETag und ohne
+   * Last-Modified aus. Der Browser darf seine alte Kopie also behalten, und
+   * nach einem Update laeuft neue Firmware mit alter Oberflaeche - stumm.
+   * Die Seite vergleicht deshalb ihre eigene Fassung mit der, die das Geraet
+   * meldet, und sagt es, wenn sie auseinanderlaufen. */
+  var SEITE_VERSION = "4.0.0";
+
   var IDS = {
     wheelbase: "radstand",
     track: "spurweite",
@@ -115,9 +717,13 @@
     profile: "zielprofil",
     target_long: "ziel_l",
     target_lat: "ziel_quer",
-    sleep_long: "schlafen_l",
-    drain_long: "ablassen_l",
-    drain_lat: "ablassen_quer",
+    sleep_dir: "schlafrichtung",
+    sleep_height: "kopfende_anheben",
+    /* ACHTUNG, Reihenfolge: "ablasspunkt" steckt auch in
+     * "neigung_zum_ablasspunkt". Beim Auswerten des Ereignisstroms wird
+     * deshalb erst die Zahl und dann die Auswahl geprueft. */
+    drain_amount: "neigung_zum_ablasspunkt",
+    drain_point: "ablasspunkt",
     /* Selbstueberwachung. Ein fest verbautes Geraet kann sich selbst
      * beobachten - ein Handgeraet nicht. */
     drift_limit: "driftwarnung_ab",
@@ -155,8 +761,7 @@
   function write(domain, needle, query) {
     var base = pathFor(domain, needle);
     if (!base) {
-      writeError = "Das Gerät kennt keine Einstellung „" + needle + "“. " +
-        "Läuft die passende Firmware?";
+      writeError = t("kennt_wert_nicht", { was: needle });
       syncSettings();
       return;
     }
@@ -190,8 +795,7 @@
     cfg.precise = on;
     var base = pathFor("switch", IDS.precise);
     if (!base) {
-      writeError = "Das Gerät kennt keinen Präzisionsmodus. " +
-        "Läuft die passende Firmware?";
+      writeError = t("kennt_praezision_nicht");
       syncSettings();
       return;
     }
@@ -207,12 +811,25 @@
     render();
   }
 
+  /* Schlafrichtung und Ablasspunkt: Wert ins Geraet, Seite neu aufbauen -
+   * die Skizze und der Satz darunter haengen daran. */
+  function setSchlafrichtung(option) {
+    cfg.sleep_dir = option;
+    write("select", IDS.sleep_dir, "option=" + encodeURIComponent(option));
+    render();
+  }
+
+  function setAblasspunkt(option) {
+    cfg.drain_point = option;
+    write("select", IDS.drain_point, "option=" + encodeURIComponent(option));
+    render();
+  }
+
   function check(path) {
     return function (status) {
       writeError = (status >= 200 && status < 300)
         ? null
-        : "Das Gerät hat die Einstellung nicht übernommen (Status " + status +
-          " bei " + path + "). Sie steht nur auf diesem Handy.";
+        : t("nicht_uebernommen", { status: status, pfad: path });
       syncSettings();
     };
   }
@@ -500,7 +1117,7 @@
     var b = list[1].wheel.split("_");
     if (a.length !== 2 || b.length !== 2) return list;
     var seite = a[0] === b[0] ? a[0] : (a[1] === b[1] ? a[1] : null);
-    if (!seite || !SIDE_NAMES[seite]) return list;
+    if (!seite || TEXTE.de["rad_" + seite] === undefined) return list;
     return [{ wheel: seite, cm: list[0].cm, steps: list[0].steps }];
   }
 
@@ -717,13 +1334,13 @@
   }
 
   function tabs() {
-    var t = el('<div class="tabs"></div>');
-    [["anzeige", "Anzeige"], ["technik", "Technik"]].forEach(function (pair) {
+    var leiste = el('<div class="tabs"></div>');
+    [["anzeige", t("reiter_anzeige")], ["technik", t("reiter_technik")]].forEach(function (pair) {
       var b = el("<button" + (page === pair[0] ? ' class="on"' : "") + ">" + pair[1] + "</button>");
       b.onclick = function () { page = pair[0]; render(); };
-      t.appendChild(b);
+      leiste.appendChild(b);
     });
-    return t;
+    return leiste;
   }
 
   /*
@@ -752,6 +1369,7 @@
     root.appendChild(fixedEl);
 
     if (page === "technik") {
+      fixedEl.appendChild(spracheBox());
       fixedEl.appendChild(softwareBox());
       fixedEl.appendChild(wifiSetup());
     } else {
@@ -767,6 +1385,7 @@
     // Vor allem anderen und auf JEDEM Reiter: Ein Alarm, den man erst nach
     // einem Reiterwechsel sieht, ist ein halber Alarm.
     waechterAlarm(liveEl);
+    seiteVeraltet(liveEl);
     geraetWarnung(liveEl);
     if (page === "technik") renderTechTable(liveEl);
     else renderMain(liveEl);
@@ -827,28 +1446,25 @@
     var degP = ok ? steadyDeg("pitch_deg", pitch) : 0;
     var degR = ok ? steadyDeg("roll_deg", roll) : 0;
 
-    var textR = !ok ? "⚠️ Kein Sensorwert"
-      : levR ? "✅ EBEN – STOP"
-        : (roll > 0 ? "LINKE Seite hoch" : "RECHTE Seite hoch");
-    var textP = !ok ? "⚠️ Kein Sensorwert"
-      : levP ? "✅ EBEN – STOP"
-        : (pitch > 0 ? "HECK hoch" : "FRONT hoch");
+    var textR = !ok ? t("kein_wert")
+      : levR ? t("eben_stop")
+        : (roll > 0 ? t("hoch_links") : t("hoch_rechts"));
+    var textP = !ok ? t("kein_wert")
+      : levP ? t("eben_stop")
+        : (pitch > 0 ? t("hoch_heck") : t("hoch_front"));
 
-    target.appendChild(bar("QUER", roll, tolR, levR, textR));
-    target.appendChild(bar("LÄNGS", pitch, tolP, levP, textP));
+    target.appendChild(bar(t("achse_quer"), roll, tolR, levR, textR));
+    target.appendChild(bar(t("achse_laengs"), pitch, tolP, levP, textP));
 
     var plan = el('<div class="plan"></div>');
-    var head = level ? "✅ EBEN – STOP" : ok ? "Ausrichten" : "⚠️ Kein Sensorwert";
+    var head = level ? t("eben_stop") : ok ? t("kopf_ausrichten") : t("kein_wert");
     var html = "<h2>" + head + "</h2>";
     if (ok) {
-      html += '<div class="muted">Längs ' + degP.toFixed(places()) + "° · Quer " +
-        degR.toFixed(places()) + "°" +
-        (state.motion ? " · in Bewegung" : "") + "</div>";
+      html += '<div class="muted">' + t("winkel_zeile", {
+        laengs: zahl(degP, places()), quer: zahl(degR, places())
+      }) + (state.motion ? " · " + t("in_bewegung") : "") + "</div>";
       var lifts = level ? [] : (wheelLifts() || []);
-      var names = isCaravan() ? CARAVAN_WHEEL_NAMES : WHEEL_NAMES;
-      var label = function (i) {
-        return names[i.wheel] || WHEEL_NAMES[i.wheel] || SIDE_NAMES[i.wheel] || i.wheel;
-      };
+      var label = function (i) { return radName(i.wheel); };
       // Auch die Zentimeter der Anweisung gerastet: ein Maß, das beim Lesen
       // zwischen 4,3 und 5,2 wechselt, ist keine Anweisung, sondern eine Frage.
       var planCm = function (i) { return steadyCm("plan_" + i.wheel, i.cm).toFixed(1); };
@@ -859,29 +1475,28 @@
           // Beide Schritte auf einmal, aber in fester Reihenfolge - und mit
           // Richtung, weil das Stützrad auch runter kann.
           lifts.forEach(function (i) {
-            html += "<li><b>" + label(i) + "</b> " + i.direction + ", " +
-              (i.steps ? "Keilstufe " + i.steps : planCm(i) + " cm") + "</li>";
+            html += "<li><b>" + label(i) + "</b> " + t("richtung_" + i.direction) + ", " +
+              (i.steps ? t("keilstufe", { n: i.steps }) : t("zentimeter", { n: planCm(i) })) + "</li>";
           });
           html += "</ul>";
           html += '<div class="muted">' + (lifts.length > 1
-            ? "Erst das Rad auf den Keil, dann das Stützrad – das Auffahren kippt den Wagen längs mit."
-            : "Danach neu messen.") + "</div>";
+            ? t("hinweis_wagen_reihenfolge") : t("hinweis_neu_messen")) + "</div>";
         } else if (cfg.method === "hebesystem") {
           lifts.forEach(function (i) {
-            html += "<li><b>" + label(i) + "</b> " + planCm(i) + " cm</li>";
+            html += "<li><b>" + label(i) + "</b> " + t("zentimeter", { n: planCm(i) }) + "</li>";
           });
           // "Räder" im Plural: Bei einer zusammengezogenen Seitenanweisung
           // bleiben zwei stehen, nicht eines.
-          html += '</ul><div class="muted">Alle Stützen auf einmal, höchste zuerst. Nicht genannte Räder bleiben stehen.</div>';
+          html += '</ul><div class="muted">' + t("hinweis_hebesystem") + "</div>";
         } else {
           var first = lifts[0];
           html += "<li><b>" + label(first) + "</b> " +
-            (first.steps ? "Keilstufe " + first.steps : planCm(first) + " cm") + "</li></ul>" +
-            '<div class="muted">Eine Anweisung nach der anderen – nach dem Auffahren neu messen.</div>';
+            (first.steps ? t("keilstufe", { n: first.steps }) : t("zentimeter", { n: planCm(first) })) +
+            "</li></ul><div class=\"muted\">" + t("hinweis_keile_einzeln") + "</div>";
         }
       }
     } else {
-      html += '<div class="muted">Das Nivelliergerät liefert gerade keine Werte – Anzeige nicht verwenden.</div>';
+      html += '<div class="muted">' + t("keine_werte_warnung") + "</div>";
     }
     plan.innerHTML = html;
     target.appendChild(plan);
@@ -890,7 +1505,7 @@
     var overall = !ok ? COLORS.off
       : level ? COLORS.ok
         : (Math.abs(pitch) > 2 * tolP || Math.abs(roll) > 2 * tolR) ? COLORS.bad : COLORS.warn;
-    var top = el('<div class="top"><div class="cap">▲ VORNE</div></div>');
+    var top = el('<div class="top"><div class="cap">▲ ' + t("vorne") + '</div></div>');
     top.appendChild(el(isCaravan() ? CARAVAN_TOP : CAMPER_TOP));
     top.appendChild(el('<div class="ring"></div>'));
     var bubTop = el('<div class="bub"></div>');
@@ -926,7 +1541,7 @@
       if (wert === null) { e.textContent = "–"; e.className = "ecke fertig"; }
       else if (Math.abs(wert) < 1) { e.textContent = "0"; e.className = "ecke fertig"; }
       else {
-        e.textContent = (text || "") + Math.abs(wert).toFixed(1).replace(".", ",");
+        e.textContent = (text || "") + zahl(Math.abs(wert), 1);
         e.className = "ecke tun";
       }
       top.appendChild(e);
@@ -971,9 +1586,9 @@
     };
 
     if (!ok) {
-      badge("Neigung", "–", "aus");
-      badge("Bewegung", "–", "aus");
-      badge("Lage", "–", "aus");
+      badge(t("kennzeichen_neigung"), "–", "aus");
+      badge(t("kennzeichen_bewegung"), "–", "aus");
+      badge(t("kennzeichen_lage"), "–", "aus");
     } else {
       /* Die Neigungskachel kennt drei Stufen statt an und aus.
        *
@@ -985,32 +1600,26 @@
        * Gelb heißt "steht schief, noch folgenlos", rot heißt "jetzt leidet
        * er". Die Grenze dazwischen zieht das Gerät, nicht diese Seite. */
       var kuehlWarn = findStateOf("binary_sensor", "hlschrank_warnung") === "ON";
-      var kuehlSatz = findStateOf("text_sensor", "hlschrank");
-      var dauerMin = parseFloat(findStateOf("sensor", "glage_dauer"));
-      var wieLang = isNaN(dauerMin) ? ""
-        : dauerMin < 1 ? " <1 min"
-          : dauerMin < 60 ? " " + Math.round(dauerMin) + " min"
-            : " " + Math.round(dauerMin / 60) + " h";
+      /* Stufe und Dauer kommen als Werte, nicht als Satz - siehe
+       * statusWerte(). Die Stufe zieht das Gerät, nicht diese Seite: Sonst
+       * gäbe es zwei Stellen, die dieselbe Grenze auswerten. */
+      var kuehl = String(statusWerte().k || "ok").split(":");
+      var wieLang = kuehl.length > 1 ? " " + spanne(kuehl[1]) : "";
 
-      badge("Neigung",
-        schiefste.toFixed(1).replace(".", ",") + "° · " +
-          (kuehlWarn ? "Kühlschrank!" + wieLang
-            : schraeg ? "schief" + wieLang
-              : "ok"),
+      badge(t("kennzeichen_neigung"),
+        zahl(schiefste, 1) + "° · " +
+          (kuehlWarn ? t("kurz_kuehlschrank") + wieLang
+            : schraeg ? t("kurz_schief") + wieLang
+              : t("kurz_ok")),
         kuehlWarn ? "alarm" : schraeg ? "achtung" : "ok",
-        // Der Satz kommt vom Gerät. Zwei Formulierungen für denselben
-        // Zustand wären zwei Wahrheiten, sobald eine davon veraltet.
-        schraeg && kuehlSatz
-          ? kuehlSatz
-          : "Unter " + cfg.tilt_limit.toFixed(1).replace(".", ",") +
-            "° – der Absorberkühlschrank arbeitet zuverlässig.");
-      badge("Bewegung", bewegt ? "in Bewegung" : "steht ruhig",
-        bewegt ? "achtung" : "ok",
-        "Erschütterung – jemand steigt ein, Wind, der Nachbar rangiert. Kein Alarm.");
-      badge("Lage", verrueckt ? "verändert!" : "unverändert",
+        kuehl.length > 2
+          ? t("kuehl_stufe_" + kuehl[0], { grad: zahl(kuehl[2], 1), dauer: spanne(kuehl[1]) })
+          : t("kuehl_ok", { grenze: zahl(cfg.tilt_limit, 1) }));
+      badge(t("kennzeichen_bewegung"), bewegt ? t("in_bewegung") : t("steht_ruhig"),
+        bewegt ? "achtung" : "ok", t("hilfe_bewegung"));
+      badge(t("kennzeichen_lage"), verrueckt ? t("lage_veraendert") : t("lage_unveraendert"),
         verrueckt ? "alarm" : "ok",
-        "Weicht die Neigung um mehr als " + cfg.move_limit.toFixed(1).replace(".", ",") +
-        "° von der Ruhelage ab, wurde das Fahrzeug bewegt.");
+        t("hilfe_lage", { grenze: zahl(cfg.move_limit, 1) }));
     }
     target.appendChild(badges);
 
@@ -1022,24 +1631,112 @@
       return !ok || centred(lev) ? 0 : Math.max(-30, Math.min(30, value));
     };
     target.appendChild(view(isCaravan() ? CARAVAN_SIDE : CAMPER_SIDE,
-      "SEITE · längs — " + (ok ? degP.toFixed(places()) + "°" : "⚠️"),
+      t("ansicht_seite") + " — " + (ok ? zahl(degP, places()) + "°" : "⚠️"),
       colorFor(pitch, tolP, levP), tilt(degP, levP)));
     target.appendChild(view(isCaravan() ? CARAVAN_REAR : CAMPER_REAR,
-      "HECK · quer — " + (ok ? degR.toFixed(places()) + "°" : "⚠️"),
+      t("ansicht_heck") + " — " + (ok ? zahl(degR, places()) + "°" : "⚠️"),
       colorFor(roll, tolR, levR), tilt(-degR, levR)));
 
-    var cal = el('<button class="act">Neigung kalibrieren</button>');
+    var cal = el('<button class="act"></button>');
+    cal.textContent = t("kalibrieren");
     cal.onclick = function () {
       cal.disabled = true;
-      cal.textContent = "Kalibriere …";
+      cal.textContent = t("kalibriere_laeuft");
       press("neigung_kalibrieren", function () {
-        window.setTimeout(function () { cal.disabled = false; cal.textContent = "Neigung kalibrieren"; }, 5000);
+        window.setTimeout(function () {
+          cal.disabled = false;
+          cal.textContent = t("kalibrieren");
+        }, 5000);
       });
     };
     target.appendChild(cal);
 
     zielBox(target);
     waechterBox(target);
+  }
+
+
+  /* --- Statuswerte des Geraets ----------------------------------------------
+   *
+   * Das Geraet liefert die sechs Auskuenfte doppelt: als deutschen Satz (fuer
+   * Home Assistant und MQTT) und als Werte im Sensor "Statuswerte". Die Seite
+   * nimmt die Werte und formuliert selbst - nur so kann sie Englisch.
+   *
+   * Format siehe hardware.yaml: "w=...;k=...;c=...;b=...;m=...;n=..."
+   */
+  function statusWerte() {
+    var roh = findStateOf("text_sensor", "statuswerte") || "";
+    var raus = {};
+    roh.split(";").forEach(function (paar) {
+      var i = paar.indexOf("=");
+      if (i > 0) raus[paar.slice(0, i)] = paar.slice(i + 1);
+    });
+    return raus;
+  }
+
+  /* Zeitspanne in Worten. Die Einheiten sind in beiden Sprachen dieselben
+   * Abkuerzungen, deshalb eine Funktion fuer beide. */
+  function spanne(sek) {
+    var s = Math.max(0, Math.round(Number(sek) || 0));
+    if (s < 60) return s + " s";
+    if (s < 3600) return Math.floor(s / 60) + " min";
+    if (s < 86400) return Math.floor(s / 3600) + " h " + Math.floor((s % 3600) / 60) + " min";
+    return Math.floor(s / 86400) + " d " + Math.floor((s % 86400) / 3600) + " h";
+  }
+
+  /* Zeitpunkt in der Schreibweise der gewaehlten Sprache. Das Geraet liefert
+   * Unix-Zeit; die Umrechnung macht das Handy, und das kennt seine Zeitzone
+   * besser als das Geraet ohne Internet. */
+  function zeitpunkt(unix) {
+    var d = new Date(Number(unix) * 1000);
+    try {
+      return d.toLocaleString(sprache === "de" ? "de-DE" : "en-GB",
+        { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
+    } catch (e) {
+      return d.toISOString().slice(5, 16).replace("T", " ");
+    }
+  }
+
+  /* Der Satz zum Waechter, aus dem Wert "w". */
+  function wacheSatz(wert) {
+    var teil = String(wert || "").split(":");
+    if (teil[0] === "alarm") return t("wache_alarm_um", { zeit: zeitpunkt(teil[1]) });
+    if (teil[0] === "alarm_vor") return t("wache_alarm_vor", { dauer: spanne(teil[1]) });
+    if (teil[0] === "alarm_unbekannt") return t("wache_alarm_unbekannt");
+    if (teil[0] === "karenz") return t("wache_karenz", { s: Math.round(Number(teil[1]) || 0) });
+    if (teil[0] === "scharf") return t("wache_scharf", { dauer: spanne(teil[1]) });
+    return t("wache_aus");
+  }
+
+  /* Der Satz zur letzten Bewegung, aus dem Wert "b". */
+  function bewegungSatz(wert) {
+    var teil = String(wert || "").split(":");
+    if (teil[0] === "jetzt") return t("bewegung_jetzt");
+    if (teil[0] === "vor") return t("bewegung_vor", { dauer: spanne(teil[1]) });
+    if (teil[0] === "nie" || !teil[0]) return t("bewegung_nie");
+    return zeitpunkt(teil[0]);
+  }
+
+  /* Der Satz zur MQTT-Verbindung, aus dem Wert "m" - die Adresse steht im
+   * Eingabefeld des Geraets, das Passwort nirgends. */
+  function mqttSatz() {
+    var zustand = statusWerte().m;
+    var broker = findStateOf("text", "mqtt_broker") || "";
+    if (!zustand || zustand === "aus") return t("mqtt_zustand_aus");
+    return t(zustand === "verbunden" ? "mqtt_zustand_verbunden" : "mqtt_zustand_getrennt",
+      { broker: broker });
+  }
+
+  /* Der Satz zur Kalibrierung, aus dem Wert "c". */
+  function kalibrierSatz(wert) {
+    var teil = String(wert || "").split(":");
+    if (teil[0] === "nie") return t("kal_nie");
+    if (teil[0] === "ohne_werte") return t("kal_ohne_werte");
+    if (teil.length < 4) return t("kal_nie");
+    var wann = Number(teil[0]) > 0 ? zeitpunkt(teil[0]) : t("kal_ohne_uhr");
+    return teil[3] === "1"
+      ? t("kal_pruefen", { wann: wann, temp: zahl(teil[1], 0), jetzt: zahl(teil[2], 0) })
+      : t("kal_gut", { wann: wann, temp: zahl(teil[1], 0) });
   }
 
   /* Zielprofil.
@@ -1055,44 +1752,38 @@
     var pfad = pathFor("select", IDS.profile);
     if (!pfad) return;   // ältere Firmware ohne Profile
 
-    var box = el('<div class="plan" style="margin-top:12px"><h2>Zielprofil</h2></div>');
-    var row = el('<div class="set" style="border-bottom:0"><span>Ziel</span></div>');
-    profileSelect = el('<select><option>Ausrichten</option><option>Schlafen</option>' +
-      "<option>Ablassen</option></select>");
-    profileSelect.value = cfg.profile;
-    profileSelect.onchange = function () {
-      cfg.profile = profileSelect.value;
-      write("select", IDS.profile, "option=" + encodeURIComponent(profileSelect.value));
-      render();
-    };
+    var box = el('<div class="plan" style="margin-top:12px"><h2>' + t("kopf_zielprofil") + "</h2></div>");
+    var row = el('<div class="set" style="border-bottom:0"><span>' + t("ziel") + "</span></div>");
+    profileSelect = auswahl(["Ausrichten", "Schlafen", "Ablassen"], "profil", cfg.profile,
+      function (wert) {
+        cfg.profile = wert;
+        write("select", IDS.profile, "option=" + encodeURIComponent(wert));
+        render();
+      });
     row.appendChild(profileSelect);
     box.appendChild(row);
 
-    var erklaerung =
-      cfg.profile === "Schlafen"
-        ? "Das Kopfende etwas höher schläft sich für viele deutlich besser. " +
-          "Die Anzeige oben rechnet ab jetzt gegen dieses Ziel – „EBEN“ heißt " +
-          "also „steht, wie du es wolltest“."
-        : cfg.profile === "Ablassen"
-          ? "Boiler und Tank laufen nur leer, wenn sich das Fahrzeug zum " +
-            "Ablasspunkt neigt. Wer eben steht, behält einen Rest drin – und " +
-            "der friert im Winter."
-          : "Eben ausrichten, wie gewohnt.";
+    var erklaerung = cfg.profile === "Schlafen" ? t("profil_schlafen_erklaerung")
+      : cfg.profile === "Ablassen" ? t("profil_ablassen_erklaerung")
+        : t("profil_ausrichten_erklaerung");
 
+    /* Was das Profil verlangt, in einem Satz - und zwar in der Sprache des
+     * Nutzers, nicht als Vorzeichen. "Ziel: Front 2,0 cm höher" ist die
+     * Antwort auf "was stellt das Gerät hier eigentlich ein?". */
     var ziel = "";
     if (cfg.profile !== "Ausrichten") {
       var teile = [];
       if (cfg.target_long) {
-        teile.push((cfg.target_long > 0 ? "Front" : "Heck") + " " +
-          Math.abs(cfg.target_long).toFixed(1).replace(".", ",") + " cm höher");
+        teile.push(t(cfg.target_long > 0 ? "ziel_front_hoeher" : "ziel_heck_hoeher",
+          { cm: zahl(Math.abs(cfg.target_long), 1) }));
       }
       if (cfg.target_lat) {
-        teile.push((cfg.target_lat > 0 ? "rechts" : "links") + " " +
-          Math.abs(cfg.target_lat).toFixed(1).replace(".", ",") + " cm höher");
+        teile.push(t(cfg.target_lat > 0 ? "ziel_rechts_hoeher" : "ziel_links_hoeher",
+          { cm: zahl(Math.abs(cfg.target_lat), 1) }));
       }
-      ziel = teile.length
-        ? "<br><br>Ziel: <b>" + teile.join(", ") + "</b>"
-        : "<br><br>Ziel: <b>eben</b> – die Zahlen dieses Profils stehen auf 0.";
+      ziel = "<br><br>" + (teile.length
+        ? t("ziel_ist", { was: "<b>" + teile.join(", ") + "</b>" })
+        : t("ziel_ist_eben"));
     }
 
     box.appendChild(el('<div class="muted" style="margin-top:10px;line-height:1.5">' +
@@ -1115,19 +1806,20 @@
 
     var scharf = findStateOf("switch", IDS.guard) === "ON";
     var alarm = findStateOf("binary_sensor", IDS.guard_alarm) === "ON";
-    var satz = findStateOf("text_sensor", IDS.guard) || "";
-    var zuletzt = findStateOf("text_sensor", IDS.last_motion) || "";
+    var werte = statusWerte();
+    var satz = wacheSatz(werte.w);
+    var zuletzt = werte.b ? bewegungSatz(werte.b) : "";
 
-    var box = el('<div class="plan" style="margin-top:12px"><h2>Wächter</h2></div>');
+    var box = el('<div class="plan" style="margin-top:12px"><h2>' + t("kopf_waechter") + "</h2></div>");
 
     var zeile = el('<div class="set" style="border-bottom:0"><span></span></div>');
-    zeile.firstChild.textContent = satz || (scharf ? "scharf" : "aus");
+    zeile.firstChild.textContent = satz;
     zeile.firstChild.style.fontWeight = "800";
     if (alarm) zeile.firstChild.style.color = "#ffd9d6";
     box.appendChild(zeile);
 
     var knopf = el('<button class="act' + (scharf ? " ghost" : "") + '"></button>');
-    knopf.textContent = scharf ? "Unscharf schalten" : "Scharf schalten";
+    knopf.textContent = scharf ? t("unscharf_schalten") : t("scharf_schalten");
     knopf.onclick = function () {
       knopf.disabled = true;
       post(pfad + (scharf ? "/turn_off" : "/turn_on"), check(pfad));
@@ -1135,7 +1827,8 @@
     box.appendChild(knopf);
 
     if (alarm) {
-      var quitt = el('<button class="act ghost" style="margin-top:8px">Alarm quittieren</button>');
+      var quitt = el('<button class="act ghost" style="margin-top:8px"></button>');
+      quitt.textContent = t("alarm_quittieren");
       quitt.onclick = function () {
         quitt.disabled = true;
         press(IDS.guard_ack);
@@ -1144,15 +1837,8 @@
     }
 
     box.appendChild(el('<div class="muted" style="margin-top:10px;line-height:1.5">' +
-      (scharf
-        ? "Scharf gilt die Lage vom Einschalten. Wird das Fahrzeug angehoben, " +
-          "abgeschleppt oder aufgebockt, rastet der Alarm ein und bleibt " +
-          "stehen, bis du ihn quittierst – auch wenn längst wieder Ruhe ist."
-        : "Beim Einschalten merkt sich das Gerät die jetzige Lage. Ab dann " +
-          "meldet es, wenn das Fahrzeug sie verlässt. Eine Erschütterung – " +
-          "jemand steigt ein, Wind – löst nichts aus, die steht unter " +
-          "„Bewegung“.") +
-      (zuletzt ? "<br><br>Letzte Bewegung am Fahrzeug: <b>" + zuletzt + "</b>" : "") +
+      t(scharf ? "hilfe_waechter_scharf" : "hilfe_waechter_aus") +
+      (zuletzt ? "<br><br>" + t("letzte_bewegung", { wann: "<b>" + zuletzt + "</b>" }) : "") +
       "</div>"));
 
     target.appendChild(box);
@@ -1171,14 +1857,52 @@
     if (!montage && !kalib) return;
 
     var text = montage
-      ? "Der Sensor liefert unglaubwürdige Werte – sitzt das Gehäuse noch fest? " +
-        "Solange das so ist, stimmt die Anzeige nicht."
-      : "Kalibrierung: " + (findStateOf("text_sensor", "kalibrierung") || "bitte prüfen");
+      ? t("warnung_montage")
+      : t("warnung_kalibrierung", { satz: kalibrierSatz(statusWerte().c) });
 
     var w = el('<div style="background:#4a3410;border:1px solid #ffb020;' +
       'border-radius:12px;padding:10px 12px;margin-bottom:12px;' +
       'font-size:.9rem;line-height:1.45;color:#ffd48a;font-weight:600"></div>');
     w.textContent = "⚠️ " + text;
+    target.appendChild(w);
+  }
+
+  /* Veraltete Seite im Browser.
+   *
+   * Der Vergleich laeuft erst, wenn das Geraet seine Fassung gemeldet hat -
+   * vorher ist nichts bekannt, und eine Warnung auf Verdacht waere schlimmer
+   * als keine.
+   *
+   * Gelb und nicht rot: Es ist nichts kaputt, es ist nur alt. Dieselbe Farbe
+   * wie bei der Selbstueberwachung, aus demselben Grund. */
+  function seiteVeraltet(target) {
+    var geraet = findState("firmware_version");
+    if (!geraet || geraet === SEITE_VERSION) return;
+
+    var w = el('<button style="display:block;width:100%;text-align:left;' +
+      'background:#4a3410;border:1px solid #ffb020;' +
+      'border-radius:12px;padding:10px 12px;margin-bottom:12px;' +
+      'font:inherit;font-size:.9rem;line-height:1.45;color:#ffd48a;' +
+      'font-weight:600;cursor:pointer"></button>');
+    w.textContent = "⚠️ " + t("warnung_seite_alt",
+      { seite: SEITE_VERSION, geraet: geraet });
+
+    /* Auf Fingertipp, nicht von allein: Wer gerade WLAN-Zugangsdaten
+     * eintippt, verloere sie bei einem Neuladen aus heiterem Himmel.
+     *
+     * Erst die Datei erzwungen neu holen, dann laden - ein blosses
+     * reload() nimmt sonst wieder die alte Kopie aus dem Zwischenspeicher.
+     * Schlaegt das Holen fehl, wird trotzdem geladen: schlimmstenfalls
+     * aendert sich nichts, und der Balken steht wieder da. */
+    w.onclick = function () {
+      w.textContent = t("seite_wird_geholt");
+      var fertig = function () { location.reload(); };
+      try {
+        fetch("/0.js", { cache: "reload" }).then(fertig, fertig);
+      } catch (e) {
+        fertig();
+      }
+    };
     target.appendChild(w);
   }
 
@@ -1189,7 +1913,7 @@
    * auch nichts: Die gewohnte Anzeige bleibt unverändert. */
   function waechterAlarm(target) {
     if (findStateOf("binary_sensor", IDS.guard_alarm) !== "ON") return;
-    var satz = findStateOf("text_sensor", IDS.guard) || "ALARM";
+    var satz = wacheSatz(statusWerte().w);
     var w = el('<div class="warn" style="margin-bottom:12px"></div>');
     w.textContent = "🚨 " + satz;
     target.appendChild(w);
@@ -1201,6 +1925,8 @@
   var methodSelect = null;
   var vehicleSelect = null;
   var mountingSelect = null;
+  var schlafSelect = null;
+  var ablassSelect = null;
   var preciseBox = null;
   var schalterBoxen = {};
   var profileSelect = null;
@@ -1238,8 +1964,7 @@
       cfg[key] = kasten.checked;
       var base = pathFor("switch", IDS[key]);
       if (!base) {
-        writeError = "Das Gerät kennt keine Einstellung „" + label + "“. " +
-          "Läuft die passende Firmware?";
+        writeError = t("kennt_wert_nicht", { was: label });
         syncSettings();
         return;
       }
@@ -1251,199 +1976,237 @@
     return kasten;
   }
 
+  /* --- Skizzen ---------------------------------------------------------------
+   *
+   * Zwei kleine Draufsichten: Wo liegt der Kopf, wo sitzt der Ablasspunkt.
+   *
+   * WARUM SIE DA SIND: "Schlafen laengs -2 cm" war nicht zu verstehen - auch
+   * fuer den nicht, der es gebaut hat. Eine Zeichnung beantwortet ohne Worte,
+   * was "links" heisst (in Fahrtrichtung) und welche Seite hoeher kommt.
+   *
+   * Bewusst schematisch: ein Rechteck mit Front oben, das Bett als Flaeche,
+   * das Kopfende farbig. Ein maßstäbliches Bild waere eine Behauptung ueber
+   * einen Grundriss, den wir nicht kennen. */
+  var SK_ACCENT = "#2fb6c9";
+  var SK_LINIE = "#6b7280";
+  var SK_FLAECHE = "#243447";
+
+  /* Das Fahrzeug von oben: Rechteck von (34,20) bis (126,100) im Feld
+   * 160 x 120. Aussen bleibt Platz fuer die Marke, damit sie nie auf dem Bett
+   * oder dem Tropfen liegt. Die Fahrtrichtung steht links oben, sonst kaeme
+   * sie der Marke an der Frontkante in den Weg. */
+  function skizzeRahmen(inhalt) {
+    /* Die Fahrtrichtung steht als kleines Dreieck INNEN an der Oberkante und
+     * nicht als Wort daneben: Aussen braucht jede Kante Platz fuer die Marke,
+     * und ein Wort an der Frontkante lag genau darunter. Dass vorn oben ist,
+     * sagt zusaetzlich der Hilfetext. */
+    return '<svg viewBox="0 0 160 120" style="width:100%;max-width:260px;height:auto;' +
+      'display:block;margin:8px auto 2px">' +
+      '<rect x="34" y="20" width="92" height="80" rx="10" fill="#1b2430" stroke="' +
+      SK_LINIE + '" stroke-width="2"/>' +
+      '<polygon points="74,28 86,28 80,21" fill="#8b96a5"/>' + inhalt + "</svg>";
+  }
+
+  /* Die Marke sitzt AUSSERHALB des Fahrzeugs an der Kante, die hoeher kommt. */
+  function skizzeMarke(x, y) {
+    return '<circle cx="' + x + '" cy="' + y + '" r="9" fill="' + SK_ACCENT + '"/>' +
+      '<text x="' + x + '" y="' + (y + 4) + '" text-anchor="middle" fill="#0d1117" ' +
+      'font-size="13" font-weight="700">+</text>';
+  }
+
+  /* Wo eine Kante liegt: vorn oben, hinten unten, links links, rechts rechts.
+   * Fehlt eine Richtung, bleibt die Mitte. */
+  function skizzeOrt(text, aussen) {
+    var x = 80, y = 60;
+    if (text.indexOf("links") >= 0) x = aussen ? 18 : 48;
+    if (text.indexOf("rechts") >= 0) x = aussen ? 142 : 112;
+    if (text.indexOf("vorn") >= 0) y = aussen ? 10 : 30;
+    if (text.indexOf("hinten") >= 0) y = aussen ? 112 : 90;
+    return [x, y];
+  }
+
+  function bettSkizze(richtung) {
+    var quer = richtung === "Kopf links" || richtung === "Kopf rechts";
+    var bett = quer
+      ? '<rect x="44" y="46" width="72" height="32" rx="6" fill="' + SK_FLAECHE +
+        '" stroke="#37516b" stroke-width="1.5"/>'
+      : '<rect x="58" y="32" width="44" height="56" rx="6" fill="' + SK_FLAECHE +
+        '" stroke="#37516b" stroke-width="1.5"/>';
+    var kissen =
+      richtung === "Kopf vorn" ? '<rect x="58" y="32" width="44" height="15" rx="6" fill="' + SK_ACCENT + '"/>'
+      : richtung === "Kopf hinten" ? '<rect x="58" y="73" width="44" height="15" rx="6" fill="' + SK_ACCENT + '"/>'
+      : richtung === "Kopf links" ? '<rect x="44" y="46" width="15" height="32" rx="6" fill="' + SK_ACCENT + '"/>'
+      : '<rect x="101" y="46" width="15" height="32" rx="6" fill="' + SK_ACCENT + '"/>';
+    var ort = skizzeOrt(richtung, true);
+    return skizzeRahmen(bett + kissen + skizzeMarke(ort[0], ort[1]));
+  }
+
+  /* Der Ablasspunkt ist der TIEFSTE Punkt - der Tropfen sitzt dort, die Marke
+   * auf der Gegenseite. */
+  function ablassSkizze(punkt) {
+    var tief = skizzeOrt(punkt, false);
+    var gegen = skizzeOrt(punkt
+      .replace("vorn", "H").replace("hinten", "vorn").replace("H", "hinten")
+      .replace("links", "R").replace("rechts", "links").replace("R", "rechts"), true);
+    return skizzeRahmen(
+      '<text x="' + tief[0] + '" y="' + (tief[1] + 6) + '" text-anchor="middle" ' +
+      'font-size="18">💧</text>' + skizzeMarke(gegen[0], gegen[1]));
+  }
+
   function settings() {
     settingInputs = {};
     schalterBoxen = {};
-    var box = el('<div class="plan"><h2>Fahrzeug</h2></div>');
+
+    // --- Fahrzeug ----------------------------------------------------------
     // Beim Wohnwagen misst dieselbe Zahl etwas anderes - deshalb die
-    // Beschriftung mitführen statt sie fest hinzuschreiben.
+    // Beschriftung mitfuehren statt sie fest hinzuschreiben.
     //
-    // Und nur die Toleranz, die gerade gilt: Beide nebeneinander wären zwei
-    // Felder für eine Frage, von denen eines wirkungslos ist - der Nutzer
-    // stellt dann das falsche ein und wundert sich, dass nichts passiert.
+    // Und nur die Toleranz, die gerade gilt: Beide nebeneinander waeren zwei
+    // Felder fuer eine Frage, von denen eines wirkungslos ist.
+    var box = el('<div class="plan"><h2>' + t("kopf_fahrzeug") + "</h2></div>");
     var rows = [
-      ["wheelbase", isCaravan() ? "Achse → Stützrad (mm)" : "Radstand (mm)"],
-      ["track", "Spurweite (mm)"],
-      cfg.precise ? ["tolerance_deg", "Toleranz genau (°)"]
-        : ["tolerance_cm", "Toleranz (cm)"],
-      ["wedge_step", "Keilstufe (cm, 0 = aus)"]
+      ["wheelbase", isCaravan() ? t("label_achse_stuetzrad") : t("label_radstand")],
+      ["track", t("label_spurweite")],
+      cfg.precise ? ["tolerance_deg", t("label_toleranz_grad")]
+        : ["tolerance_cm", t("label_toleranz_cm")],
+      ["wedge_step", t("label_keilstufe")]
     ];
     rows.forEach(function (r) { zahlZeile(box, r[0], r[1]); });
+    box.appendChild(el('<div class="muted" style="margin-bottom:6px">' +
+      (isCaravan() ? t("hilfe_masse_wagen") : t("hilfe_masse")) + "</div>"));
 
-    /* Steht direkt unter der Toleranz, weil er ändert, was sie bedeutet.
+    /* Steht direkt unter der Toleranz, weil er aendert, was sie bedeutet.
      *
      * Der Kasten braucht eine eigene Breite: .set input ist 130 px breit,
-     * das ergäbe ein Ankreuzfeld in der Größe eines Eingabefelds. */
-    var prow = el('<div class="set"><span>Präzisionsmodus</span></div>');
+     * das ergaebe ein Ankreuzfeld in der Groesse eines Eingabefelds. */
+    var prow = el('<div class="set"><span>' + t("label_praezision") + "</span></div>");
     preciseBox = el('<input type="checkbox" style="width:26px;height:26px;padding:0">');
     preciseBox.checked = cfg.precise;
     preciseBox.onchange = function () { setPrecise(preciseBox.checked); };
     prow.appendChild(preciseBox);
     box.appendChild(prow);
     box.appendChild(el('<div class="muted" style="margin-bottom:6px">' +
-      "Aus: die Toleranz gilt in Zentimetern, und innerhalb davon steht alles " +
-      "in der Mitte – dort ist nichts mehr zu tun. Ein: feste Gradtoleranz für " +
-      "beide Achsen, die Blase bleibt an ihrer echten Stelle, Winkel mit zwei " +
-      "Nachkommastellen.</div>"));
+      t("hilfe_praezision") + "</div>"));
 
-    var vrow = el('<div class="set"><span>Fahrzeugart</span></div>');
-    vehicleSelect = el('<select><option>Wohnmobil</option><option>' + VEHICLE_CARAVAN + "</option></select>");
-    vehicleSelect.value = isCaravan() ? VEHICLE_CARAVAN : "Wohnmobil";
-    vehicleSelect.onchange = function () { setVehicle(vehicleSelect.value); };
+    var vrow = el('<div class="set"><span>' + t("label_fahrzeugart") + "</span></div>");
+    vehicleSelect = auswahl(["Wohnmobil", VEHICLE_CARAVAN], "fahrzeug",
+      isCaravan() ? VEHICLE_CARAVAN : "Wohnmobil", setVehicle);
     vrow.appendChild(vehicleSelect);
     box.appendChild(vrow);
 
-    var mrow = el('<div class="set"><span>Womit ausrichten</span></div>');
-    methodSelect = el('<select><option>Auffahrkeile</option><option>' + METHOD_LIFT + "</option></select>");
-    methodSelect.value = cfg.method === "hebesystem" ? METHOD_LIFT : "Auffahrkeile";
-    methodSelect.onchange = function () { setMethod(methodSelect.value); };
+    var mrow = el('<div class="set"><span>' + t("label_womit") + "</span></div>");
+    methodSelect = auswahl(["Auffahrkeile", METHOD_LIFT], "methode",
+      cfg.method === "hebesystem" ? METHOD_LIFT : "Auffahrkeile", setMethod);
     mrow.appendChild(methodSelect);
-    // Beim Wohnwagen ohne Bedeutung: längs kurbelt man am Stützrad, quer
-    // fährt man auf. Ein Hebesystem gibt es dort nicht.
-    if (!isCaravan()) box.appendChild(mrow);
+    // Beim Wohnwagen ohne Bedeutung: laengs kurbelt man am Stuetzrad, quer
+    // faehrt man auf. Ein Hebesystem gibt es dort nicht.
+    if (!isCaravan()) {
+      box.appendChild(mrow);
+      box.appendChild(el('<div class="muted" style="margin-bottom:6px">' +
+        t("hilfe_womit") + "</div>"));
+    }
 
     settingsNote = el('<div class="muted" style="margin-top:8px"></div>');
     box.appendChild(settingsNote);
 
-    /* Eigener Bereich, weil die Einbaulage das GERÄT beschreibt und nicht das
-     * Fahrzeug. Sie wird einmal beim Ankleben gesetzt und danach nie wieder -
-     * zwischen Radstand und Spurweite stünde sie an der falschen Stelle.
+    // --- Anzeige -----------------------------------------------------------
+    var anzeige = el('<div class="plan"><h2>' + t("kopf_anzeige") + "</h2></div>");
+    zahlZeile(anzeige, "calm", t("label_anzeigeruhe"));
+    anzeige.appendChild(el('<div class="muted" style="margin-bottom:10px">' +
+      t("hilfe_anzeigeruhe") + "</div>"));
+    zahlZeile(anzeige, "hold_percent", t("label_haltebereich"));
+    anzeige.appendChild(el('<div class="muted">' + t("hilfe_haltebereich") + "</div>"));
+
+    // --- Ziele -------------------------------------------------------------
+    /* Die Zahlen hinter den Zielprofilen. Sie stehen hier und nicht bei der
+     * Profilwahl auf der Hauptseite: Man richtet sie einmal ein und waehlt
+     * danach nur noch.
      *
-     * Sie MUSS hier stehen: Achszuordnung und Vorzeichen sind Substitutions und
-     * brauchen einen Flash, die Einbaulage entscheidet der Nutzer im Fahrzeug.
-     * Ohne diese Auswahl gäbe es sie nur in Home Assistant, und wer das Gerät
-     * ohne Zentrale betreibt, käme an eine Einstellung nicht heran, die über
-     * richtig und falsch herum entscheidet. */
-    var geraet = el('<div class="plan"><h2>Gerät</h2></div>');
-    var erow = el('<div class="set"><span>Einbaulage</span></div>');
-    mountingSelect = el('<select><option>Deckel oben</option><option>' +
-      MOUNT_UNDER + "</option></select>");
-    mountingSelect.value = cfg.mounting === "unten" ? MOUNT_UNDER : "Deckel oben";
-    mountingSelect.onchange = function () { setMounting(mountingSelect.value); };
+     * Eingestellt wird die RICHTUNG, nicht das Vorzeichen - siehe die
+     * Begruendung bei den Skizzen weiter oben. */
+    var ziele = el('<div class="plan"><h2>' + t("kopf_ziele") + "</h2></div>");
+    ziele.appendChild(el('<div class="muted" style="margin-bottom:10px">' +
+      t("hilfe_ziele") + "</div>"));
+
+    ziele.appendChild(el('<div class="grouphead">' + t("kopf_schlafen") + "</div>"));
+    var srow = el('<div class="set"><span>' + t("label_schlafrichtung") + "</span></div>");
+    schlafSelect = auswahl(["Kopf vorn", "Kopf hinten", "Kopf links", "Kopf rechts"],
+      "schlaf", cfg.sleep_dir, setSchlafrichtung);
+    srow.appendChild(schlafSelect);
+    ziele.appendChild(srow);
+    zahlZeile(ziele, "sleep_height", t("label_kopfende"));
+    ziele.appendChild(el(bettSkizze(cfg.sleep_dir)));
+    ziele.appendChild(el('<div class="muted" style="margin-bottom:10px">' +
+      t("hilfe_schlafen", { satz: schlafSatz() }) + "</div>"));
+
+    ziele.appendChild(el('<div class="grouphead">' + t("kopf_ablassen") + "</div>"));
+    var arow = el('<div class="set"><span>' + t("label_ablasspunkt") + "</span></div>");
+    ablassSelect = auswahl(["vorn", "hinten", "links", "rechts",
+      "vorn links", "vorn rechts", "hinten links", "hinten rechts"],
+      "ablass", cfg.drain_point, setAblasspunkt);
+    arow.appendChild(ablassSelect);
+    ziele.appendChild(arow);
+    zahlZeile(ziele, "drain_amount", t("label_ablassneigung"));
+    ziele.appendChild(el(ablassSkizze(cfg.drain_point)));
+    ziele.appendChild(el('<div class="muted">' +
+      t("hilfe_ablassen", { satz: ablassSatz() }) + "</div>"));
+
+    // --- Warnungen ---------------------------------------------------------
+    var warnungen = el('<div class="plan"><h2>' + t("kopf_warnungen") + "</h2></div>");
+    zahlZeile(warnungen, "tilt_limit", t("label_schraeglage"));
+    warnungen.appendChild(el('<div class="muted" style="margin-bottom:10px">' +
+      t("hilfe_schraeglage") + "</div>"));
+    zahlZeile(warnungen, "fridge_minutes", t("label_kuehlschrank"));
+    warnungen.appendChild(el('<div class="muted" style="margin-bottom:10px">' +
+      t("hilfe_kuehlschrank") + "</div>"));
+    zahlZeile(warnungen, "move_limit", t("label_lageaenderung"));
+    warnungen.appendChild(el('<div class="muted" style="margin-bottom:10px">' +
+      t("hilfe_lageaenderung") + "</div>"));
+    zahlZeile(warnungen, "frost_limit", t("label_frost"));
+    warnungen.appendChild(el('<div class="muted" style="margin-bottom:10px">' +
+      t("hilfe_frost") + "</div>"));
+    zahlZeile(warnungen, "guard_grace", t("label_karenzzeit"));
+    warnungen.appendChild(el('<div class="muted">' + t("hilfe_karenzzeit") + "</div>"));
+
+    // --- Gerät -------------------------------------------------------------
+    /* Eigener Bereich, weil die Einbaulage das GERAET beschreibt und nicht das
+     * Fahrzeug. Sie wird einmal beim Ankleben gesetzt und danach nie wieder.
+     *
+     * Sie MUSS hier stehen: Achszuordnung und Vorzeichen sind Substitutions
+     * und brauchen einen Flash, die Einbaulage entscheidet der Nutzer im
+     * Fahrzeug. Ohne diese Auswahl gaebe es sie nur in Home Assistant, und wer
+     * das Geraet ohne Zentrale betreibt, kaeme an eine Einstellung nicht
+     * heran, die ueber richtig und falsch herum entscheidet. */
+    var geraet = el('<div class="plan"><h2>' + t("kopf_geraet") + "</h2></div>");
+    var erow = el('<div class="set"><span>' + t("label_einbaulage") + "</span></div>");
+    mountingSelect = auswahl(["Deckel oben", MOUNT_UNDER], "lage",
+      cfg.mounting === "unten" ? MOUNT_UNDER : "Deckel oben", setMounting);
     erow.appendChild(mountingSelect);
     geraet.appendChild(erow);
     geraet.appendChild(el('<div class="muted" style="margin-top:8px;margin-bottom:10px">' +
-      "„Deckel unten“ heißt: unter ein Regalbrett oder eine Decke geklebt, " +
-      "der Pfeil zeigt weiterhin nach vorn. Nach dem Umstellen neu kalibrieren." +
-      "</div>"));
+      t("hilfe_einbaulage") + "</div>"));
 
-    /* Selbstüberwachung. Steht hier, weil beides das GERÄT betrifft und nicht
-     * das Fahrzeug. */
-    zahlZeile(geraet, "drift_limit", "Driftwarnung ab (K)");
+    /* Selbstueberwachung. Steht hier, weil beides das GERAET betrifft und
+     * nicht das Fahrzeug. */
+    zahlZeile(geraet, "drift_limit", t("label_driftwarnung"));
     geraet.appendChild(el('<div class="muted" style="margin-bottom:10px">' +
-      "Nicht die Zeit verschiebt den Nullpunkt eines Neigungsmessers, sondern " +
-      "die Temperatur – und im Fahrzeug sind das zwischen Winternacht und " +
-      "Sommermittag leicht 40 Kelvin. Weicht die jetzige Temperatur so weit " +
-      "von der bei der Kalibrierung ab, meldet sich das Gerät." +
-      "</div>"));
-    zahlZeile(geraet, "temp_offset", "Temperatur Abgleich (K)");
+      t("hilfe_driftwarnung") + "</div>"));
+    zahlZeile(geraet, "temp_offset", t("label_temp_abgleich"));
     geraet.appendChild(el('<div class="muted" style="margin-bottom:10px">' +
-      "Der Sensor misst sich selbst und erwärmt sich dabei. Einmal gegen ein " +
-      "Thermometer im Fahrzeug ablesen und die Differenz hier eintragen – " +
-      "danach taugt der Wert für eine Frostwarnung. Ein Thermometer wird " +
-      "daraus nicht." +
-      "</div>"));
+      t("hilfe_temp_abgleich") + "</div>"));
 
-    /* Leuchte und Summer. Sie stehen hier, weil sie das GERÄT beschreiben,
-     * und sie stehen ÜBERHAUPT hier, weil dieses Gerät kein Display hat: Wer
-     * es ohne Home Assistant betreibt, käme sonst an zwei Dinge nicht heran,
-     * die im Wohnraum blinken und lärmen. */
-    schalterZeile(geraet, "status_led", "Status-LED");
+    /* Leuchte und Summer. Sie stehen hier, weil sie das GERAET beschreiben,
+     * und sie stehen UEBERHAUPT hier, weil dieses Geraet kein Display hat:
+     * Wer es ohne Home Assistant betreibt, kaeme sonst an zwei Dinge nicht
+     * heran, die im Wohnraum blinken und laermen. */
+    schalterZeile(geraet, "status_led", t("label_status_led"));
     geraet.appendChild(el('<div class="muted" style="margin-bottom:10px">' +
-      "Die Leuchte am Gerät zeigt, dass es läuft, und in welchem Netz es " +
-      "steckt: lang an und lang aus heißt eigenes Netz – dann gilt " +
-      "192.168.4.1 –, ein kurzer Herzschlag alle drei Sekunden heißt Heimnetz. " +
-      "Aus, wenn sie nachts stört. <b>Ein Alarm blinkt trotzdem</b>: Eine " +
-      "Meldung, die sich versehentlich abschalten lässt, ist keine." +
-      "</div>"));
-    schalterZeile(geraet, "alarm_sound", "Alarmton");
-    geraet.appendChild(el('<div class="muted" style="margin-bottom:10px">' +
-      "Beim Wächteralarm tönt der Summer alle zehn Sekunden, fünf Minuten " +
-      "lang. Er ist das Einzige, was jemanden erreicht, der ohne Handy und " +
-      "ohne Netz zum Fahrzeug kommt. Aus, wenn du scharf schaltest, während " +
-      "noch Leute im Fahrzeug sind." +
-      "</div>"));
+      t("hilfe_status_led") + "</div>"));
+    schalterZeile(geraet, "alarm_sound", t("label_alarmton"));
+    geraet.appendChild(el('<div class="muted">' + t("hilfe_alarmton") + "</div>"));
 
-    /* Eigener Kasten, weil diese beiden weder die Messung noch die Toleranz
-     * anfassen - sie ändern, wie sich die Anzeige anfühlt. Und das empfindet
-     * jeder anders: Der eine will, dass sie steht wie angenagelt, der andere
-     * will jede Regung sehen. Ab Werk lässt sich das nicht entscheiden,
-     * deshalb steht es hier und nicht in der Firmware. */
-    var anzeige = el('<div class="plan"><h2>Anzeige</h2></div>');
-    zahlZeile(anzeige, "calm", "Anzeigeruhe (0–10)");
-    anzeige.appendChild(el('<div class="muted" style="margin-bottom:10px">' +
-      "Klein: die Anzeige folgt jeder Regung, zappelt im Stand aber mehr. " +
-      "Groß: sie steht im Stand still und reagiert dafür etwas später. " +
-      "Die Genauigkeit ändert sich nicht – nur die Geduld." +
-      "</div>"));
-    zahlZeile(anzeige, "hold_percent", "Haltebereich (%)");
-    anzeige.appendChild(el('<div class="muted">' +
-      "Wie weit die Neigung über die Toleranz hinausgehen darf, bevor die " +
-      "Anzeige „eben“ zurücknimmt. 100 % heißt sofort – dann springt sie an " +
-      "der Grenze hin und her. Höher setzen, wenn genau das passiert." +
-      "</div>"));
-
-    /* Warnungen - eigener Kasten, weil sie nichts mit dem Ausrichten zu tun
-     * haben. Der Rest dieser Seite hilft, gerade zu stehen; diese beiden
-     * melden, dass etwas Schaden nimmt oder jemand am Fahrzeug war. */
-    var warnungen = el('<div class="plan"><h2>Warnungen</h2></div>');
-    zahlZeile(warnungen, "tilt_limit", "Schräglage ab (°)");
-    warnungen.appendChild(el('<div class="muted" style="margin-bottom:10px">' +
-      "Ein Absorberkühlschrank arbeitet über etwa 3° nicht mehr zuverlässig. " +
-      "Das merkt niemand, bis das Essen warm ist – deshalb die eigene Warnung, " +
-      "unabhängig von deiner Toleranz beim Ausrichten." +
-      "</div>"));
-    zahlZeile(warnungen, "fridge_minutes", "Kühlschrank kritisch nach (min)");
-    warnungen.appendChild(el('<div class="muted" style="margin-bottom:10px">' +
-      "Schaden nimmt der Kühlschrank nicht vom Winkel, sondern vom Winkel mal " +
-      "der Zeit. Kurz schief beim Rangieren ist folgenlos – deshalb warnt das " +
-      "Gerät erst nach einem Drittel dieser Zeit und wird nach der vollen Zeit " +
-      "dringend." +
-      "</div>"));
-    zahlZeile(warnungen, "move_limit", "Lageänderung ab (°)");
-    warnungen.appendChild(el('<div class="muted" style="margin-bottom:10px">' +
-      "Ab welcher Abweichung von der Ruhelage gemeldet wird, dass das Fahrzeug " +
-      "bewegt wurde. Ein Grad sind bei 3500 mm Radstand rund 6 cm – Wind und " +
-      "Einsteigen bleiben darunter, Anheben und Abschleppen darüber." +
-      "</div>"));
-    /* Die Zahlen hinter den Zielprofilen. Sie stehen hier und nicht bei der
-     * Profilwahl auf der Hauptseite: Man richtet sie einmal ein und wählt
-     * danach nur noch. Vorzeichen wie überall im Gerät. */
-    var ziele = el('<div class="plan"><h2>Ziele</h2></div>');
-    ziele.appendChild(el('<div class="muted" style="margin-bottom:10px">' +
-      "Gilt jeweils nur im zugehörigen Profil. Plus heißt <b>Front höher</b> " +
-      "beziehungsweise <b>rechte Seite höher</b>, minus das Gegenteil." +
-      "</div>"));
-    zahlZeile(ziele, "sleep_long", "Schlafen längs (cm)");
-    ziele.appendChild(el('<div class="muted" style="margin-bottom:10px">' +
-      "Voreingestellt −2 cm, also das Heck etwas höher – der häufigste " +
-      "Grundriss hat das Bett hinten. Wer vorn schläft, dreht das Vorzeichen " +
-      "um. Eine Querneigung gibt es hier bewusst nicht: quer schief rollt man " +
-      "aus dem Bett." +
-      "</div>"));
-    zahlZeile(ziele, "drain_long", "Ablassen längs (cm)");
-    zahlZeile(ziele, "drain_lat", "Ablassen quer (cm)");
-    ziele.appendChild(el('<div class="muted">' +
-      "Wohin sich das Fahrzeug zum Entleeren neigen muss, hängt davon ab, wo " +
-      "dein Ablasspunkt sitzt – deshalb beide Achsen." +
-      "</div>"));
-
-    zahlZeile(warnungen, "frost_limit", "Frostwarnung unter (°C)");
-    warnungen.appendChild(el('<div class="muted" style="margin-bottom:10px">' +
-      "Der Sensor misst seine eigene Temperatur, nicht die der Raumluft – er " +
-      "erwärmt sich selbst. Für eine Frostwarnung reicht das, wenn du den " +
-      "Abgleich unter „Gerät“ einmal gegen ein Thermometer setzt." +
-      "</div>"));
-
-    zahlZeile(warnungen, "guard_grace", "Karenzzeit Wächter (s)");
-    warnungen.appendChild(el('<div class="muted">' +
-      "So lange nach dem Scharfschalten meldet der Wächter nichts – Zeit zum " +
-      "Aussteigen. Sie gilt auch nach einem Neustart, denn dann braucht der " +
-      "Sensor ohnehin einen Moment, bis sein Wert steht." +
-      "</div>"));
-
-    /* Mehrere Kästen, ein Rückgabewert: appendChild fügt bei einem Fragment
-     * alle Kinder ein, der Aufrufer bleibt unverändert. */
+    /* Mehrere Kaesten, ein Rueckgabewert: appendChild fuegt bei einem Fragment
+     * alle Kinder ein, der Aufrufer bleibt unveraendert. */
     var beide = document.createDocumentFragment();
     beide.appendChild(box);
     beide.appendChild(anzeige);
@@ -1451,6 +2214,29 @@
     beide.appendChild(warnungen);
     beide.appendChild(geraet);
     return beide;
+  }
+
+  /* Was die Einstellung bedeutet, in einem Satz - unter der Skizze. Hier
+   * steckt die Uebersetzung von Richtung in "welche Seite kommt hoch". */
+  function schlafSatz() {
+    var hoch = zahl(cfg.sleep_height, 1);
+    var kopf = cfg.sleep_dir;
+    var seite = kopf === "Kopf vorn" ? t("seite_front")
+      : kopf === "Kopf hinten" ? t("seite_heck")
+        : kopf === "Kopf links" ? t("seite_links") : t("seite_rechts");
+    return Number(cfg.sleep_height) > 0
+      ? t("satz_schlafen", { kopf: t("opt_schlaf_" + kennung(kopf)), seite: seite, cm: hoch })
+      : t("satz_schlafen_null");
+  }
+
+  function ablassSatz() {
+    var neig = zahl(cfg.drain_amount, 1);
+    return Number(cfg.drain_amount) > 0
+      ? t("satz_ablassen", {
+        punkt: t("opt_ablass_" + kennung(cfg.drain_point)),
+        gegen: t("gegen_" + kennung(cfg.drain_point)), cm: neig
+      })
+      : t("satz_ablassen_null");
   }
 
   /* Werte nachziehen, ohne die Felder anzufassen, in denen gerade getippt
@@ -1468,6 +2254,8 @@
     if (vehicleSelect && vehicleSelect !== focused) {
       vehicleSelect.value = isCaravan() ? VEHICLE_CARAVAN : "Wohnmobil";
     }
+    if (schlafSelect && schlafSelect !== focused) schlafSelect.value = cfg.sleep_dir;
+    if (ablassSelect && ablassSelect !== focused) ablassSelect.value = cfg.drain_point;
     if (mountingSelect && mountingSelect !== focused) {
       mountingSelect.value = cfg.mounting === "unten" ? MOUNT_UNDER : "Deckel oben";
     }
@@ -1480,7 +2268,7 @@
     // Nur, solange dort keine eigene Rueckmeldung steht - sonst ueberschriebe
     // der Zustand die Meldung "Gespeichert, das Geraet startet neu".
     if (mqttNote && !mqttNote.style.fontWeight) {
-      mqttNote.textContent = findStateOf("text_sensor", "mqtt") || "";
+      mqttNote.textContent = mqttSatz();
     }
     /* Broker, Benutzer und Port zeigen, was im Gerät steht.
      *
@@ -1500,30 +2288,29 @@
     }
     if (settingsNote) {
       settingsNote.textContent = writeError ? writeError
-        : state.ready ? "Diese Werte stehen im Gerät. Jedes Handy sieht dieselben."
-          : "Warte auf das Gerät …";
+        : state.ready ? t("werte_im_geraet") : t("warte_auf_geraet");
       settingsNote.style.color = writeError ? "#ff7a7a" : "";
       settingsNote.style.fontWeight = writeError ? "700" : "";
     }
     if (versionNote) {
-      versionNote.innerHTML = "Laufende Fassung: <b>" +
-        (findState("firmware_version") || "unbekannt") + "</b>";
+      versionNote.innerHTML = t("laufende_fassung",
+        { version: "<b>" + (findState("firmware_version") || t("unbekannt")) + "</b>" });
     }
   }
 
   /* Überschriften je Bereich. Das Gerät liefert seine Kennungen als
    * "<bereich>-<name>" (je nach Fassung auch mit Schrägstrich), sonst nichts
    * Gegliedertes - eine Liste aus 25 Zeilen ohne Ordnung liest niemand. */
-  var DOMAIN_TITLES = {
-    sensor: "Messwerte",
-    binary_sensor: "Zustände",
-    text_sensor: "Informationen",
-    number: "Einstellwerte",
-    select: "Auswahl",
-    text: "Texteingaben",
-    switch: "Schalter",
-    button: "Tasten",
-    update: "Software"
+  var DOMAIN_KEYS = {
+    sensor: "bereich_messwerte",
+    binary_sensor: "bereich_zustaende",
+    text_sensor: "bereich_informationen",
+    number: "bereich_einstellwerte",
+    select: "bereich_auswahl",
+    text: "bereich_texteingaben",
+    switch: "bereich_schalter",
+    button: "bereich_tasten",
+    update: "bereich_software"
   };
   var DOMAIN_ORDER = ["sensor", "binary_sensor", "text_sensor", "number",
     "select", "text", "switch", "button", "update"];
@@ -1548,19 +2335,37 @@
     return cut < 0 ? ["", id] : [id.slice(0, cut), id.slice(cut + 1)];
   }
 
+  /* Aus dem Anzeigenamen die Kennung bilden, mit der diese Seite sucht.
+   *
+   * Das Geraet nennt seine Entitaeten seit ESPHome 2026.8 beim NAMEN:
+   * "sensor/Neigung Pitch" statt "sensor-neigung_pitch" (set_json_id in
+   * web_server.cpp). Gesucht wird hier aber weiter mit Teilstuecken wie
+   * "neigung_pitch" - die stehen in IDS und sind gegen Umlaute abgesichert.
+   *
+   * Die Umrechnung ist dieselbe, die ESPHome frueher selbst gemacht hat:
+   * klein schreiben, alles ausser a-z, 0-9 und _ zu _ machen. Aus "Wächter"
+   * wird "w_chter", und das Teilstueck "chter" trifft weiterhin.
+   *
+   * Kommt schon das alte Format herein, aendert sich dabei nichts - es
+   * besteht ohnehin nur aus erlaubten Zeichen. Die Seite versteht damit
+   * beide Faelle, ohne sie unterscheiden zu muessen. */
+  function objektKennung(text) {
+    return String(text || "").toLowerCase().replace(/[^a-z0-9_]/g, "_");
+  }
+
   /* Fehlt der Name, aus der Kennung einen lesbaren machen:
    * "neigung_pitch" wird zu "Neigung pitch". Besser als die rohe Kennung. */
   function prettify(objectId) {
-    var t = objectId.replace(/_/g, " ").trim();
-    return t.charAt(0).toUpperCase() + t.slice(1);
+    var wort = objectId.replace(/_/g, " ").trim();
+    return wort.charAt(0).toUpperCase() + wort.slice(1);
   }
 
   function renderTechTable(target) {
-    var box = el('<div class="plan"><h2>Technik</h2></div>');
+    var box = el('<div class="plan"><h2>' + t("kopf_technik") + "</h2></div>");
     var ids = Object.keys(state.seen);
 
     if (!ids.length) {
-      box.appendChild(el('<div class="muted">Noch keine Daten empfangen.</div>'));
+      box.appendChild(el('<div class="muted">' + t("noch_keine_daten") + "</div>"));
       target.appendChild(box);
       return;
     }
@@ -1577,7 +2382,7 @@
     });
 
     if (!Object.keys(groups).length) {
-      box.appendChild(el('<div class="muted">Noch keine Messwerte empfangen.</div>'));
+      box.appendChild(el('<div class="muted">' + t("noch_keine_messwerte") + "</div>"));
       target.appendChild(box);
       return;
     }
@@ -1590,11 +2395,11 @@
 
     order.forEach(function (domain) {
       box.appendChild(el('<div class="grouphead">' +
-        (DOMAIN_TITLES[domain] || prettify(domain)) + "</div>"));
+        (DOMAIN_KEYS[domain] ? t(DOMAIN_KEYS[domain]) : prettify(domain)) + "</div>"));
       var table = document.createElement("table");
       var body = document.createElement("tbody");
       groups[domain]
-        .sort(function (a, b) { return String(a.label).localeCompare(String(b.label), "de"); })
+        .sort(function (a, b) { return String(a.label).localeCompare(String(b.label), sprache); })
         .forEach(function (row) {
           var tr = document.createElement("tr");
           tr.appendChild(cell(row.label, null));
@@ -1610,6 +2415,24 @@
     target.appendChild(box);
   }
 
+  /* Sprache. Steht unter Technik, weil sie einmal gesetzt wird und danach
+   * nicht mehr - und weil sie zum Betrachter gehoert, nicht zum Fahrzeug.
+   * Vorausgewaehlt ist, was das Handy meldet. */
+  function spracheBox() {
+    var box = el('<div class="plan"><h2>' + t("kopf_sprache") + "</h2></div>");
+    var row = el('<div class="set" style="border-bottom:0"><span>' +
+      t("label_sprache") + "</span></div>");
+    var sel = el('<select><option value="de">Deutsch</option>' +
+      '<option value="en">English</option></select>');
+    sel.value = sprache;
+    sel.onchange = function () { spracheSetzen(sel.value); };
+    row.appendChild(sel);
+    box.appendChild(row);
+    box.appendChild(el('<div class="muted" style="margin-top:8px">' +
+      t("hilfe_sprache") + "</div>"));
+    return box;
+  }
+
   var versionNote = null;
 
   /* Aktualisierung von Hand - der Weg für die Betriebsart ohne Home
@@ -1617,21 +2440,23 @@
    * Firmware von GitHub holt. Für Update-Entitäten gibt es keinen
    * dokumentierten REST-Endpunkt, für Tasten schon. */
   function softwareBox() {
-    var up = el('<div class="plan"><h2>Software</h2></div>');
+    var up = el('<div class="plan"><h2>' + t("kopf_software") + "</h2></div>");
     versionNote = el('<div class="muted"></div>');
     up.appendChild(versionNote);
 
-    var btn = el('<button class="act ghost" style="margin-top:10px">Auf Updates prüfen und installieren</button>');
+    var btn = el('<button class="act ghost" style="margin-top:10px"></button>');
+    btn.textContent = t("update_pruefen");
     btn.onclick = function () {
-      if (!window.confirm("Neue Firmware von GitHub laden und installieren?\n\nDas Gerät startet dabei neu. Nicht während der Fahrt.")) return;
+      if (!window.confirm(t("update_frage"))) return;
       btn.disabled = true;
-      btn.textContent = "Lade und installiere …";
+      btn.textContent = t("update_laeuft");
       press("firmware_aktualisieren", function () {
-        btn.textContent = "Läuft – das Gerät startet gleich neu.";
+        btn.textContent = t("update_neustart");
       });
     };
     up.appendChild(btn);
-    up.appendChild(el('<div class="muted" style="margin-top:8px">Holt die neue Fassung von GitHub – das Gerät braucht dafür Internet. Steht es im eigenen Netz auf dem Stellplatz, gibt es keins; dann der Weg darunter.</div>'));
+    up.appendChild(el('<div class="muted" style="margin-top:8px">' +
+      t("hilfe_update") + "</div>"));
 
     /* Weg ohne Internet: Datei vom Handy hochladen. Möglich durch
      * "ota: platform: web_server" in der Firmware.
@@ -1641,26 +2466,27 @@
      * Schlägt es fehl, sagt die Seite das ausdrücklich statt stumm zu
      * bleiben, und nennt den Ausweg. Beim ersten echten Build prüfen. */
     var form = el('<div style="margin-top:14px"></div>');
-    form.appendChild(el('<div class="muted">Oder Firmwaredatei vom Handy aufspielen:</div>'));
+    form.appendChild(el('<div class="muted">' + t("datei_aufspielen_hinweis") + "</div>"));
     var file = el('<input type="file" accept=".bin" style="margin-top:8px;width:100%">');
-    var send = el('<button class="act ghost" style="margin-top:8px">Datei aufspielen</button>');
+    var send = el('<button class="act ghost" style="margin-top:8px"></button>');
+    send.textContent = t("datei_aufspielen");
     var note = el('<div class="muted" style="margin-top:8px"></div>');
     send.onclick = function () {
-      if (!file.files || !file.files.length) { note.textContent = "Erst eine Datei auswählen."; return; }
+      if (!file.files || !file.files.length) { note.textContent = t("erst_datei"); return; }
       send.disabled = true;
-      note.textContent = "Übertrage …";
+      note.textContent = t("uebertrage");
       var body = new FormData();
       body.append("file", file.files[0]);
       var req = new XMLHttpRequest();
       req.open("POST", "/update", true);
       req.onload = function () {
         note.textContent = req.status >= 200 && req.status < 300
-          ? "Übertragen. Das Gerät startet neu."
-          : "Fehlgeschlagen (Status " + req.status + "). Notfalls über das ESPHome-Dashboard aufspielen.";
+          ? t("uebertragen_neustart")
+          : t("uebertragen_fehler", { status: req.status });
         send.disabled = false;
       };
       req.onerror = function () {
-        note.textContent = "Keine Verbindung zum Gerät.";
+        note.textContent = t("keine_verbindung");
         send.disabled = false;
       };
       req.send(body);
@@ -1679,12 +2505,15 @@
    * Freiwillig - ohne WLAN funktioniert alles außer den automatischen
    * Updates. Deshalb steht es unter Technik und nicht auf der Anzeige. */
   function wifiSetup() {
-    var box = el('<div class="plan"><h2>WLAN</h2></div>');
-    box.appendChild(el('<div class="muted">Nur nötig für automatische Updates und Home Assistant. Ohne WLAN läuft alles Übrige weiter.</div>'));
+    var box = el('<div class="plan"><h2>' + t("kopf_wlan") + "</h2></div>");
+    box.appendChild(el('<div class="muted">' + t("hilfe_wlan") + "</div>"));
 
-    var ssid = el('<input type="text" placeholder="Netzwerkname" style="width:100%;margin-top:10px">');
-    var pass = el('<input type="password" placeholder="Passwort" style="width:100%;margin-top:8px">');
-    var btn = el('<button class="act ghost" style="margin-top:10px">Speichern und verbinden</button>');
+    var ssid = el('<input type="text" style="width:100%;margin-top:10px">');
+    ssid.placeholder = t("platzhalter_netzname");
+    var pass = el('<input type="password" style="width:100%;margin-top:8px">');
+    pass.placeholder = t("platzhalter_passwort");
+    var btn = el('<button class="act ghost" style="margin-top:10px"></button>');
+    btn.textContent = t("wlan_speichern");
     // white-space: pre-line, damit der Absatz im Erfolgstext wirkt.
     var note = el('<div class="muted" style="margin-top:10px;line-height:1.5;white-space:pre-line"></div>');
 
@@ -1716,42 +2545,35 @@
     }
 
     btn.onclick = function () {
-      if (!ssid.value) { say("Netzwerkname fehlt.", "bad"); return; }
+      if (!ssid.value) { say(t("netzname_fehlt"), "bad"); return; }
       btn.disabled = true;
-      say("Übertrage …");
+      say(t("uebertrage"));
 
       var pName = pathFor("text", "wlan_name");
       var pPass = pathFor("text", "wlan_pass");
       var pSave = pathFor("button", "wlan_speichern");
 
       if (!pName || !pPass || !pSave) {
-        return fail("Das Gerät meldet keine WLAN-Eingabefelder. " +
-          "Auf diesem Gerät läuft eine Firmware ohne diese Funktion.");
+        return fail(t("keine_wlan_felder"));
       }
 
       // Nacheinander, nicht gleichzeitig: der Knopf im Gerät liest beide
       // Felder, sie müssen also vorher angekommen sein.
       setText(pName, ssid.value, function (ok1) {
-        if (!ok1) return fail("Das Gerät hat den Netzwerknamen nicht angenommen (" + pName + "/set).");
+        if (!ok1) return fail(t("name_nicht_angenommen", { pfad: pName }));
         setText(pPass, pass.value, function (ok2) {
-          if (!ok2) return fail("Das Gerät hat das Passwort nicht angenommen (" + pPass + "/set).");
-          say("Warte auf Bestätigung des Geräts …");
+          if (!ok2) return fail(t("passwort_nicht_angenommen", { pfad: pPass }));
+          say(t("warte_bestaetigung"));
           awaitEcho(ssid.value, 5000, function (confirmed) {
-            if (!confirmed) {
-              return fail("Das Gerät bestätigt die Eingabe nicht. Nichts wurde gespeichert.");
-            }
+            if (!confirmed) return fail(t("keine_bestaetigung"));
             post(pSave + "/press");
-            say("Gespeichert. Das Gerät startet jetzt neu und verbindet sich mit „" +
-              ssid.value + "“.\n\n" +
-              "Achte auf die WLAN-Liste deines Handys: Verschwindet das Netz CamperMinder " +
-              "innerhalb einer Minute, hat es geklappt. Bleibt es bestehen, stimmt " +
-              "Name oder Passwort nicht – dann einfach erneut verbinden und korrigieren.", "good");
+            say(t("wlan_gespeichert", { netz: ssid.value }), "good");
           });
         });
       });
 
       function fail(text) {
-        say(text + " Notfalls über das ESPHome-Dashboard einrichten.", "bad");
+        say(text + " " + t("notfalls_dashboard"), "bad");
         btn.disabled = false;
       }
     };
@@ -1766,16 +2588,19 @@
      * Ab Werk ist das Netz offen, damit niemand vor einem Gerät steht, in das
      * er nicht hineinkommt. Wer nicht will, dass jeder in Funkreichweite die
      * Einstellungen erreicht, vergibt hier ein Passwort. */
-    box.appendChild(el('<div class="grouphead" style="margin-top:22px">Eigenes Netz</div>'));
+    box.appendChild(el('<div class="grouphead" style="margin-top:22px">' +
+      t("kopf_eigenes_netz") + "</div>"));
     var anote = el('<div class="muted"></div>');
-    anote.textContent = "Das Netz „CamperMinder“ ist ohne Passwort erreichbar. " +
-      "Es besteht nur, solange oben kein WLAN eingetragen ist. Wer es " +
-      "abschließen möchte, vergibt hier eines – mindestens acht Zeichen. " +
-      "Leer lassen und speichern öffnet es wieder.";
+    /* Der Zustand kommt aus den Statuswerten, nicht aus dem deutschen Satz
+     * des Geraets - siehe statusWerte(). */
+    anote.innerHTML = t(statusWerte().n === "passwort"
+      ? "hilfe_netz_geschuetzt" : "hilfe_netz_offen");
     box.appendChild(anote);
 
-    var apPass = el('<input type="password" placeholder="Neues Passwort (leer = offen)" style="width:100%;margin-top:10px">');
-    var apBtn = el('<button class="act ghost" style="margin-top:8px">Netz-Passwort speichern</button>');
+    var apPass = el('<input type="password" style="width:100%;margin-top:10px">');
+    apPass.placeholder = t("platzhalter_netz_passwort");
+    var apBtn = el('<button class="act ghost" style="margin-top:8px"></button>');
+    apBtn.textContent = t("netz_passwort_speichern");
     var apNote = el('<div class="muted" style="margin-top:10px;line-height:1.5;white-space:pre-line"></div>');
 
     function apSay(text, kind) {
@@ -1790,32 +2615,27 @@
        * erst einen Neustart abwarten, um zu merken, dass nichts passiert
        * ist. */
       if (apPass.value && apPass.value.length < 8) {
-        apSay("Mindestens acht Zeichen – so verlangt es WPA2. Oder leer lassen, dann bleibt das Netz offen.", "bad");
+        apSay(t("acht_zeichen"), "bad");
         return;
       }
       var offen = !apPass.value;
       var pText = pathFor("text", "netz_passwort_neu");
       var pSave = pathFor("button", "netz_passwort_speichern");
       if (!pText || !pSave) {
-        apSay("Das Gerät kennt diese Einstellung nicht. Läuft die passende Firmware?", "bad");
+        apSay(t("kennt_einstellung_nicht"), "bad");
         return;
       }
       apBtn.disabled = true;
-      apSay("Übertrage …");
+      apSay(t("uebertrage"));
       setText(pText, apPass.value, function (ok) {
         if (!ok) {
-          apSay("Das Gerät hat die Eingabe nicht angenommen.", "bad");
+          apSay(t("eingabe_nicht_angenommen"), "bad");
           apBtn.disabled = false;
           return;
         }
         post(pSave + "/press");
         apPass.value = "";
-        apSay(offen
-          ? "Gespeichert. Das Gerät startet neu – das Netz ist danach wieder ohne Passwort erreichbar."
-          : "Gespeichert. Das Gerät startet neu.\n\nDanach fragt dein Handy nach dem neuen Passwort. " +
-            "Merke es dir gut: Ohne WLAN und ohne dieses Passwort kommst du nur noch " +
-            "über ein USB-Kabel an das Gerät – oder über Zurücksetzen weiter unten, " +
-            "das es wieder öffnet.", "good");
+        apSay(t(offen ? "netz_wieder_offen" : "netz_jetzt_geschuetzt"), "good");
       });
     };
 
@@ -1829,18 +2649,18 @@
      * hier landet, sucht Verbindungen. Leer lassen und speichern schaltet es
      * wieder ab; wer MQTT nicht braucht, merkt nichts davon. */
     box.appendChild(el('<div class="grouphead" style="margin-top:22px">MQTT</div>'));
-    box.appendChild(el('<div class="muted">' +
-      "Meldet Neigung, Hubhöhe je Ecke und Anweisung an einen MQTT-Broker – " +
-      "für Victron Cerbo GX, ioBroker, openHAB, Node-RED oder was immer du " +
-      "einsetzt. Für Home Assistant ist es nicht nötig, das läuft über die " +
-      "eigene Schnittstelle. Themen unter <b>camperminder/level/…</b>" +
-      "</div>"));
+    box.appendChild(el('<div class="muted">' + t("hilfe_mqtt") + "</div>"));
 
-    var mBroker = el('<input type="text" placeholder="Broker, z. B. 192.168.1.10 (leer = aus)" style="width:100%;margin-top:10px">');
-    var mPort = el('<input type="number" placeholder="Port" style="width:100%;margin-top:8px">');
-    var mUser = el('<input type="text" placeholder="Benutzer (optional)" style="width:100%;margin-top:8px">');
-    var mPass = el('<input type="password" placeholder="Passwort (leer = unverändert)" style="width:100%;margin-top:8px">');
-    var mBtn = el('<button class="act ghost" style="margin-top:8px">MQTT speichern</button>');
+    var mBroker = el('<input type="text" style="width:100%;margin-top:10px">');
+    mBroker.placeholder = t("platzhalter_broker");
+    var mPort = el('<input type="number" style="width:100%;margin-top:8px">');
+    mPort.placeholder = t("platzhalter_port");
+    var mUser = el('<input type="text" style="width:100%;margin-top:8px">');
+    mUser.placeholder = t("platzhalter_benutzer");
+    var mPass = el('<input type="password" style="width:100%;margin-top:8px">');
+    mPass.placeholder = t("platzhalter_mqtt_passwort");
+    var mBtn = el('<button class="act ghost" style="margin-top:8px"></button>');
+    mBtn.textContent = t("mqtt_speichern");
     var mNote = el('<div class="muted" style="margin-top:10px;line-height:1.5;white-space:pre-line"></div>');
 
     function mSay(text, kind) {
@@ -1859,7 +2679,7 @@
     mqttBroker = mBroker;
     mqttUser = mUser;
     mqttPort = mPort;
-    mSay(findStateOf("text_sensor", "mqtt") || "");
+    mSay(mqttSatz());
 
     mBtn.onclick = function () {
       var pB = pathFor("text", "mqtt_broker");
@@ -1868,11 +2688,11 @@
       var pPort = pathFor("number", "mqtt_port");
       var pSave = pathFor("button", "mqtt_speichern");
       if (!pB || !pSave) {
-        mSay("Das Gerät kennt MQTT nicht. Läuft die passende Firmware?", "bad");
+        mSay(t("kennt_mqtt_nicht"), "bad");
         return;
       }
       mBtn.disabled = true;
-      mSay("Übertrage …");
+      mSay(t("uebertrage"));
 
       /* Der Reihe nach, nicht gleichzeitig: Das Gerät nimmt die Felder
        * einzeln entgegen, und der Knopf darf erst drücken, wenn alle
@@ -1885,7 +2705,7 @@
       var i = 0;
       (function weiter(ok) {
         if (ok === false) {
-          mSay("Das Gerät hat die Eingabe nicht angenommen.", "bad");
+          mSay(t("eingabe_nicht_angenommen"), "bad");
           mBtn.disabled = false;
           return;
         }
@@ -1897,9 +2717,7 @@
         if (pPort && mPort.value) post(pPort + "/set?value=" + encodeURIComponent(mPort.value));
         post(pSave + "/press");
         mPass.value = "";
-        mSay(mBroker.value
-          ? "Gespeichert. Das Gerät startet neu und meldet sich beim Broker.\n\nDanach steht der Zustand hier oben – bei einem Tippfehler „keine Verbindung“."
-          : "Gespeichert. MQTT ist wieder aus.", "good");
+        mSay(t(mBroker.value ? "mqtt_gespeichert" : "mqtt_aus"), "good");
       })(true);
     };
 
@@ -1912,20 +2730,23 @@
 
     /* Werksreset. Steht bewusst hier unten und nicht bei den Bedienelementen
      * oben - er löscht WLAN, Kalibrierung und Fahrzeugmaße auf einmal. */
-    box.appendChild(el('<div class="grouphead" style="margin-top:22px">Zurücksetzen</div>'));
+    box.appendChild(el('<div class="grouphead" style="margin-top:22px">' +
+      t("kopf_zuruecksetzen") + "</div>"));
     var rnote = el('<div class="muted"></div>');
-    rnote.textContent = "Löscht WLAN-Zugangsdaten, Kalibrierung, Fahrzeugmaße und ein " +
-      "selbst vergebenes Netz-Passwort. Das Gerät startet danach neu und " +
-      "öffnet wieder sein eigenes, offenes Netz.";
+    rnote.textContent = t("hilfe_zuruecksetzen");
     box.appendChild(rnote);
 
-    var reset = el('<button class="act ghost" style="margin-top:10px">Auf Werkseinstellungen zurücksetzen</button>');
+    var reset = el('<button class="act ghost" style="margin-top:10px"></button>');
+    reset.textContent = t("zuruecksetzen");
     reset.onclick = function () {
-      if (!window.confirm("Wirklich zurücksetzen?\n\nWLAN, Kalibrierung und Fahrzeugmaße gehen verloren. Das Gerät muss danach neu eingerichtet und neu kalibriert werden.\n\nEin selbst vergebenes Netz-Passwort wird ebenfalls gelöscht – das eigene Netz ist danach wieder offen.")) return;
+      /* Die Absaetze der Rueckfrage standen hier als "\n" im Quelltext und
+       * erschienen deshalb als Zeichen im Dialog. Die Uebersetzung bringt sie
+       * als echte Zeilenumbrueche mit. */
+      if (!window.confirm(t("zuruecksetzen_frage"))) return;
       reset.disabled = true;
-      reset.textContent = "Setze zurück …";
+      reset.textContent = t("zuruecksetzen_laeuft");
       press("werkseinstellungen", function () {
-        rnote.textContent = "Zurückgesetzt. Das Gerät startet neu – verbinde dich anschließend wieder mit dem Netz CamperMinder.";
+        rnote.textContent = t("zurueckgesetzt");
       });
     };
     box.appendChild(reset);
@@ -1944,7 +2765,9 @@
 
   function findState(needle) {
     for (var id in state.seen) {
-      if (id.indexOf(needle) >= 0) return state.seen[id].state;
+      if (objektKennung(splitId(id)[1]).indexOf(needle) >= 0) {
+        return state.seen[id].state;
+      }
     }
     return null;
   }
@@ -1979,9 +2802,13 @@
     for (var id in state.seen) {
       var parts = splitId(id);
       if (parts[0] !== domain) continue;
-      if (parts[1] === needle) { exact = { id: id, obj: parts[1] }; break; }
-      if (parts[1].indexOf(needle) >= 0 && (!best || parts[1].length < best.obj.length)) {
-        best = { id: id, obj: parts[1] };
+      // obj ist der ROHE zweite Teil - er geht in die Schreibadresse.
+      // kennung ist die normalisierte Form, mit der hier gesucht wird.
+      var treffer = { id: id, obj: parts[1], kennung: objektKennung(parts[1]) };
+      if (treffer.kennung === needle) { exact = treffer; break; }
+      if (treffer.kennung.indexOf(needle) >= 0 &&
+          (!best || treffer.kennung.length < best.kennung.length)) {
+        best = treffer;
       }
     }
     return exact || best;
@@ -1990,7 +2817,7 @@
   function objectId(domain, needle, fallback) {
     var hit = findEntity(domain, needle);
     // Der Rückfallwert greift nur, solange noch nichts empfangen wurde.
-    return hit ? hit.obj : fallback;
+    return hit ? hit.kennung : fallback;
   }
 
   /* Den REST-Pfad einer Entität, wie das Gerät ihn selbst angibt.
@@ -2001,8 +2828,13 @@
   function pathFor(domain, needle) {
     var hit = findEntity(domain, needle);
     if (!hit) return null;
+    /* name_id gab es bis 2026.7 und war der fertige Pfad. Faellt es weg,
+     * bauen wir ihn selbst: Bereich und Anzeigename, wie match_entity ihn
+     * vergleicht (this->id == entity->get_name()). Kodieren ist Pflicht -
+     * die Namen enthalten Leerzeichen und Umlaute; das Geraet dekodiert
+     * sie (url_decode in web_server_idf). */
     var nid = state.seen[hit.id].name_id;
-    return nid ? "/" + nid : "/" + domain + "/" + hit.obj;
+    return nid ? "/" + nid : "/" + domain + "/" + encodeURIComponent(hit.obj);
   }
 
   // -- Gerät ---------------------------------------------------------------
@@ -2042,9 +2874,15 @@
         state: data.state
       };
 
-      // Über Teilstrings statt die volle Kennung: dann hält die Seite auch,
-      // wenn jemand dem Gerät einen anderen Namen gibt.
-      var id = data.id;
+      /* Über Teilstrings statt die volle Kennung: dann hält die Seite auch,
+       * wenn jemand dem Gerät einen anderen Namen gibt.
+       *
+       * Verglichen wird die NORMALISIERTE Kennung. Das Gerät schickt seit
+       * ESPHome 2026.8 "sensor/Neigung Pitch"; ohne die Umrechnung trifft
+       * hier kein einziges Teilstück, und die Seite bleibt vollständig
+       * leer - ohne Fehlermeldung, weil nichts abstürzt. Genau das ist am
+       * 22.09.2026 stundenlang passiert. */
+      var id = objektKennung(splitId(data.id)[1]);
       if (id.indexOf("neigung_pitch") >= 0) state.pitch = num(data.value);
       else if (id.indexOf("neigung_roll") >= 0) state.roll = num(data.value);
       else if (id.indexOf("in_bewegung") >= 0) state.motion = data.value === true || data.state === "ON";
@@ -2060,9 +2898,10 @@
       else if (id.indexOf(IDS.move_limit) >= 0) cfg.move_limit = num(data.value);
       else if (id.indexOf(IDS.guard_grace) >= 0) cfg.guard_grace = num(data.value);
       else if (id.indexOf(IDS.fridge_minutes) >= 0) cfg.fridge_minutes = num(data.value);
-      else if (id.indexOf(IDS.sleep_long) >= 0) cfg.sleep_long = num(data.value);
-      else if (id.indexOf(IDS.drain_long) >= 0) cfg.drain_long = num(data.value);
-      else if (id.indexOf(IDS.drain_lat) >= 0) cfg.drain_lat = num(data.value);
+      // Erst die Zahl, dann die Auswahl: "ablasspunkt" steckt auch in
+      // "neigung_zum_ablasspunkt".
+      else if (id.indexOf(IDS.sleep_height) >= 0) cfg.sleep_height = num(data.value);
+      else if (id.indexOf(IDS.drain_amount) >= 0) cfg.drain_amount = num(data.value);
       else if (id.indexOf(IDS.target_long) >= 0) cfg.target_long = num(data.value);
       else if (id.indexOf(IDS.target_lat) >= 0) cfg.target_lat = num(data.value);
       else if (id.indexOf(IDS.drift_limit) >= 0) cfg.drift_limit = num(data.value);
@@ -2082,6 +2921,14 @@
         // reicht das Nachziehen der Messwerte nicht.
         var genau = data.value === true || data.state === "ON";
         if (genau !== cfg.precise) { cfg.precise = genau; render(); return; }
+      }
+      else if (id.indexOf(IDS.sleep_dir) >= 0) {
+        // Richtung und Ablasspunkt formen die Skizze - hier reicht das
+        // Nachziehen der Messwerte nicht.
+        if (data.state !== cfg.sleep_dir) { cfg.sleep_dir = data.state; render(); return; }
+      }
+      else if (id.indexOf(IDS.drain_point) >= 0) {
+        if (data.state !== cfg.drain_point) { cfg.drain_point = data.state; render(); return; }
       }
       else if (id.indexOf(IDS.method) >= 0) cfg.method = data.state === METHOD_LIFT ? "hebesystem" : "keile";
       else if (id.indexOf(IDS.mounting) >= 0) cfg.mounting = data.state === MOUNT_UNDER ? "unten" : "oben";
