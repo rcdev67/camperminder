@@ -131,3 +131,31 @@ Aufbau, und sie gehören an das erste Muster jeder Revision:
 4. **Sendeleistung** — das eigene Netz muss durch eine Fahrzeugwand hindurch
    auf dem Stellplatz sichtbar sein. Die Firmware lässt das Modul auf seiner
    Voreinstellung.
+
+---
+
+## Handmuster auf ESP32-C3 SuperMini
+
+Bis die bestellten Platinen da sind, läuft dieselbe Firmware auf einem
+handgelöteten Aufbau: **ESP32-C3 SuperMini** plus Adafruit-Breakout mit dem
+LSM6DS3TR-C an I²C. Dafür gibt es `esphome/level/muster-supermini.yaml` —
+diese Datei bindet die Produktfirmware unverändert als Paket ein und ändert
+nur, was der Handaufbau anders braucht.
+
+| Punkt | Platine Rev B | Handmuster |
+|---|---|---|
+| Sendeleistung | Voreinstellung 20 dB, das WROOM-02 ist mit seiner Antenne zertifiziert | **8,5 dB** — bei 20 dB erscheint das eigene Netz des SuperMini gar nicht, Keramikantenne und USB-Versorgung tragen die Leistung nicht |
+| Gerätename | `camperminder-level` | `camperminder-muster`, damit beide gleichzeitig im Netz sein können |
+| I²C, LED | GPIO5/6, LED an GPIO8 gegen 3V3 | gleich — die blaue LED des SuperMini hängt ebenfalls an GPIO8 und leuchtet bei LOW |
+| Summer | BZ1 über Q1 an GPIO10 | nicht bestückt; der Pin bleibt unbenutzt |
+
+**Was sich damit prüfen lässt:** Anzeige, Zielprofile, Wächter,
+Kühlschrank-Zeitkonto, MQTT, Home Assistant, Sprachumschaltung, OTA — also
+alles, was Software ist.
+
+**Was sich damit NICHT prüfen lässt:** die Achszuordnung. Die Vorgaben in
+`hardware.yaml` sind aus dem Layout der Platine abgeleitet; auf dem Muster
+liegt das Breakout anders. Die Zuordnung für das Muster steht auskommentiert
+in `muster-supermini.yaml`, das Ergebnis gilt aber **nur dort**. Punkt 2 der
+Liste oben bleibt am ersten bestückten Board zu erledigen.
+

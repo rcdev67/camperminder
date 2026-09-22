@@ -16,6 +16,16 @@ Konto.
 Mehr ist für den Betrieb nicht nötig. Wasserwaagen, Anweisungen und
 Kalibrierung stehen sofort zur Verfügung.
 
+## Sprache
+
+Die Bedienseite spricht **Deutsch und Englisch**. Ohne eigene Wahl richtet sie
+sich nach der Spracheinstellung des Handys; umstellen unter Reiter **Technik**
+→ **Sprache**.
+
+Die Wahl gilt **je Handy**, nicht je Gerät — zwei Leute in einem Fahrzeug
+lesen so jeder in seiner Sprache. Die Namen der Messwerte bleiben deutsch,
+damit Home Assistant und MQTT bei einem Sprachwechsel weiter zusammenpassen.
+
 ## Schritt 2: Eigenes WLAN eintragen (freiwillig)
 
 Nur nötig, wer automatische Software-Updates oder Home Assistant will. Ohne

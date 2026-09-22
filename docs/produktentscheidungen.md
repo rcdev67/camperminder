@@ -412,6 +412,97 @@ unverändert (GPIO5/6 I²C, GPIO8 LED, GPIO10 Summer), Sendeleistung auf der
 Voreinstellung, Achszuordnung aus dem Layout abgeleitet — siehe die offenen
 Punkte.
 
+## Die Geräteseite — gebaut am 22. September 2026, Fassung 4.0.0
+
+Drei Entscheidungen, ausgelöst von einem Satz beim Durchsehen der
+Einstellungen: *„Der Punkt mit der Neigung zum Schlafen war selbst für mich
+nicht klar.“* Wenn der Entwickler seine eigene Einstellung nicht lesen kann,
+kann sie niemand lesen.
+
+### 1. Richtung und Betrag statt Vorzeichen
+
+Bis 4.0.0 hieß die Einstellung fürs Schlafen `Schlafen längs = -2`. Das
+bedeutete „Heck 2 cm höher“ — nachzulesen nirgends. Ersetzt durch **zwei
+Fragen**: Wo liegt der Kopf (`Kopf vorn`, `Kopf hinten`, `Kopf links`,
+`Kopf rechts`, in Fahrtrichtung gesehen), und um wie viel soll das Kopfende
+höher stehen (`Kopfende anheben`, 0 … 15 cm). Dasselbe Muster beim Ablassen:
+`Ablasspunkt` nennt den **tiefsten** Punkt — acht Optionen bis zur Ecke —,
+`Neigung zum Ablasspunkt` den Betrag. Achse und Vorzeichen rechnet das Gerät.
+
+Das räumt zugleich einen Denkfehler aus: Eine **Quer**neigung fürs Schlafen
+galt als unsinnig („quer schief rollt man aus dem Bett“). Das gilt nur für ein
+Längsbett. Wer quer schläft — im Alkoven, im Queensbett vieler Kastenwagen —,
+hat seine Kopf-Fuß-Achse quer im Fahrzeug und braucht genau diese Neigung.
+
+Dazu auf der Geräteseite eine **Skizze des Fahrzeugs von oben**: Bett bzw.
+Ablasspunkt eingezeichnet, das angehobene Ende markiert, dazu ein Satz im
+Klartext („Ziel im Profil ‚Schlafen‘: linke Seite 2,0 cm höher.“). Eine
+Richtungsangabe, die man sich vorstellen muss, hat noch niemand richtig
+verstanden.
+
+### 2. Die Hilfetexte sind für den Kunden, nicht für den Entwickler
+
+Die alten Erklärungen begründeten den technischen Hintergrund — warum ein
+Wert so gerechnet wird, woher eine Grenze kommt. Das ist die Begründung einer
+Entscheidung und gehört in diese Datei und in die Kommentare der Firmware, nicht
+unter einen Regler. Unter dem Regler steht jetzt, **was der Kunde davon hat und
+was passiert, wenn er die Zahl ändert**. Der technische Grund bleibt dort, wo
+er hingehört.
+
+### 3. Deutsch und Englisch, umschaltbar am Gerät
+
+Unter **Technik → Sprache** lässt sich die Geräteseite auf Englisch stellen;
+ohne Auswahl entscheidet die Spracheinstellung des Handys. Die Wahl liegt im
+`localStorage` des Browsers, also **je Handy** — nicht im Gerät. Zwei Leute
+mit einem Fahrzeug lesen so jeder in seiner Sprache, und die Einstellung
+kostet keinen Flash-Platz.
+
+**Die Entitätsnamen bleiben deutsch.** Sie sind zur Bauzeit festgelegt, und sie
+sind in Home Assistant, in MQTT und in jeder Automatisierung des Kunden die
+Kennung — wer sie übersetzt, zerschießt bestehende Installationen bei einem
+Sprachwechsel. Übersetzt wird nur, was die Seite selbst schreibt.
+
+Damit die Seite ihre Sätze selbst bilden kann, liefert die Firmware dieselben
+sechs Auskünfte (Wächter, Kühlschrank, Kalibrierung, letzte Bewegung, MQTT,
+eigenes Netz) zusätzlich als **Werte** statt als Satz: ein Diagnose-Textsensor
+`Statuswerte` im Format `w=…;k=…;c=…;b=…;m=…;n=…`, dokumentiert in
+`docs/mqtt.md`. Die deutschen Klartextsätze bleiben daneben stehen: Home
+Assistant und MQTT benutzen sie unverändert weiter, und für den Support ist ein
+Satz auf einem Bildschirmfoto mehr wert als ein Code.
+
+### 4. Die Seite sagt, wenn sie veraltet ist
+
+Aufgefallen beim ersten Aufspielen auf ein Muster: Nach dem Update zeigte die
+Geräteseite weiter den alten Stand — der Browser hatte `/0.js` in seinem
+Zwischenspeicher und holte sie nicht neu. Das ist kein Einzelfall am Muster,
+sondern gilt für **jedes Update beim Kunden**: `handle_js_request` in ESPHomes
+`web_server.cpp` liefert die Datei ohne `Cache-Control`, ohne `ETag` und ohne
+`Last-Modified` aus. Der Browser darf seine Kopie also behalten, und niemand
+merkt es — neue Firmware, alte Oberfläche, und die beiden passen nach einer
+Änderung an den Entitäten nicht mehr zusammen.
+
+Die Seite kennt deshalb ihre eigene Fassung (`SEITE_VERSION` in `webui.js`)
+und vergleicht sie mit der, die das Gerät meldet. Weichen sie ab, steht oben
+ein gelber Balken: *„Diese Seite ist älter als das Gerät … bitte neu laden.“*
+Gelb wie die Selbstüberwachung, nicht rot wie der Alarm — es ist nichts
+kaputt, es ist nur alt.
+
+Damit die Nummern nicht auseinanderlaufen, prüft `tools/build_release.ps1`
+sie hart und bricht bei Abweichung ab. Ohne diese Prüfung wäre der Balken
+schlimmer als kein Balken: Eine vergessene Nummer ließe ihn bei **jedem**
+Kunden erscheinen, und eine Warnung, die immer steht, liest nach der zweiten
+Woche niemand mehr.
+
+Nicht gemacht: ein automatischer Neuladeversuch der Seite. Wer gerade WLAN-
+Zugangsdaten eintippt, verlöre sie dabei — und ein Gerät, das die Seite unter
+den Händen des Kunden austauscht, ist schwerer zu erklären als ein Satz, den
+er liest und dann selbst entscheidet.
+
+Nicht gemacht: eine Sprachumstellung, die auch die Entitäten umbenennt, und
+weitere Sprachen. Französisch und Niederländisch sind für den Markt
+interessant, kosten aber je Sprache ein vollständiges Wörterbuch im Flash —
+das entscheidet sich, wenn die ersten Geräte im Feld sind.
+
 ## Fernalarm — entschieden am 22. August 2026
 
 Der Wächter hat einen blinden Fleck: **Er erreicht den Kunden nur, solange

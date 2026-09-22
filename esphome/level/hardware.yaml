@@ -1071,59 +1071,50 @@ number:
 
   # --- Zielneigung je Profil -------------------------------------------------
   #
-  # Vorzeichen wie überall im Gerät: längs plus = Front höher, quer plus =
-  # rechte Seite höher.
+  # Eingestellt wird, was der Nutzer WEISS - die Richtung als Auswahl und die
+  # Höhe als eine einzige Zahl. Das Vorzeichen leitet der 1-s-Takt daraus ab;
+  # die Auswahlen stehen unter select:.
   #
-  # Es gibt bewusst KEINE Querneigung fürs Schlafen. Längs ein wenig erhöht
-  # schläft sich besser; quer schief rollt man aus dem Bett. Ein Regler, den
-  # niemand sinnvoll benutzen kann, ist einer zu viel.
+  # BIS 4.0.0 STANDEN HIER DREI ZAHLEN MIT VORZEICHEN. "Schlafen längs -2"
+  # bedeutete "Heck 2 cm höher", und das war nirgends abzulesen - auch nicht
+  # für den, der es gebaut hat. Quer ging gar nicht: Der Kommentar hielt eine
+  # Querneigung fürs Schlafen für unsinnig ("quer schief rollt man aus dem
+  # Bett"). Das gilt aber nur für ein LÄNGSbett. Wer quer schläft, hat seine
+  # Kopf-Fuß-Achse quer im Fahrzeug und braucht genau diese Neigung.
   - platform: template
-    name: "Schlafen längs"
-    id: schlafen_laengs
-    state_topic: camperminder/level/number/schlafen_laengs/state
-    command_topic: camperminder/level/number/schlafen_laengs/command
+    name: "Kopfende anheben"
+    id: schlaf_hoehe
+    state_topic: camperminder/level/number/kopfende_anheben/state
+    command_topic: camperminder/level/number/kopfende_anheben/command
     unit_of_measurement: cm
     icon: mdi:bed
     entity_category: config
-    min_value: -15
+    min_value: 0
     max_value: 15
     step: 0.5
-    initial_value: -2
+    initial_value: 2
     restore_value: true
     optimistic: true
     mode: box
 
   # Zum Entleeren von Boiler und Tank soll das Fahrzeug bewusst schief stehen -
-  # sonst bleibt ein Rest im Tank, und der ist im Winter das Problem. Wohin es
-  # sich neigen muss, hängt vom Fahrzeug ab, deshalb beide Achsen einstellbar.
+  # sonst bleibt ein Rest drin, und der ist im Winter das Problem.
+  #
+  # Der Ablasspunkt ist der TIEFSTE Punkt; angehoben wird die Gegenseite. Bei
+  # einer Ecke gilt das für beide Achsen. Auch hier rechnet das Gerät die
+  # Vorzeichen, damit niemand überlegen muss, was "vorn links" bedeutet.
   - platform: template
-    name: "Ablassen längs"
-    id: ablassen_laengs
-    state_topic: camperminder/level/number/ablassen_laengs/state
-    command_topic: camperminder/level/number/ablassen_laengs/command
+    name: "Neigung zum Ablasspunkt"
+    id: ablass_neigung
+    state_topic: camperminder/level/number/neigung_zum_ablasspunkt/state
+    command_topic: camperminder/level/number/neigung_zum_ablasspunkt/command
     unit_of_measurement: cm
     icon: mdi:water-off
     entity_category: config
-    min_value: -15
+    min_value: 0
     max_value: 15
     step: 0.5
     initial_value: 5
-    restore_value: true
-    optimistic: true
-    mode: box
-
-  - platform: template
-    name: "Ablassen quer"
-    id: ablassen_quer
-    state_topic: camperminder/level/number/ablassen_quer/state
-    command_topic: camperminder/level/number/ablassen_quer/command
-    unit_of_measurement: cm
-    icon: mdi:water-off
-    entity_category: config
-    min_value: -15
-    max_value: 15
-    step: 0.5
-    initial_value: 0
     restore_value: true
     optimistic: true
     mode: box
@@ -1249,6 +1240,50 @@ select:
       - "Schlafen"
       - "Ablassen"
     initial_option: "Ausrichten"
+    restore_value: true
+    optimistic: true
+
+  # Wo der Kopf liegt - und damit, welche Achse "höher" heißt.
+  #
+  # Die Richtungen gelten IN FAHRTRICHTUNG gesehen. Das steht auch auf der
+  # Geräteseite an der Auswahl, samt Skizze: "links" ist sonst die Seite, auf
+  # der man gerade steht.
+  #
+  # Die Bezeichnungen sind bewusst ohne Umlaut und ohne "längs/quer": Sie
+  # erscheinen auch in Home Assistant und in MQTT, und aus "längs" würde dort
+  # eine Kennung mit zwei Unterstrichen. Welche Achse gemeint ist, sagt die
+  # Richtung ohnehin - vorn und hinten ist längs, links und rechts ist quer.
+  - platform: template
+    name: "Schlafrichtung"
+    id: schlaf_richtung
+    icon: mdi:bed-king-outline
+    entity_category: config
+    options:
+      - "Kopf vorn"
+      - "Kopf hinten"
+      - "Kopf links"
+      - "Kopf rechts"
+    initial_option: "Kopf hinten"
+    restore_value: true
+    optimistic: true
+
+  # Wo Boiler oder Tank ablaufen. Die Auswahl ist der TIEFSTE Punkt, also die
+  # Ecke oder Seite, zu der sich das Fahrzeug neigen soll.
+  - platform: template
+    name: "Ablasspunkt"
+    id: ablass_punkt
+    icon: mdi:water-off-outline
+    entity_category: config
+    options:
+      - "vorn"
+      - "hinten"
+      - "links"
+      - "rechts"
+      - "vorn links"
+      - "vorn rechts"
+      - "hinten links"
+      - "hinten rechts"
+    initial_option: "hinten"
     restore_value: true
     optimistic: true
 
@@ -1933,10 +1968,24 @@ interval:
           const std::string profil = id(zielprofil).current_option();
           float soll_cm_p = 0.0f, soll_cm_r = 0.0f;
           if (profil == "Schlafen") {
-            soll_cm_p = isnan(id(schlafen_laengs).state) ? 0.0f : id(schlafen_laengs).state;
+            /* Das Kopfende soll hoeher liegen. Welche Achse das ist, sagt die
+             * Richtung; das Vorzeichen folgt der Konvention des Geraets -
+             * laengs plus = Front hoeher, quer plus = rechte Seite hoeher. */
+            const float hoch = isnan(id(schlaf_hoehe).state) ? 0.0f : id(schlaf_hoehe).state;
+            const std::string kopf = id(schlaf_richtung).current_option();
+            if (kopf == "Kopf vorn")        soll_cm_p =  hoch;
+            else if (kopf == "Kopf hinten") soll_cm_p = -hoch;
+            else if (kopf == "Kopf links")  soll_cm_r = -hoch;
+            else                            soll_cm_r =  hoch;
           } else if (profil == "Ablassen") {
-            soll_cm_p = isnan(id(ablassen_laengs).state) ? 0.0f : id(ablassen_laengs).state;
-            soll_cm_r = isnan(id(ablassen_quer).state)   ? 0.0f : id(ablassen_quer).state;
+            /* Der Ablasspunkt ist der TIEFSTE Punkt: angehoben wird die
+             * Gegenseite. Bei einer Ecke beide Achsen. */
+            const float neig = isnan(id(ablass_neigung).state) ? 0.0f : id(ablass_neigung).state;
+            const std::string punkt = id(ablass_punkt).current_option();
+            if (punkt.find("vorn") != std::string::npos)        soll_cm_p = -neig;
+            else if (punkt.find("hinten") != std::string::npos) soll_cm_p =  neig;
+            if (punkt.find("links") != std::string::npos)       soll_cm_r =  neig;
+            else if (punkt.find("rechts") != std::string::npos) soll_cm_r = -neig;
           }
           id(ziel_cm_p) = soll_cm_p;
           id(ziel_cm_r) = soll_cm_r;
@@ -2800,6 +2849,103 @@ text_sensor:
     lambda: |-
       return {strlen(id(ap_passwort)) >= 8 ? "mit Passwort" : "offen"};
     update_interval: 60s
+
+  # --- Statuswerte für die Geräteseite ---------------------------------------
+  #
+  # Dieselben sechs Auskünfte wie in den Klartextsätzen darüber, aber als
+  # Werte statt als Satz.
+  #
+  # WARUM DOPPELT: Die Sätze sind deutsch. Die Geräteseite kann Deutsch und
+  # Englisch (webui.js, Wörterbuch TEXTE) und muss den Satz deshalb selbst
+  # bilden - dafür braucht sie Zahlen und Zustände, keine Formulierung. Die
+  # Sätze bleiben, weil Home Assistant und MQTT sie unverändert
+  # weiterbenutzen; und weil ein Satz auf einem Bildschirmfoto für den Support
+  # mehr wert ist als ein Code.
+  #
+  # Format: Schlüssel=Wert, getrennt durch Semikolon. Zeitspannen in Sekunden,
+  # Zeitpunkte als Unix-Zeit (0 = es gab keine gültige Uhr).
+  #
+  #   w  Wächter       aus | karenz:REST | scharf:SEIT | alarm:ZEITPUNKT
+  #                    | alarm_vor:SEIT | alarm_unbekannt
+  #   k  Kühlschrank   ok | STUFE:DAUER:GRAD                 (Stufe 1 bis 3)
+  #   c  Kalibrierung  nie | ohne_werte | ZEITPUNKT:TEMP:JETZT:PRUEFEN
+  #   b  Bewegung      nie | jetzt | ZEITPUNKT | vor:SEKUNDEN
+  #   m  MQTT          aus | verbunden | getrennt
+  #   n  Eigenes Netz  offen | passwort
+  - platform: template
+    name: "Statuswerte"
+    id: status_werte
+    icon: mdi:code-braces
+    entity_category: diagnostic
+    update_interval: 1s
+    lambda: |-
+      const uint32_t jetzt = millis() / 1000;
+      char w[40], k[32], c[48], b[24], alles[208];
+
+      if (id(wache_alarm)) {
+        if (id(wache_alarm_uhr) > 0) {
+          snprintf(w, sizeof(w), "alarm:%u", (unsigned) id(wache_alarm_uhr));
+        } else if (id(wache_alarm_lauf) > 0) {
+          snprintf(w, sizeof(w), "alarm_vor:%u",
+                   (unsigned) (jetzt - id(wache_alarm_lauf)));
+        } else {
+          snprintf(w, sizeof(w), "alarm_unbekannt");
+        }
+      } else if (!id(wache).state) {
+        snprintf(w, sizeof(w), "aus");
+      } else {
+        const float karenz = isnan(id(wache_karenz).state) ? 0.0f : id(wache_karenz).state;
+        const uint32_t seit = jetzt - id(wache_scharf_lauf);
+        if (seit < (uint32_t) karenz) {
+          snprintf(w, sizeof(w), "karenz:%u", (unsigned) ((uint32_t) karenz - seit));
+        } else {
+          snprintf(w, sizeof(w), "scharf:%u", (unsigned) seit);
+        }
+      }
+
+      if (id(kuehl_stufe) == 0 || isnan(id(pitch).state) || isnan(id(roll).state)) {
+        snprintf(k, sizeof(k), "ok");
+      } else {
+        const float ab = fmaxf(fabsf(id(pitch).state), fabsf(id(roll).state));
+        snprintf(k, sizeof(k), "%u:%u:%.1f", (unsigned) id(kuehl_stufe),
+                 (unsigned) (jetzt - id(schraeg_seit)), ab);
+      }
+
+      if (id(kal_temp) < -900.0f) {
+        const bool schon_kalibriert =
+            id(pitch_offset) != 0.0f || id(roll_offset) != 0.0f;
+        snprintf(c, sizeof(c), "%s", schon_kalibriert ? "ohne_werte" : "nie");
+      } else {
+        snprintf(c, sizeof(c), "%u:%.0f:%.0f:%d", (unsigned) id(kal_uhr),
+                 id(kal_temp),
+                 isnan(id(chip_temp).state) ? id(kal_temp) : id(chip_temp).state,
+                 id(kal_pruefen).state ? 1 : 0);
+      }
+
+      if (!id(bewegung_je)) {
+        snprintf(b, sizeof(b), "nie");
+      } else if (id(in_motion).has_state() && id(in_motion).state) {
+        snprintf(b, sizeof(b), "jetzt");
+      } else if (id(bewegung_uhr) > 0) {
+        snprintf(b, sizeof(b), "%u", (unsigned) id(bewegung_uhr));
+      } else {
+        snprintf(b, sizeof(b), "vor:%u", (unsigned) (jetzt - id(bewegung_lauf)));
+      }
+
+      const char *m = strlen(id(mqtt_broker)) == 0
+          ? "aus"
+          : (mqtt::global_mqtt_client->is_connected() ? "verbunden" : "getrennt");
+      const char *n = strlen(id(ap_passwort)) >= 8 ? "passwort" : "offen";
+
+      snprintf(alles, sizeof(alles), "w=%s;k=%s;c=%s;b=%s;m=%s;n=%s",
+               w, k, c, b, m, n);
+      return {std::string(alles)};
+    filters:
+      - lambda: |-
+          static std::string letzter;
+          if (x == letzter) return {};
+          letzter = x;
+          return x;
 
   - platform: wifi_info
     ip_address:

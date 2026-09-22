@@ -106,19 +106,33 @@ Schräglagenwarnung und Wächter rechnen weiter mit der echten Neigung.
 | Thema | Inhalt |
 |---|---|
 | `camperminder/level/select/zielprofil/…` | `Ausrichten`, `Schlafen`, `Ablassen` |
+| `camperminder/level/select/schlafrichtung/…` | `Kopf vorn`, `Kopf hinten`, `Kopf links`, `Kopf rechts` |
+| `camperminder/level/number/kopfende_anheben/…` | 0 … 15 cm, Vorgabe 2 |
+| `camperminder/level/select/ablasspunkt/…` | `vorn`, `hinten`, `links`, `rechts`, `vorn links`, `vorn rechts`, `hinten links`, `hinten rechts` |
+| `camperminder/level/number/neigung_zum_ablasspunkt/…` | 0 … 15 cm, Vorgabe 5 |
 | `camperminder/level/sensor/ziel_laengs/state` | geltende Zielneigung längs in cm |
 | `camperminder/level/sensor/ziel_quer/state` | geltende Zielneigung quer in cm |
-| `camperminder/level/number/schlafen_laengs/…` | −15 … 15 cm, Vorgabe −2 |
-| `camperminder/level/number/ablassen_laengs/…` | −15 … 15 cm, Vorgabe 5 |
-| `camperminder/level/number/ablassen_quer/…` | −15 … 15 cm, Vorgabe 0 |
 
-Vorzeichen wie überall im Gerät: **längs plus = Front höher**, **quer plus =
-rechte Seite höher**.
+**Richtung und Betrag statt Vorzeichen.** Das Profil `Schlafen` fragt, wo der
+Kopf liegt — in Fahrtrichtung gesehen —, und um wie viel das Kopfende höher
+stehen soll. Das Profil `Ablassen` fragt nach dem **tiefsten** Punkt, also der
+Ecke oder Seite, an der Boiler oder Tank ablaufen; angehoben wird die
+Gegenseite. Welche Achse und welches Vorzeichen daraus folgt, rechnet das
+Gerät. Bei `Kopf links`/`Kopf rechts` und bei einem seitlichen Ablasspunkt
+entsteht eine **Quer**neigung, bei `Kopf vorn`/`Kopf hinten` und vorn/hinten
+eine Längsneigung; eine Ecke neigt beide Achsen.
+
+> **Geändert mit 4.0.0.** Die drei vorzeichenbehafteten Zahlen
+> `schlafen_laengs`, `ablassen_laengs` und `ablassen_quer` gibt es nicht mehr.
+> Wer sie abonniert hatte, nimmt jetzt die beiden `select`- und die beiden
+> `number`-Themen darunter — oder einfacher die zwei `ziel_*`-Sensoren, die
+> sich nicht geändert haben.
 
 Die beiden `ziel_*`-Sensoren sind der bequeme Weg für ein anbindendes System:
-Sie liefern fertig, was das gewählte Profil verlangt, ohne dass man die drei
-Regler selbst auswerten muss. Die Hubhöhen je Ecke berücksichtigen das Ziel
-bereits.
+Sie liefern fertig, was das gewählte Profil verlangt, ohne dass man die Regler
+selbst auswerten muss. Vorzeichen wie überall im Gerät: **längs plus = Front
+höher**, **quer plus = rechte Seite höher**. Die Hubhöhen je Ecke
+berücksichtigen das Ziel bereits.
 
 ### Kühlschrank-Zeitkonto
 
@@ -160,6 +174,34 @@ Internet der Normalfall —, nennt der Text eine Zeitspanne statt einer Uhrzeit.
 Quittiert wird über `camperminder/level/button/alarm_quittieren/command`. Das
 löscht den Alarm, **ohne** den Wächter abzuschalten, und nimmt die jetzige Lage
 als neuen Bezugspunkt.
+
+### Statuswerte
+
+Die Klartextsätze oben (`waechter`, `kuehlschrank`, `kalibrierung`,
+`letzte_bewegung`, `mqtt`, `eigenes_netz`) sind deutsch formuliert. Die
+Geräteseite kann Deutsch und Englisch und bildet ihre Sätze deshalb selbst —
+dafür gibt es dieselben sechs Auskünfte noch einmal als Werte:
+
+| Thema | Inhalt |
+|---|---|
+| `camperminder/level/text_sensor/statuswerte/state` | `w=scharf:7830;k=2:2760:3.4;c=1758200000:21:27:1;b=vor:1200;m=getrennt;n=offen` |
+
+Schlüssel=Wert, getrennt durch Semikolon. Zeitspannen in Sekunden, Zeitpunkte
+als Unix-Zeit (`0` = es gab keine gültige Uhr).
+
+| Schlüssel | Werte |
+|---|---|
+| `w` Wächter | `aus`, `karenz:REST`, `scharf:SEIT`, `alarm:ZEITPUNKT`, `alarm_vor:SEIT`, `alarm_unbekannt` |
+| `k` Kühlschrank | `ok` oder `STUFE:DAUER:GRAD` mit Stufe 1 bis 3 |
+| `c` Kalibrierung | `nie`, `ohne_werte` oder `ZEITPUNKT:TEMP:JETZT:PRUEFEN` |
+| `b` Bewegung | `nie`, `jetzt`, `ZEITPUNKT` oder `vor:SEKUNDEN` |
+| `m` MQTT | `aus`, `verbunden`, `getrennt` |
+| `n` Eigenes Netz | `offen`, `passwort` |
+
+Die Entität ist `diagnostic` und in Home Assistant standardmäßig eingeklappt.
+Ein anbindendes System braucht sie nicht — die Klartextsätze und die
+`binary_sensor` sind bequemer. Sie ist dokumentiert, weil sie im Thema
+auftaucht und niemand rätseln soll, was dort steht.
 
 ### Einstellbar über MQTT
 

@@ -43,8 +43,9 @@ CONF_FRIDGE_MINUTES: Final = "fridge_minutes"
 # interessiert sich nicht dafür, wie jemand schlafen möchte.
 #
 # Die geltende Zielneigung liest die Integration als fertigen Zentimeterwert
-# vom Gerät, statt sie aus Profil und drei Reglern selbst abzuleiten. Sonst
-# gäbe es dieselbe Entscheidung an drei Stellen.
+# vom Gerät, statt sie aus Profil, Richtung und Betrag selbst abzuleiten. Sonst
+# gäbe es dieselbe Entscheidung an drei Stellen - und seit 4.0.0 auch die
+# Umrechnung von "Kopf links" in ein Vorzeichen.
 # --- Selbstüberwachung -------------------------------------------------------
 # Ein fest verbautes Gerät kann sich selbst beobachten, ein Handgerät nicht.
 # Alles davon entsteht im Gerät: Es kennt die Temperatur bei der letzten
