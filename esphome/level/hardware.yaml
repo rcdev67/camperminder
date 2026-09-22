@@ -217,7 +217,7 @@ substitutions:
   # "Anzeigeruhe" (0 bis 10), und diese sechs Zahlen rechnen ihn in die vier
   # Beiwerte des Filters um:
   #
-  #   Rauschgrenze = base + Ruhe * step        bei Ruhe 5:  0,25 Grad
+  #   Rauschgrenze = base + Ruhe * step        bei Ruhe 5:  0,11 Grad
   #
   # Zur Abbildung von alpha: Sie ist quadratisch, nicht linear, und beginnt bei
   # Ruhe 0 mit 1,0 - also GAR KEINER Glättung. Die erste Fassung begann bei
@@ -225,7 +225,7 @@ substitutions:
   # Anzeige: Jede Stellung sah gleich aus, der Regler wirkte kaputt. Jetzt
   # spannt er von "roh" bis "rund 24 s Zeitkonstante", und 5 trifft weiterhin
   # genau den Wert, mit dem 3.1.0 erprobt wurde.
-  #   Bewegung ab  = Rauschgrenze * faktor                  1,50 Grad
+  #   Bewegung ab  = Rauschgrenze * faktor                  0,68 Grad
   #   alpha träge  = zaehler / (1 + Ruhe)                   0,0167  (~6 s)
   #   alpha flott  = fast_base - Ruhe * fast_step           0,50
   #
@@ -237,15 +237,40 @@ substitutions:
   # Ruhe 5 ergibt exakt das Verhalten, mit dem 2.0.5 ausgeliefert wurde. Wer
   # die Abbildung ändert, verschiebt damit die Voreinstellung für alle.
   #
-  # Auch diese sechs Zahlen sind am Vorgängersensor ermittelt. Der LSM6DS3TR-C
-  # rauscht rund viermal weniger - 90 statt etwa 400 Mikro-g je Wurzel Hertz -,
-  # die Rauschgrenze dürfte also deutlich enger gehen und die Anzeige damit
-  # schneller werden, ohne unruhig zu wirken. Vor einer Messreihe an der
-  # Platine Rev B wird hier aber nichts gedreht: Die Abbildung verschiebt die
-  # Voreinstellung für alle.
+  # GEMESSEN am 22.09.2026, nicht mehr geschätzt. Handmuster mit
+  # LSM6DS3TR-C, 673 Messpunkte in 67 Sekunden im Stand, Rohwerte des
+  # Sensors:
+  #
+  #   pitch   sigma 0,0242 Grad   größte Abweichung 0,0724 Grad
+  #   roll    sigma 0,0266 Grad   größte Abweichung 0,0708 Grad
+  #   accel   sigma 430 bis 520 Mikro-g je Achse
+  #
+  # Das deckt sich mit dem Datenblatt: 90 Mikro-g je Wurzel Hertz bei 52 Hz
+  # Bandbreite sind rund 650 Mikro-g. Der Sensor arbeitet wie angegeben.
+  #
+  # Die Rauschgrenze schließt die Spitzen mit Faktor 1,5 ein und nicht mehr:
+  # 0,0724 * 1,5 = 0,11 Grad bei Anzeigeruhe 5. Vorher standen hier 0,25 Grad,
+  # ermittelt am MPU6050, der rund viermal mehr rauscht.
+  #
+  # WAS DAS BEHEBT: Mit 0,25 Grad fiel beim neuen Sensor JEDE kleine echte
+  # Änderung in den Rauschbereich, wurde träge geglättet - und der
+  # delta-Filter am Ende der Kette ließ danach gar nichts mehr durch. Die
+  # Anzeige stand vollständig still, auch wenn sich wirklich etwas änderte.
+  # Beim MPU6050 lag das Rauschen über der Grenze, deshalb zappelte er und
+  # das Problem konnte nicht auffallen.
+  #
+  # NICHT geändert wurden alpha träge und alpha flott: Wie ruhig eine Anzeige
+  # sein SOLL, ist Geschmack und nicht Messung, und Ruhe 5 soll weiterhin dem
+  # entsprechen, was erprobt ist.
+  #
+  # AN DER PLATINE REV B NACHMESSEN. Derselbe Sensortyp, aber ein anderer
+  # Aufbau: Das Handmuster liegt auf einem Schreibtisch in einem Haus, mit
+  # Litzen und einem Breakout. Wird Rev B ruhiger, ist diese Grenze
+  # unnötig weit - schädlich ist das nicht, nur nicht optimal. Die Messreihe
+  # dafür steht in docs/kalibrierung.md.
   calm_default: "5"
-  calm_noise_base: "0.05"
-  calm_noise_step: "0.04"
+  calm_noise_base: "0.023"
+  calm_noise_step: "0.018"
   calm_move_faktor: "6.0"
   calm_slow_faktor: "2.36"
   calm_fast_base: "0.60"

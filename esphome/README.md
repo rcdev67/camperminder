@@ -8,8 +8,22 @@ esphome/
     hardware.yaml             Messlogik, Status-LED, Summer, Einstellwerte
     anzeige-oled.yaml         Werkstattvariante: 0,42"-OLED an J4, NICHT im Produkt
     webui.js                  Bedienoberfläche auf dem Gerät
+    muster-supermini.yaml     Handmuster auf ESP32-C3 SuperMini, nicht im Produkt
+    diagnose.js               Fehlersuche: zeigt den Ereignisstrom roh an
+    tools_fehlerfaenger.js    Fehlersuche: schreibt Abstürze auf die Seite
     secrets.yaml.example
 ```
+
+Die beiden Dateien zur Fehlersuche treten über `js_include` **an die Stelle**
+von `webui.js` und gehören nicht ins Produkt — wie sie benutzt werden, steht
+im Kopf von `muster-supermini.yaml`. Auf dem Handy gibt es keine
+Browserkonsole; ohne sie ist ein Fehler in der Bedienoberfläche von außen
+nicht zu sehen.
+
+Der Prüfstand für die Bedienoberfläche liegt in `tools/` —
+`stub_erzeugen.py` leitet seinen Entitätsbestand aus `esphome config` ab,
+`geraetestub.py` spielt damit das Gerät. Begründung in
+`docs/firmware_update.md`.
 
 Die ausgelieferte Ausführung hat **kein Display**. `anzeige-oled.yaml` wird nur
 gebaut, wenn man in `camperminder-level.yaml` unter `packages:` die

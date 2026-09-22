@@ -503,6 +503,51 @@ weitere Sprachen. Französisch und Niederländisch sind für den Markt
 interessant, kosten aber je Sprache ein vollständiges Wörterbuch im Flash —
 das entscheidet sich, wenn die ersten Geräte im Feld sind.
 
+## ESPHome ist eine Abhängigkeit, kein Fundament — 22. September 2026
+
+Die Geräteseite ist an ESPHomes Webserver angeschlossen, und diese
+Schnittstelle ist **nicht zugesagt**. Am 22. September 2026 hat das einen Tag
+gekostet: Mit 2026.8 bildet ESPHome die Entitätskennung im Ereignisstrom als
+`sensor/Neigung Pitch` statt als `sensor-neigung_pitch` (`set_json_id` in
+`web_server.cpp`), und Schreibzugriffe treffen die Entität seither über ihren
+**Anzeigenamen** statt über eine Objektkennung; das Feld `name_id` entfiel.
+
+Die Seite suchte weiter nach dem alten Format. Sie ist dabei nicht
+abgestürzt — sie hat schlicht keine Entität wiedergefunden: keine Messwerte,
+alle Schalter grau, die Technik-Liste nur beim Neuladen aktuell, keine
+Fehlermeldung. **Ein stummer Ausfall ist der teuerste Fehler dieser Bauart**,
+und er wäre beim Kunden nach einem OTA-Update auf dem Stellplatz aufgefallen.
+
+Entschieden wurde daraufhin dreierlei:
+
+1. **Die Fassung ist festgenagelt** (`requirements.txt`, `esphome==…`), und
+   `tools/einrichten.cmd` installiert nur diese. Vorher stand dort ein
+   `pip install esphome` ohne Angabe — die Fassung, gegen die wir bauen, war
+   Zufall. Ein Wechsel ist jetzt eine Entscheidung mit eigenem Testlauf.
+2. **Die Annahmen der Seite werden geprüft, nicht gehofft**
+   (`tools/pruefe_esphome.py`). Das Skript liest den Quelltext der
+   installierten Fassung und bricht ab, sobald Kennungsformat, Schreibziel,
+   `set`/`value`, `/0.js`, `/events` oder die Adressdekodierung nicht mehr
+   passen. Es hängt in `bauen.cmd` **und** in `build_release.ps1` — einmal
+   für den täglichen Bau, einmal als letzter Halt vor dem Kunden. Geprüft
+   wird der Quelltext und nicht nur die Versionsnummer: Eine Nummer sagt
+   nichts über diese Schnittstelle.
+3. **Der Prüfstand wird abgeleitet, nicht gepflegt**
+   (`tools/stub_erzeugen.py` aus `esphome config`). Sein Entitätsbestand
+   stand vorher von Hand im Quelltext, auf dem Stand eines Berichts vom
+   Sommer. Er hat dreimal grünes Licht gegeben, während am Gerät nichts
+   lief.
+
+Dazu die Freigaberegel in `docs/firmware_update.md`: **kein OTA-Release ohne
+einmal geöffnete Geräteseite auf echter Hardware**, mit mitlaufenden Werten
+und einer Änderung, die ein Neuladen überlebt.
+
+Nicht gemacht: die Geräteseite von ESPHomes Webserver lösen. Ein eigener
+HTTP-Dienst im Gerät wäre unabhängig, kostet aber Flash, Wartung und eine
+zweite Zulassungsbetrachtung — und die Prüfung oben fängt denselben Fehler
+zu einem Bruchteil der Kosten. Die Abhängigkeit bleibt also, sie ist nur
+nicht mehr unbemerkt.
+
 ## Fernalarm — entschieden am 22. August 2026
 
 Der Wächter hat einen blinden Fleck: **Er erreicht den Kunden nur, solange

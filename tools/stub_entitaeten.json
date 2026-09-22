@@ -1,0 +1,586 @@
+{
+  "hinweis": "Erzeugt von tools/stub_erzeugen.py aus esphome config - NICHT von Hand pflegen.",
+  "entitaeten": [
+    {
+      "kennung": "sensor/Ziel längs",
+      "name": "Ziel längs",
+      "bereich": "sensor",
+      "zustand": "0.0",
+      "wert": 0.0
+    },
+    {
+      "kennung": "sensor/Ziel quer",
+      "name": "Ziel quer",
+      "bereich": "sensor",
+      "zustand": "0.0",
+      "wert": 0.0
+    },
+    {
+      "kennung": "sensor/Innentemperatur",
+      "name": "Innentemperatur",
+      "bereich": "sensor",
+      "zustand": "0.0",
+      "wert": 0.0
+    },
+    {
+      "kennung": "sensor/Schräglage Dauer",
+      "name": "Schräglage Dauer",
+      "bereich": "sensor",
+      "zustand": "0.0",
+      "wert": 0.0
+    },
+    {
+      "kennung": "sensor/WLAN Signal",
+      "name": "WLAN Signal",
+      "bereich": "sensor",
+      "zustand": "0.0",
+      "wert": 0.0
+    },
+    {
+      "kennung": "sensor/Laufzeit",
+      "name": "Laufzeit",
+      "bereich": "sensor",
+      "zustand": "0.0",
+      "wert": 0.0
+    },
+    {
+      "kennung": "sensor/accel_x",
+      "name": "accel_x",
+      "bereich": "sensor",
+      "zustand": "0.0",
+      "wert": 0.0
+    },
+    {
+      "kennung": "sensor/accel_y",
+      "name": "accel_y",
+      "bereich": "sensor",
+      "zustand": "0.0",
+      "wert": 0.0
+    },
+    {
+      "kennung": "sensor/accel_z",
+      "name": "accel_z",
+      "bereich": "sensor",
+      "zustand": "0.0",
+      "wert": 0.0
+    },
+    {
+      "kennung": "sensor/gyro_x",
+      "name": "gyro_x",
+      "bereich": "sensor",
+      "zustand": "0.0",
+      "wert": 0.0
+    },
+    {
+      "kennung": "sensor/gyro_y",
+      "name": "gyro_y",
+      "bereich": "sensor",
+      "zustand": "0.0",
+      "wert": 0.0
+    },
+    {
+      "kennung": "sensor/gyro_z",
+      "name": "gyro_z",
+      "bereich": "sensor",
+      "zustand": "0.0",
+      "wert": 0.0
+    },
+    {
+      "kennung": "sensor/Sensortemperatur",
+      "name": "Sensortemperatur",
+      "bereich": "sensor",
+      "zustand": "0.0",
+      "wert": 0.0
+    },
+    {
+      "kennung": "sensor/Neigung Pitch",
+      "name": "Neigung Pitch",
+      "bereich": "sensor",
+      "zustand": "0.0",
+      "wert": 0.0
+    },
+    {
+      "kennung": "sensor/Neigung Roll",
+      "name": "Neigung Roll",
+      "bereich": "sensor",
+      "zustand": "0.0",
+      "wert": 0.0
+    },
+    {
+      "kennung": "sensor/Diagnose Pitch Mittel",
+      "name": "Diagnose Pitch Mittel",
+      "bereich": "sensor",
+      "zustand": "0.0",
+      "wert": 0.0
+    },
+    {
+      "kennung": "sensor/Diagnose Roll Mittel",
+      "name": "Diagnose Roll Mittel",
+      "bereich": "sensor",
+      "zustand": "0.0",
+      "wert": 0.0
+    },
+    {
+      "kennung": "sensor/Hub vorne links",
+      "name": "Hub vorne links",
+      "bereich": "sensor",
+      "zustand": "0.0",
+      "wert": 0.0
+    },
+    {
+      "kennung": "sensor/Hub vorne rechts",
+      "name": "Hub vorne rechts",
+      "bereich": "sensor",
+      "zustand": "0.0",
+      "wert": 0.0
+    },
+    {
+      "kennung": "sensor/Hub hinten links",
+      "name": "Hub hinten links",
+      "bereich": "sensor",
+      "zustand": "0.0",
+      "wert": 0.0
+    },
+    {
+      "kennung": "sensor/Hub hinten rechts",
+      "name": "Hub hinten rechts",
+      "bereich": "sensor",
+      "zustand": "0.0",
+      "wert": 0.0
+    },
+    {
+      "kennung": "sensor/Stützrad",
+      "name": "Stützrad",
+      "bereich": "sensor",
+      "zustand": "0.0",
+      "wert": 0.0
+    },
+    {
+      "kennung": "sensor/Diagnose Betrag",
+      "name": "Diagnose Betrag",
+      "bereich": "sensor",
+      "zustand": "0.0",
+      "wert": 0.0
+    },
+    {
+      "kennung": "binary_sensor/Status",
+      "name": "Status",
+      "bereich": "binary_sensor",
+      "zustand": "OFF",
+      "wert": false
+    },
+    {
+      "kennung": "binary_sensor/Camper steht gerade",
+      "name": "Camper steht gerade",
+      "bereich": "binary_sensor",
+      "zustand": "OFF",
+      "wert": false
+    },
+    {
+      "kennung": "binary_sensor/Schräglage",
+      "name": "Schräglage",
+      "bereich": "binary_sensor",
+      "zustand": "OFF",
+      "wert": false
+    },
+    {
+      "kennung": "binary_sensor/Kalibrierung prüfen",
+      "name": "Kalibrierung prüfen",
+      "bereich": "binary_sensor",
+      "zustand": "OFF",
+      "wert": false
+    },
+    {
+      "kennung": "binary_sensor/Montage prüfen",
+      "name": "Montage prüfen",
+      "bereich": "binary_sensor",
+      "zustand": "OFF",
+      "wert": false
+    },
+    {
+      "kennung": "binary_sensor/Frostgefahr",
+      "name": "Frostgefahr",
+      "bereich": "binary_sensor",
+      "zustand": "OFF",
+      "wert": false
+    },
+    {
+      "kennung": "binary_sensor/Kühlschrank Warnung",
+      "name": "Kühlschrank Warnung",
+      "bereich": "binary_sensor",
+      "zustand": "OFF",
+      "wert": false
+    },
+    {
+      "kennung": "binary_sensor/Lageänderung",
+      "name": "Lageänderung",
+      "bereich": "binary_sensor",
+      "zustand": "OFF",
+      "wert": false
+    },
+    {
+      "kennung": "binary_sensor/In Bewegung",
+      "name": "In Bewegung",
+      "bereich": "binary_sensor",
+      "zustand": "OFF",
+      "wert": false
+    },
+    {
+      "kennung": "binary_sensor/Wächter Alarm",
+      "name": "Wächter Alarm",
+      "bereich": "binary_sensor",
+      "zustand": "OFF",
+      "wert": false
+    },
+    {
+      "kennung": "text_sensor/Firmware Version",
+      "name": "Firmware Version",
+      "bereich": "text_sensor",
+      "zustand": "",
+      "wert": null
+    },
+    {
+      "kennung": "text_sensor/Anweisung",
+      "name": "Anweisung",
+      "bereich": "text_sensor",
+      "zustand": "",
+      "wert": null
+    },
+    {
+      "kennung": "text_sensor/Wächter",
+      "name": "Wächter",
+      "bereich": "text_sensor",
+      "zustand": "",
+      "wert": null
+    },
+    {
+      "kennung": "text_sensor/Kalibrierung",
+      "name": "Kalibrierung",
+      "bereich": "text_sensor",
+      "zustand": "",
+      "wert": null
+    },
+    {
+      "kennung": "text_sensor/Kühlschrank",
+      "name": "Kühlschrank",
+      "bereich": "text_sensor",
+      "zustand": "",
+      "wert": null
+    },
+    {
+      "kennung": "text_sensor/Letzte Bewegung",
+      "name": "Letzte Bewegung",
+      "bereich": "text_sensor",
+      "zustand": "",
+      "wert": null
+    },
+    {
+      "kennung": "text_sensor/MQTT",
+      "name": "MQTT",
+      "bereich": "text_sensor",
+      "zustand": "",
+      "wert": null
+    },
+    {
+      "kennung": "text_sensor/Eigenes Netz",
+      "name": "Eigenes Netz",
+      "bereich": "text_sensor",
+      "zustand": "",
+      "wert": null
+    },
+    {
+      "kennung": "text_sensor/Statuswerte",
+      "name": "Statuswerte",
+      "bereich": "text_sensor",
+      "zustand": "",
+      "wert": null
+    },
+    {
+      "kennung": "number/Radstand",
+      "name": "Radstand",
+      "bereich": "number",
+      "zustand": "3500.0",
+      "wert": 3500.0
+    },
+    {
+      "kennung": "number/Spurweite",
+      "name": "Spurweite",
+      "bereich": "number",
+      "zustand": "1800.0",
+      "wert": 1800.0
+    },
+    {
+      "kennung": "number/Toleranz",
+      "name": "Toleranz",
+      "bereich": "number",
+      "zustand": "5.0",
+      "wert": 5.0
+    },
+    {
+      "kennung": "number/Toleranz genau",
+      "name": "Toleranz genau",
+      "bereich": "number",
+      "zustand": "0.4",
+      "wert": 0.4
+    },
+    {
+      "kennung": "number/Anzeigeruhe",
+      "name": "Anzeigeruhe",
+      "bereich": "number",
+      "zustand": "5.0",
+      "wert": 5.0
+    },
+    {
+      "kennung": "number/Haltebereich",
+      "name": "Haltebereich",
+      "bereich": "number",
+      "zustand": "125.0",
+      "wert": 125.0
+    },
+    {
+      "kennung": "number/MQTT Port",
+      "name": "MQTT Port",
+      "bereich": "number",
+      "zustand": "1883.0",
+      "wert": 1883.0
+    },
+    {
+      "kennung": "number/Schräglage Grenzwert",
+      "name": "Schräglage Grenzwert",
+      "bereich": "number",
+      "zustand": "3.0",
+      "wert": 3.0
+    },
+    {
+      "kennung": "number/Driftwarnung ab",
+      "name": "Driftwarnung ab",
+      "bereich": "number",
+      "zustand": "20.0",
+      "wert": 20.0
+    },
+    {
+      "kennung": "number/Temperatur Abgleich",
+      "name": "Temperatur Abgleich",
+      "bereich": "number",
+      "zustand": "0.0",
+      "wert": 0.0
+    },
+    {
+      "kennung": "number/Frostwarnung unter",
+      "name": "Frostwarnung unter",
+      "bereich": "number",
+      "zustand": "3.0",
+      "wert": 3.0
+    },
+    {
+      "kennung": "number/Kopfende anheben",
+      "name": "Kopfende anheben",
+      "bereich": "number",
+      "zustand": "2.0",
+      "wert": 2.0
+    },
+    {
+      "kennung": "number/Neigung zum Ablasspunkt",
+      "name": "Neigung zum Ablasspunkt",
+      "bereich": "number",
+      "zustand": "5.0",
+      "wert": 5.0
+    },
+    {
+      "kennung": "number/Kühlschrank kritisch nach",
+      "name": "Kühlschrank kritisch nach",
+      "bereich": "number",
+      "zustand": "30.0",
+      "wert": 30.0
+    },
+    {
+      "kennung": "number/Lageänderung Grenzwert",
+      "name": "Lageänderung Grenzwert",
+      "bereich": "number",
+      "zustand": "1.0",
+      "wert": 1.0
+    },
+    {
+      "kennung": "number/Wächter Karenzzeit",
+      "name": "Wächter Karenzzeit",
+      "bereich": "number",
+      "zustand": "120.0",
+      "wert": 120.0
+    },
+    {
+      "kennung": "number/Keilstufe",
+      "name": "Keilstufe",
+      "bereich": "number",
+      "zustand": "0.0",
+      "wert": 0.0
+    },
+    {
+      "kennung": "select/Zielprofil",
+      "name": "Zielprofil",
+      "bereich": "select",
+      "zustand": "Ausrichten",
+      "wert": null
+    },
+    {
+      "kennung": "select/Schlafrichtung",
+      "name": "Schlafrichtung",
+      "bereich": "select",
+      "zustand": "Kopf hinten",
+      "wert": null
+    },
+    {
+      "kennung": "select/Ablasspunkt",
+      "name": "Ablasspunkt",
+      "bereich": "select",
+      "zustand": "hinten",
+      "wert": null
+    },
+    {
+      "kennung": "select/Ausrichtart",
+      "name": "Ausrichtart",
+      "bereich": "select",
+      "zustand": "Auffahrkeile",
+      "wert": null
+    },
+    {
+      "kennung": "select/Fahrzeugart",
+      "name": "Fahrzeugart",
+      "bereich": "select",
+      "zustand": "Wohnmobil",
+      "wert": null
+    },
+    {
+      "kennung": "select/Einbaulage",
+      "name": "Einbaulage",
+      "bereich": "select",
+      "zustand": "Deckel oben",
+      "wert": null
+    },
+    {
+      "kennung": "switch/Präzisionsmodus",
+      "name": "Präzisionsmodus",
+      "bereich": "switch",
+      "zustand": "OFF",
+      "wert": false
+    },
+    {
+      "kennung": "switch/Status-LED",
+      "name": "Status-LED",
+      "bereich": "switch",
+      "zustand": "OFF",
+      "wert": false
+    },
+    {
+      "kennung": "switch/Alarmton",
+      "name": "Alarmton",
+      "bereich": "switch",
+      "zustand": "OFF",
+      "wert": false
+    },
+    {
+      "kennung": "switch/Wächter",
+      "name": "Wächter",
+      "bereich": "switch",
+      "zustand": "OFF",
+      "wert": false
+    },
+    {
+      "kennung": "button/Alarm quittieren",
+      "name": "Alarm quittieren",
+      "bereich": "button",
+      "zustand": "",
+      "wert": null
+    },
+    {
+      "kennung": "button/Netz Passwort speichern",
+      "name": "Netz Passwort speichern",
+      "bereich": "button",
+      "zustand": "",
+      "wert": null
+    },
+    {
+      "kennung": "button/MQTT speichern",
+      "name": "MQTT speichern",
+      "bereich": "button",
+      "zustand": "",
+      "wert": null
+    },
+    {
+      "kennung": "button/Neigung kalibrieren",
+      "name": "Neigung kalibrieren",
+      "bereich": "button",
+      "zustand": "",
+      "wert": null
+    },
+    {
+      "kennung": "button/Firmware aktualisieren",
+      "name": "Firmware aktualisieren",
+      "bereich": "button",
+      "zustand": "",
+      "wert": null
+    },
+    {
+      "kennung": "button/Werkseinstellungen",
+      "name": "Werkseinstellungen",
+      "bereich": "button",
+      "zustand": "",
+      "wert": null
+    },
+    {
+      "kennung": "button/WLAN speichern",
+      "name": "WLAN speichern",
+      "bereich": "button",
+      "zustand": "",
+      "wert": null
+    },
+    {
+      "kennung": "text/Netz Passwort neu",
+      "name": "Netz Passwort neu",
+      "bereich": "text",
+      "zustand": "",
+      "wert": null
+    },
+    {
+      "kennung": "text/MQTT Broker",
+      "name": "MQTT Broker",
+      "bereich": "text",
+      "zustand": "",
+      "wert": null
+    },
+    {
+      "kennung": "text/MQTT Benutzer",
+      "name": "MQTT Benutzer",
+      "bereich": "text",
+      "zustand": "",
+      "wert": null
+    },
+    {
+      "kennung": "text/MQTT Passwort",
+      "name": "MQTT Passwort",
+      "bereich": "text",
+      "zustand": "",
+      "wert": null
+    },
+    {
+      "kennung": "text/WLAN Name",
+      "name": "WLAN Name",
+      "bereich": "text",
+      "zustand": "",
+      "wert": null
+    },
+    {
+      "kennung": "text/WLAN Passwort",
+      "name": "WLAN Passwort",
+      "bereich": "text",
+      "zustand": "",
+      "wert": null
+    },
+    {
+      "kennung": "update/Firmware",
+      "name": "Firmware",
+      "bereich": "update",
+      "zustand": "OFF",
+      "wert": false
+    }
+  ]
+}

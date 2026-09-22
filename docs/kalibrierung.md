@@ -220,6 +220,58 @@ Rechnung. Vorher galt dort eine feste Gradzahl, und er meldete „nicht gerade",
 während die Geräteseite daneben „EBEN – STOP" zeigte. Wer ihn in einer
 Automation benutzt, bekommt jetzt genau das, was auf dem Handy steht.
 
+## Messreihe: das Rauschen des Sensors
+
+Die Abbildung des Reglers **Anzeigeruhe** hängt davon ab, wie stark der
+Sensor rauscht — `calm_noise_base` und `calm_noise_step` in
+`hardware.yaml`. Sie gehört je Sensortyp und Aufbau einmal gemessen, nicht
+geschätzt.
+
+**Warum das nicht kosmetisch ist:** Alles innerhalb der Rauschgrenze gilt der
+Glättung als Rauschen und wird träge behandelt. Ist die Grenze zu weit,
+fällt auch jede kleine **echte** Änderung hinein, der geglättete Wert
+kriecht, und der `delta`-Filter am Ende der Kette lässt gar nichts mehr
+durch — die Anzeige steht dann vollständig still. Genau das war am
+22.09.2026 der Fall: Die Grenze stammte vom MPU6050 und war für den
+LSM6DS3TR-C mehr als doppelt zu weit.
+
+So wird gemessen:
+
+1. Im Muster (`esphome/level/muster-supermini.yaml`) den Block `MESSREIHE`
+   einschalten — er schreibt die **rohen** Beschleunigungswerte in Mikro-g
+   mit, je Achse eine Zeile, im 100-ms-Takt. Ganze Zahlen, kein `%f`:
+   ESP-IDF übersetzt mit der nano-Variante von `printf` und gibt mehrere
+   Gleitkommawerte in einer Zeile falsch aus.
+2. Aufspielen, Gerät **eine Minute nicht anfassen**, Log mitschneiden.
+3. Auswerten: Standardabweichung und größte Abweichung vom Mittel je Achse,
+   daraus der Winkel wie in der Firmware
+   (`atan2`), und daraus die Grenze:
+
+   ```
+   Rauschgrenze bei Anzeigeruhe 5 = größte Abweichung × 1,5
+   calm_noise_base = Grenze × 0,2
+   calm_noise_step = (Grenze − base) ÷ 5
+   ```
+
+4. Eintragen, neu bauen, im Stand gegenprüfen: Die Anzeige muss stehen, auf
+   ein leichtes Antippen aber reagieren.
+
+**Ergebnis vom 22.09.2026** (Handmuster, LSM6DS3TR-C, 673 Messpunkte in 67 s):
+
+| | σ | größte Abweichung | Spanne |
+|---|---|---|---|
+| pitch | 0,0242° | 0,0724° | 0,141° |
+| roll | 0,0266° | 0,0708° | 0,141° |
+| accel je Achse | 430–520 µg | bis 1,7 mg | |
+
+Das deckt sich mit dem Datenblatt — 90 µg/√Hz bei 52 Hz Bandbreite sind rund
+650 µg. Daraus: Grenze **0,11°** bei Ruhe 5 statt der bisherigen 0,25°.
+
+> **An Rev B wiederholen.** Derselbe Sensortyp, aber ein anderer Aufbau: Das
+> Handmuster liegt mit Litzen und Breakout auf einem Schreibtisch. Wird die
+> Platine ruhiger, ist die Grenze unnötig weit — schadet nicht, ist aber
+> nicht das Optimum.
+
 ## Wie lange hält eine Kalibrierung?
 
 Solange das Gerät nicht bewegt wird, gilt sie unbegrenzt — der Nullpunkt liegt

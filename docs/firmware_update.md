@@ -30,6 +30,66 @@ Release teilen.
 Sie stehen fest in [`camperminder-level.yaml`](../esphome/level/camperminder-level.yaml)
 und müssen bei einer neuen Version **nicht** angefasst werden.
 
+## Die ESPHome-Fassung ist festgenagelt
+
+`requirements.txt` nennt **eine** Fassung, und `tools/einrichten.cmd`
+installiert nur diese. Kein `pip install esphome` ohne Angabe mehr.
+
+Der Grund ist am **22. September 2026** entstanden und hat einen Tag gekostet:
+ESPHome hat mit 2026.8 das Format der Entitätskennungen im Ereignisstrom
+geändert.
+
+| | Kennung im Ereignisstrom |
+|---|---|
+| bis 2026.7 | `sensor-neigung_pitch` |
+| ab 2026.8 | `sensor/Neigung Pitch` |
+
+`webui.js` suchte weiter nach dem alten Format und fand **keine einzige**
+Entität wieder. Die Folge war kein Absturz und keine Meldung, sondern eine
+Seite, die leer bleibt: keine Messwerte, alle Schalter grau, die Technik-Liste
+nur beim Neuladen aktuell. Ein Fehler, der nichts sagt, ist der teuerste.
+
+**Beim Kunden wäre das nach einem OTA-Update auf dem Stellplatz aufgefallen.**
+Genau davor schützen die drei Maßnahmen unten.
+
+### ESPHome wechseln
+
+Ein Wechsel ist eine Entscheidung mit eigenem Testlauf, kein Nebeneffekt:
+
+1. Nummer in `requirements.txt` ändern und
+   `.venv\Scripts\python.exe -m pip install -r requirements.txt` laufen lassen.
+2. `.venv\Scripts\python.exe tools/pruefe_esphome.py` — prüft die Annahmen
+   der Geräteseite **gegen den Quelltext** der neuen Fassung: Kennungsformat,
+   Schreibziel, `set`/`value`, `/0.js`, `/events`, Dekodierung der Adressen.
+   Abweichungen nennen die Stelle in `webui.js`, die nachzuziehen ist.
+3. `.venv\Scripts\python.exe tools/stub_erzeugen.py` — erzeugt den
+   Entitätsbestand des Prüfstands neu, aus `esphome config`.
+4. `.venv\Scripts\python.exe tools/geraetestub.py`, Seite im Browser
+   durchgehen: beide Sprachen, beide Reiter, alle drei Zielprofile, Wohnmobil
+   und Wohnwagen, Präzisionsmodus ein und aus. Der Prüfstand sammelt jeden
+   unbehandelten Fehler in `window.__fehler`.
+5. Erst dann bauen. `tools/bauen.cmd` und `tools/build_release.ps1` rufen die
+   Prüfung aus Schritt 2 selbst auf und brechen bei Abweichung ab.
+
+> **Der Prüfstand wird nicht von Hand gepflegt.** Bis zum 22.09.2026 stand
+> sein Entitätsbestand als Liste im Quelltext — mit den Kennungen einer
+> älteren Fassung. Er hat der Geräteseite dreimal grünes Licht gegeben,
+> während am echten Gerät nichts lief. Ein Prüfstand, der die Wirklichkeit
+> nicht abbildet, ist schlimmer als keiner: Er führt die Fehlersuche in die
+> falsche Richtung.
+
+### Freigaberegel
+
+**Kein OTA-Release ohne einmal geöffnete Geräteseite auf echter Hardware.**
+
+Nicht der Prüfstand, nicht der Bau, nicht die Prüfskripte — ein Gerät. Die
+Seite muss dabei Messwerte zeigen, die sich beim Kippen mitbewegen, und eine
+geänderte Einstellung muss ein Neuladen überleben (damit ist auch der
+Schreibweg bewiesen, den kein Prüfstand prüfen kann).
+
+Der Grund ist derselbe: Die Firmware kann einwandfrei laufen, während die
+Bedienoberfläche tot ist. Von außen sieht man das nur, wenn man hinsieht.
+
 ## Eine neue Version veröffentlichen
 
 1. **Version erhöhen.** Die Firmware-Version steht an **einer** Stelle:

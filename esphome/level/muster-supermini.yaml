@@ -11,6 +11,24 @@
 #  Kein Summer, keine eigene Status-LED - die blaue LED des SuperMini haengt
 #  an GPIO8 und leuchtet bei LOW, also genau wie D10 auf der Platine.
 #
+#  FEHLERSUCHE AN DER BEDIENOBERFLAECHE
+#  Auf dem Handy gibt es keine Browserkonsole - ein Fehler in webui.js
+#  verpufft dort lautlos. Zwei Dateien daneben helfen, beide werden ueber
+#  js_include AN DIE STELLE von webui.js gesetzt:
+#
+#    web_server:
+#      js_include: "./diagnose.js"          roher Ereignisstrom, Zaehler,
+#                                           Verbindungszustand - beantwortet
+#                                           "schickt das Geraet ueberhaupt was?"
+#
+#    Bedienoberflaeche MIT Fehlerfaenger (schreibt Abstuerze gross auf die
+#    Seite): tools_fehlerfaenger.js und webui.js zusammenhaengen und das
+#    Ergebnis einhaengen -
+#      python -c "import io; io.open('webui-diagnose.js','w',encoding='utf-8').write(io.open('tools_fehlerfaenger.js',encoding='utf-8').read()+io.open('webui.js',encoding='utf-8').read())"
+#      js_include: "./webui-diagnose.js"
+#
+#  Danach wieder auf "./webui.js" zurueckstellen.
+#
 #  Bauen und seriell aufspielen:
 #      esphome run muster-supermini.yaml --device COMx
 #
@@ -140,4 +158,28 @@ wifi:
 #           level: INFO
 #           format: "MUSTER roll %d"
 #           args: ["(int) (id(roll).state * 100.0f)"]
+#
+
+# # --- Messreihe: Sensorrauschen ---------------------------------------------
+# #
+# # VORUEBERGEHEND. Schreibt die rohen Beschleunigungswerte in Mikro-g mit, je
+# # Achse eine Zeile, im Takt der Abtastung. Daraus wird am Rechner das
+# # Winkelrauschen bestimmt und die Abbildung des Reglers "Anzeigeruhe"
+# # (calm_* in hardware.yaml) neu gesetzt - die bisherigen Werte stammen vom
+# # MPU6050, der rund viermal mehr rauscht.
+# interval:
+#   - interval: 100ms
+#     then:
+#       - logger.log:
+#           level: INFO
+#           format: "MESSREIHE x %d"
+#           args: ["(int) (id(accel_x).state * 1000000.0f)"]
+#       - logger.log:
+#           level: INFO
+#           format: "MESSREIHE y %d"
+#           args: ["(int) (id(accel_y).state * 1000000.0f)"]
+#       - logger.log:
+#           level: INFO
+#           format: "MESSREIHE z %d"
+#           args: ["(int) (id(accel_z).state * 1000000.0f)"]
 #
