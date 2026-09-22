@@ -586,6 +586,96 @@ Platinenänderung, keine neue Zulassung — und lässt sich jederzeit über OTA
 nachliefern, auch an bereits verkaufte Geräte. Sie gehört deshalb **nicht auf
 den kritischen Pfad** vor der ersten Serie.
 
+## Ideen für 4.x — gesammelt am 22. September 2026
+
+Der Maßstab ist nicht „was wäre noch nett“, sondern: **Was können die
+Wettbewerber strukturell nicht?** Beide sind Batteriegerate mit Bluetooth,
+ohne Drehratenmessung und ohne Dauerstrom. Alles, was daraus folgt, ist
+verteidigbar; alles andere ist Beiwerk.
+
+Nichts davon ist beschlossen. Reihenfolge ist Vorschlag, nicht Plan.
+
+### 1. Akustische Auffahrhilfe — gebaut am 22.09.2026
+
+Beim Auffahren auf Keile schaut niemand aufs Handy — man sitzt am Lenkrad.
+Der Summer ist verbaut: Takt schneller werdend, je näher am Ziel, Dauerton
+bei „eben“. In einem Satz erklärt, in jedem Video zu zeigen, und von einem
+Batteriegerät ohne Summer nicht nachzubauen.
+
+Gebaut: Schalter *Auffahrton*, 50-ms-Takt, Abstand der Töne aus dem
+größten Hub einer Ecke (1000 ms ab zehn Zentimetern, 120 ms am Ziel, dann
+ein langer Ton). Drei Entscheidungen darin:
+
+- **Er folgt dem Zielprofil.** Gemessen wird am Hub je Ecke, und der enthält
+  Fahrzeugmaße, Fahrzeugart, Toleranz und Profil bereits. Wer im Profil
+  „Schlafen“ auffährt, wird zu dessen Ziel geführt.
+- **Er kommt nach einem Neustart immer aus** (`restore_mode: ALWAYS_OFF`) und
+  schaltet sich ab, sobald das Ziel erreicht ist. Das Gerät hängt am Bordnetz
+  und ist auch während der Fahrt an — ein Ton, der ungefragt losgeht, wäre
+  auf der Autobahn unerträglich. Dazu eine Abschaltung nach zehn Minuten.
+- **Der Alarm hat Vorrang.** Zwei Tonfolgen auf einem Summer sind keine
+  Information mehr.
+
+Offen: Lautstärke im Fahrerhaus — der MLT-8530 sitzt im Wohnraum, nicht in
+der Kabine. Das entscheidet sich erst an der Platine im Gehäuse.
+
+### 2. Push-Ziel für den Wächter
+
+Siehe „Fernalarm“ oben, Stufe 2 — hier nur die Einordnung: Es ist der
+größte offene Hebel. Ein Wächter, der nur im heimischen Netz meldet, nützt
+genau dann nichts, wenn man ihn braucht. Ein Feld für ntfy, Gotify oder
+Telegram, der Kunde trägt sein eigenes Ziel ein — keine Konten, keine
+Datenhaltung, keine Verfügbarkeitszusage.
+
+### 3. Wächter automatisch scharf
+
+„Nach 20 Minuten Ruhe von selbst“. Wer Home Assistant hat, baut sich das;
+wer keins hat, hat keinen Schutz, sobald er das Scharfschalten vergisst —
+und genau das vergisst man.
+
+Aufwand: klein. Ein Zahlenregler neben der Karenzzeit, 0 = aus.
+
+### 4. Nachtruhe für die Status-LED
+
+Eine rote LED im verdunkelten Wohnraum stört. Zeitfenster oder Helligkeit
+über PWM. Kommt in Bewertungen vor, kostet fast nichts.
+
+Aufwand: klein. Die LED hängt an GPIO8 und ist bereits schaltbar.
+
+### 5. Windwarnung / „Markise einfahren“
+
+Steht oben unter „Zurückgestellt“ mit dem Vermerk, dass Aufzeichnungen
+fehlen. Seit 4.0.0 läuft der LSM6DS3TR-C, und sein Rauschen ist gemessen
+(0,024°, siehe `docs/kalibrierung.md`) — die Aufzeichnungen lassen sich
+also im laufenden Betrieb sammeln. Die eigentliche Schwierigkeit bleibt: Wind
+von Menschen im Fahrzeug zu unterscheiden.
+
+Aufwand: mittel, plus Feldaufzeichnungen.
+
+### 6. Externer Temperaturfühler
+
+In `docs/mqtt.md` steht ausdrücklich: *„Die Innentemperatur ist kein
+Thermometer.“* Der Chip erwärmt sich selbst und sitzt dort, wo das Gehäuse
+klebt. Die Frostwarnung ist damit grob, und die Kalibrierprüfung rechnet mit
+einer Temperatur, die nicht die des Raums ist.
+
+Ein DS18B20 an der bereits vorhandenen Stiftleiste J4 macht daraus eine echte
+Frostwarnung — ein Bauteil unter einem Euro für ein Argument, das jeder
+versteht: warnt, bevor die Wasserleitung platzt.
+
+Aufwand: klein in der Firmware, ein Stecker am Gehäuse, Dokumentation. Die
+Chiptemperatur bleibt daneben bestehen: Sie überwacht die Kalibrierung, und
+dafür ist genau sie die richtige.
+
+### Nicht auf der Liste
+
+**Andere Produkte.** Die Gaswaage und alles Weitere stehen bis auf Weiteres
+nicht zur Disposition — die Arbeit konzentriert sich auf Level, bis es
+verkauft wird.
+
+**Eigene App, Bluetooth, eigener Server, Aktoren schalten.** Begründet oben:
+SIG-Gebühr, Plattformkosten, Haftung.
+
 ## Offene Punkte
 
 1. ~~MQTT ergänzen~~ — erledigt in 3.2.0, Fehler behoben in 3.5.1/3.5.2. Die
@@ -604,15 +694,19 @@ den kritischen Pfad** vor der ersten Serie.
    Weg zum Fernalarm, siehe oben —, schickt Passwort und Daten im Klartext.
    Vor jeder Empfehlung in diese Richtung nachzurüsten, und dabei gegen den
    Flash-Verbrauch zu prüfen: Stand 3.9.0 sind 71,7 % belegt.
-9. Push-Dienst als Fernalarm (Stufe 2), nach dem Verkaufsstart.
+9. Push-Dienst als Fernalarm (Stufe 2), nach dem Verkaufsstart — siehe
+   auch „Ideen für 4.x“, Punkt 2.
 10. **Achszuordnung und Vorzeichen am ersten Rev-B-Muster bestätigen.** Die
     Werte in den Substitutions sind aus dem Platinenlayout und der Achsfigur
     des ST-Datenblatts abgeleitet, nicht gemessen. Verfahren in
     `docs/kalibrierung.md`, Schritte 2 und 3. Am selben Muster: I²C-Scan
     zeigt 0x6A, Status-LED blinkt, Summer tönt hörbar, eigenes Netz sichtbar.
-11. **Glättung und Bewegungsschwelle am neuen Sensor nachmessen.** Beide
-    stehen auf den am Vorgängersensor erprobten Werten und lassen Genauigkeit
-    liegen. Braucht eine Messreihe am stehenden Fahrzeug mit einem Rev-B-Gerät.
+11. **Glättung und Bewegungsschwelle am neuen Sensor nachmessen.** Am
+    Handmuster am 22.09.2026 gemessen (673 Punkte, pitch σ 0,0242°): Die
+    Rauschgrenze steht jetzt auf 0,11° statt 0,25°, Verfahren in
+    `docs/kalibrierung.md`. **An Rev B zu wiederholen** — anderer Aufbau,
+    möglicherweise ruhiger. Die Bewegungsschwelle `motion_deg_s` (3,0 °/s)
+    ist noch unangetastet.
 12. ~~Board für die Serie festlegen~~ — entschieden, siehe „Der
     Hardwarewechsel", Punkt 3: eigene Platine mit ESP32-C3-WROOM-02.
 13. **Icon bei `home-assistant/brands` eintragen.** HACS und Home Assistant
@@ -625,6 +719,21 @@ den kritischen Pfad** vor der ersten Serie.
     verlangen eine öffentlich installierbare Integration. Das gelegentlich
     fehlende ESPHome-Icon am Gerät hat dieselbe Quelle und fehlt ohne
     Internet im Camper; daran ändert der Eintrag nichts.
+14. ~~**Home-Assistant-Blueprints.**~~ Gebaut am 22.09.2026, drei Stück in
+    `blueprints/automation/camperminder/` mit frei wählbarer Benachrichtigung
+    (Feld „Was soll passieren?“) — Kühlschrankwarnung, Wächteralarm,
+    Frostwarnung. **In einer echten Home-Assistant-Instanz noch zu erproben**,
+    und der Import über die Adresse geht erst, wenn das Repository öffentlich
+    ist (siehe Punkt 13). Begründung der Auslöserwahl in
+    `blueprints/README.md`. Ursprünglich notiert als — der
+    Wert entsteht nicht durch neue Funktionen, sondern dadurch, dass die
+    vorhandenen beim Kunden ohne Bastelei ankommen. Damit ist die Anbindung
+    an Home Assistant abgeschlossen.
+15. **Verschlüsselung der MQTT-Verbindung.** Dieselbe Sache wie Punkt 8, aber
+    aus Kundensicht: Die Schnittstelle ist bewusst offen, damit jeder seinen
+    eigenen Broker anbinden kann — genau deshalb gehört TLS dazu, bevor das
+    beworben wird. Ohne sie gehen Passwort und Messwerte im Klartext über die
+    Leitung, sobald der Broker nicht im Heimnetz steht.
 
 ## Marktumfeld, zur Einordnung
 

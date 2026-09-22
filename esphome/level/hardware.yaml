@@ -811,6 +811,18 @@ globals:
     type: uint32_t
     initial_value: "0"
 
+  # --- Auffahrhilfe ---------------------------------------------------------
+  #
+  # In MILLISEKUNDEN, nicht in Sekunden wie beim Alarm: Der Takt geht bis auf
+  # 120 ms herunter, und mit Sekundenauflösung gäbe es genau zwei
+  # unterscheidbare Geschwindigkeiten.
+  - id: auffahr_seit
+    type: uint32_t
+    initial_value: "0"
+  - id: auffahr_letzt
+    type: uint32_t
+    initial_value: "0"
+
   # --- Anwesenheit ----------------------------------------------------------
   #
   # Wann zuletzt jemand am Fahrzeug war. Wird IMMER mitgeschrieben, auch
@@ -1444,6 +1456,29 @@ switch:
     entity_category: config
     optimistic: true
     restore_mode: RESTORE_DEFAULT_ON
+
+  # --- Auffahrton ------------------------------------------------------------
+  #
+  # Die akustische Auffahrhilfe. Beim Auffahren auf Keile sitzt man am Lenkrad
+  # und kann nicht aufs Handy schauen - genau in den zwei Minuten, in denen
+  # das Gerät gebraucht wird, ist seine Anzeige unerreichbar. Der Summer
+  # taktet deshalb schneller, je näher am Ziel, und gibt bei "eben" einen
+  # langen Ton.
+  #
+  # RESTORE_MODE ALWAYS_OFF, und das ist keine Kleinigkeit: Das Gerät hängt am
+  # Bordnetz und ist auch während der Fahrt an. Käme der Schalter nach einem
+  # Neustart scharf zurück, piepte es auf der Autobahn. Er wird vor dem
+  # Auffahren eingeschaltet und schaltet sich selbst aus, sobald das Ziel
+  # erreicht ist - siehe den interval-Block weiter unten.
+  - platform: template
+    name: "Auffahrton"
+    id: auffahrton
+    state_topic: camperminder/level/switch/auffahrton/state
+    command_topic: camperminder/level/switch/auffahrton/command
+    icon: mdi:volume-high
+    entity_category: config
+    optimistic: true
+    restore_mode: ALWAYS_OFF
 
   # --- Wächter ---------------------------------------------------------------
   #
@@ -2379,6 +2414,73 @@ interval:
           if (jetzt - id(summer_letzt) <  10) return;
           id(summer_letzt) = jetzt;
           id(summer).play("alarm:d=16,o=7,b=180:e,p,e,p,e");
+
+  # --- Akustische Auffahrhilfe ----------------------------------------------
+  #
+  # 50-ms-Takt, weil der Abstand zwischen zwei Tönen bis auf 120 ms
+  # heruntergeht. Gemessen wird am größten Hub einer Ecke - dieser Wert liegt
+  # fertig vor und enthält schon alles: Fahrzeugmaße, Fahrzeugart, Toleranz
+  # und das gewählte Zielprofil. Wer im Profil "Schlafen" auffährt, wird zu
+  # DESSEN Ziel geführt, nicht nach null.
+  #
+  #   10 cm und mehr  ->  1000 ms Abstand
+  #   am Ziel         ->  ein langer Ton, danach schaltet sich der Ton ab
+  #
+  # Der Alarm hat Vorrang: Läuft der Wächter, gehört der Summer ihm. Zwei
+  # Tonfolgen auf einem Summer sind keine Information mehr.
+  - interval: 50ms
+    then:
+      - lambda: |-
+          if (!id(auffahrton).state) {
+            id(auffahr_seit) = 0;
+            return;
+          }
+          if (id(wache_alarm)) return;
+
+          const uint32_t jetzt = millis();
+          if (id(auffahr_seit) == 0) {
+            id(auffahr_seit)  = jetzt;
+            id(auffahr_letzt) = 0;
+          }
+
+          /* Sicherheitsabschaltung nach zehn Minuten. Wer den Ton
+           * einschaltet und dann doch nicht auffährt, soll ihn nicht auf der
+           * Weiterfahrt mitnehmen. */
+          if (jetzt - id(auffahr_seit) > 600000) {
+            id(auffahrton).turn_off();
+            return;
+          }
+
+          if (isnan(id(pitch).state) || isnan(id(roll).state)) return;
+          if (id(summer).is_playing()) return;
+
+          /* Am Ziel: ein langer Ton, dann ist der Auftrag erledigt. Das
+           * Abschalten ist gewollt - beim nächsten Auffahren wird neu
+           * eingeschaltet, und dadurch kann der Ton nie ungefragt losgehen. */
+          if (id(camper_level_ok).state) {
+            id(summer).play("ziel:d=2,o=7,b=100:e");
+            id(auffahrton).turn_off();
+            return;
+          }
+
+          // Der größte Hub einer Ecke, in Zentimetern.
+          float rest = 0.0f;
+          const float ecken[4] = {
+            id(hub_vorne_links).state, id(hub_vorne_rechts).state,
+            id(hub_hinten_links).state, id(hub_hinten_rechts).state};
+          for (int i = 0; i < 4; i++) {
+            if (!isnan(ecken[i]) && ecken[i] > rest) rest = ecken[i];
+          }
+
+          // 120 ms am Ziel, 1000 ms ab zehn Zentimetern, dazwischen linear.
+          float takt = 120.0f + rest * 88.0f;
+          if (takt > 1000.0f) takt = 1000.0f;
+
+          if (id(auffahr_letzt) != 0 &&
+              jetzt - id(auffahr_letzt) < (uint32_t) takt) return;
+
+          id(auffahr_letzt) = jetzt;
+          id(summer).play("auf:d=32,o=7,b=200:e");
 
 binary_sensor:
   # id, weil die OLED-Anzeige daran abliest, ob eine Zentrale mithört. Ohne

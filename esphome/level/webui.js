@@ -157,6 +157,8 @@
       label_ablassneigung: "Neigung zum Ablass (cm)",
       label_ablasspunkt: "Wo sitzt der Ablass?",
       label_achse_stuetzrad: "Achse → Stützrad (mm)",
+      label_auffahrton: "Auffahrton",
+      hilfe_auffahrton: "Beim Auffahren auf die Keile sitzt du am Lenkrad und kannst nicht aufs Handy schauen. Eingeschaltet tönt der Summer, und zwar umso schneller, je näher du am Ziel bist – ein langer Ton heißt: steht. Danach schaltet er sich selbst wieder aus, damit er auf der Weiterfahrt still bleibt.",
       label_alarmton: "Alarmton",
       label_anzeigeruhe: "Anzeigeruhe (0–10)",
       label_driftwarnung: "Driftwarnung ab (K)",
@@ -414,6 +416,8 @@
       label_ablassneigung: "Tilt towards the drain (cm)",
       label_ablasspunkt: "Where is the drain?",
       label_achse_stuetzrad: "Axle → jockey wheel (mm)",
+      label_auffahrton: "Ramp guidance tone",
+      hilfe_auffahrton: "While driving onto the ramps you are at the wheel and cannot look at your phone. Switched on, the buzzer beeps – faster the closer you get, and one long tone means you are there. It then switches itself off so it stays quiet as you drive on.",
       label_alarmton: "Alarm sound",
       label_anzeigeruhe: "Display steadiness (0–10)",
       label_driftwarnung: "Drift warning above (K)",
@@ -661,7 +665,7 @@
     drift_limit: 20, temp_offset: 0, frost_limit: 3,
     /* Beide ab Werk an. Ein Geraet ohne Display, das nicht blinkt und nicht
      * toent, ist von einem defekten nicht zu unterscheiden. */
-    status_led: true, alarm_sound: true,
+    status_led: true, alarm_sound: true, ramp_sound: false,
     method: "keile", vehicle: "wohnmobil", mounting: "oben"
   };
 
@@ -742,7 +746,10 @@
      * "alarmton" ist von "waechter_alarm" verschieden genug, dass indexOf sie
      * nicht verwechselt. */
     status_led: "status_led",
-    alarm_sound: "alarmton"
+    alarm_sound: "alarmton",
+    /* Die akustische Auffahrhilfe. "auffahrton" steckt in keiner anderen
+     * Kennung - der Alarmton heisst schlicht "alarmton". */
+    ramp_sound: "auffahrton"
   };
 
   var METHOD_LIFT = "Hydraulik oder Luftkissen";
@@ -2203,7 +2210,10 @@
     geraet.appendChild(el('<div class="muted" style="margin-bottom:10px">' +
       t("hilfe_status_led") + "</div>"));
     schalterZeile(geraet, "alarm_sound", t("label_alarmton"));
-    geraet.appendChild(el('<div class="muted">' + t("hilfe_alarmton") + "</div>"));
+    geraet.appendChild(el('<div class="muted" style="margin-bottom:10px">' +
+      t("hilfe_alarmton") + "</div>"));
+    schalterZeile(geraet, "ramp_sound", t("label_auffahrton"));
+    geraet.appendChild(el('<div class="muted">' + t("hilfe_auffahrton") + "</div>"));
 
     /* Mehrere Kaesten, ein Rueckgabewert: appendChild fuegt bei einem Fragment
      * alle Kinder ein, der Aufrufer bleibt unveraendert. */
@@ -2914,6 +2924,7 @@
       }
       else if (id.indexOf(IDS.status_led) >= 0) cfg.status_led = data.value === true || data.state === "ON";
       else if (id.indexOf(IDS.alarm_sound) >= 0) cfg.alarm_sound = data.value === true || data.state === "ON";
+      else if (id.indexOf(IDS.ramp_sound) >= 0) cfg.ramp_sound = data.value === true || data.state === "ON";
       else if (id.indexOf(IDS.calm) >= 0) cfg.calm = num(data.value);
       else if (id.indexOf(IDS.hold_percent) >= 0) cfg.hold_percent = num(data.value);
       else if (id.indexOf(IDS.precise) >= 0) {

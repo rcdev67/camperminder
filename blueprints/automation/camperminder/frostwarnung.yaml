@@ -1,0 +1,65 @@
+blueprint:
+  name: CamperMinder Level - Frostwarnung
+  description: >-
+    Meldet, wenn es im Fahrzeug kalt wird — bevor die Wasserleitung platzt.
+
+
+    **Eine Einschränkung, die man kennen muss:** Das Gerät misst die
+    Temperatur **seines eigenen Chips**, nicht die der Raumluft. Der Chip
+    erwärmt sich selbst und sitzt dort, wo das Gehäuse klebt. Für eine
+    Frostwarnung reicht das, sobald der Abgleich unter *Gerät →
+    Temperatur Abgleich* einmal gegen ein Thermometer gesetzt wurde. Für eine
+    Klimaregelung reicht es nicht.
+
+
+    Der Grenzwert steht im Gerät (*Frostwarnung unter*, Vorgabe 3 °C) und gilt
+    auch ohne Home Assistant — diese Automatisierung bringt die Meldung nur
+    dorthin, wo du sie liest.
+  domain: automation
+  source_url: https://github.com/rcdev67/camperminder/blob/main/blueprints/automation/camperminder/frostwarnung.yaml
+  input:
+    frost:
+      name: Frostgefahr
+      description: Der Melder des Geräts (`binary_sensor`, endet auf „Frostgefahr").
+      selector:
+        entity:
+          filter:
+            - domain: binary_sensor
+    temperatur:
+      name: Innentemperatur
+      description: >-
+        Der Temperaturwert des Geräts. Er wird in die Meldung geschrieben.
+      default: {}
+      selector:
+        entity:
+          filter:
+            - domain: sensor
+              device_class: temperature
+    benachrichtigung:
+      name: Was soll passieren?
+      description: >-
+        Frei wählbar — Handymeldung, Heizung einschalten, Licht. Der Text steht
+        in `meldung` bereit.
+      selector:
+        action: {}
+
+mode: single
+max_exceeded: silent
+
+variables:
+  temperatur_entitaet: !input temperatur
+  meldung: >-
+    {% if temperatur_entitaet is string and temperatur_entitaet | length > 0 %}
+      Frostgefahr im Fahrzeug: {{ states(temperatur_entitaet) }} °C.
+    {% else %}
+      Frostgefahr im Fahrzeug - die Temperatur liegt unter dem Grenzwert.
+    {% endif %}
+
+trigger:
+  - platform: state
+    entity_id: !input frost
+    to: "on"
+
+action:
+  - choose: []
+    default: !input benachrichtigung
