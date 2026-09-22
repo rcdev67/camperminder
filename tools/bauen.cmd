@@ -48,6 +48,22 @@ if not exist "%ROOT%\esphome\level\secrets.yaml" (
 )
 
 echo ============================================================
+echo  Geraeteschnittstelle pruefen
+echo ============================================================
+rem Prueft die Annahmen, auf die sich webui.js stuetzt, gegen den
+rem Quelltext der installierten ESPHome-Fassung. Am 22.09.2026 war die
+rem Geraeteseite einen ganzen Tag tot, weil ESPHome das Format der
+rem Entitaetskennungen geaendert hatte - ohne Absturz, ohne Meldung.
+"%ROOT%\.venv\Scripts\python.exe" "%~dp0pruefe_esphome.py"
+if errorlevel 1 (
+  echo.
+  echo Der Bau wurde abgebrochen. Meldung oben lesen.
+  echo.
+  pause
+  exit /b 1
+)
+
+echo ============================================================
 echo  Firmware bauen
 echo ============================================================
 pushd "%ROOT%\esphome\level"

@@ -65,7 +65,12 @@ echo.
 if errorlevel 1 goto :fehlgeschlagen
 
 "%ROOT%\.venv\Scripts\python.exe" -m pip install --upgrade pip
-"%ROOT%\.venv\Scripts\python.exe" -m pip install esphome
+rem NUR die festgenagelte Fassung aus requirements.txt - kein blankes
+rem "pip install esphome". Die ESPHome-Fassung bestimmt das Format der
+rem Geraeteschnittstelle, auf das webui.js sich stuetzt; ein zufaelliger
+rem Sprung hat am 22.09.2026 die Geraeteseite vollstaendig ausfallen
+rem lassen. Die Begruendung steht in requirements.txt.
+"%ROOT%\.venv\Scripts\python.exe" -m pip install -r "%ROOT%\requirements.txt"
 if errorlevel 1 goto :fehlgeschlagen
 if not exist "%ESPHOME%" goto :fehlgeschlagen
 

@@ -1,0 +1,26 @@
+# Die ESPHome-Fassung, gegen die gebaut, geprueft und ausgeliefert wird.
+#
+# EXAKT FESTGENAGELT, mit Absicht. Bis zum 22.09.2026 stand in
+# tools/einrichten.cmd ein "pip install esphome" ohne Angabe - damit war die
+# Fassung, gegen die wir bauen, Zufall. Genau daran ist an diesem Tag die
+# Geraeteseite vollstaendig ausgefallen: ESPHome hatte das Format der
+# Entitaetskennungen im Ereignisstrom geaendert
+#
+#     bis 2026.7:  sensor-neigung_pitch
+#     ab  2026.8:  sensor/Neigung Pitch      (set_json_id in web_server.cpp)
+#
+# und webui.js suchte weiter nach dem alten. Kein Absturz, keine Meldung -
+# die Seite fand schlicht keine Entitaet wieder und blieb leer. Beim Kunden
+# waere das nach einem OTA-Update auf dem Stellplatz aufgefallen.
+#
+# EINE FASSUNG ZU WECHSELN IST DESHALB EINE ENTSCHEIDUNG, KEIN NEBENEFFEKT:
+#   1. Nummer hier aendern.
+#   2. tools/pruefe_esphome.py laufen lassen - es prueft die Annahmen, auf
+#      die sich webui.js stuetzt, gegen den Quelltext der neuen Fassung.
+#   3. tools/stub_erzeugen.py neu laufen lassen und die Seite gegen den
+#      Prüfstand durchsehen.
+#   4. Erst dann ein Release bauen. build_release.ps1 bricht ab, solange die
+#      installierte Fassung von dieser abweicht.
+#
+# Der Ablauf steht in docs/firmware_update.md, Abschnitt "ESPHome wechseln".
+esphome==2026.8.2

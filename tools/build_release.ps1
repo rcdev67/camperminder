@@ -24,6 +24,23 @@ $here = Join-Path $root 'esphome\level'
 
 $repoUrl = 'https://github.com/rcdev67/camperminder'
 
+# --- Geraeteschnittstelle pruefen -------------------------------------------
+# Der letzte Halt, bevor etwas zum Kunden geht. Weicht die installierte
+# ESPHome-Fassung von requirements.txt ab, oder stimmt eine der Annahmen der
+# Geraeteseite nicht mehr, bricht das Release ab.
+#
+# Der Grund steht in tools/pruefe_esphome.py: Ein solcher Bruch ist stumm.
+# Die Firmware laeuft, die Seite bleibt leer - und der Kunde merkt es erst
+# nach dem OTA-Update auf dem Stellplatz.
+$pruefer = Join-Path $PSScriptRoot 'pruefe_esphome.py'
+$python = Join-Path $root '.venv\Scripts\python.exe'
+if (-not (Test-Path $python)) { throw "Nicht gefunden: $python  (tools\einrichten.cmd ausfuehren)" }
+& $python $pruefer
+if ($LASTEXITCODE -ne 0) {
+  throw "Die Pruefung der Geraeteschnittstelle ist fehlgeschlagen - kein Release. Meldung oben lesen."
+}
+
+
 # --- Version aus der einen Quelle lesen ------------------------------------
 $hardware = Join-Path $here 'hardware.yaml'
 if (-not (Test-Path $hardware)) { throw "Nicht gefunden: $hardware" }
@@ -93,12 +110,20 @@ Write-Host "Bedienoberflaeche traegt dieselbe Nummer: $seitenVersion"
 # Gesucht wird der Name, den ESPHome vergibt. Das Produktpräfix bekommt erst
 # die Kopie im Ausgabeordner - die Release-Anhänge müssen je Produkt
 # unterscheidbar sein, im Bauverzeichnis heißen sie bei allen gleich.
-$candidates = Get-ChildItem (Join-Path $root 'esphome') -Recurse -Filter 'firmware.ota.bin' -ErrorAction SilentlyContinue |
-              Sort-Object LastWriteTime -Descending
-if (-not $candidates) {
-  throw "firmware.ota.bin nicht gefunden. Erst bauen:  esphome compile camperminder-level.yaml"
+# NUR das Bauverzeichnis des PRODUKTS. Vorher stand hier die neueste
+# firmware.ota.bin unterhalb von esphome/ - und das war beim Gegentest am
+# 22.09.2026 das Handmuster (camperminder-muster). Ein Release haette
+# damit die Musterfirmware ausgeliefert: gedrosselte Sendeleistung,
+# anderer Geraetename, Achsen eines handgeloeteten Breakouts. Der Name
+# kommt aus der Gerätedatei, nicht aus einer Suche.
+$geraeteName = 'camperminder-level'
+$bauPfad = Join-Path $here (Join-Path '.esphome\build' (Join-Path $geraeteName 'build'))
+$bin = Get-Item (Join-Path $bauPfad 'firmware.ota.bin') -ErrorAction SilentlyContinue
+if (-not $bin) {
+  throw "Nicht gefunden: $bauPfad\firmware.ota.bin
+Erst das PRODUKT bauen:  esphome compile camperminder-level.yaml
+(Ein Musterbau unter .esphome\build\camperminder-muster zaehlt nicht.)"
 }
-$bin = $candidates[0]
 Write-Host ("Firmware: {0}  ({1:N0} Bytes, {2})" -f $bin.FullName, $bin.Length, $bin.LastWriteTime)
 
 # Die Factory-Datei liegt daneben und enthält zusätzlich Bootloader und
