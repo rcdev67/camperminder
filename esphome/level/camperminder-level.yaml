@@ -112,6 +112,9 @@ ota:
   - platform: web_server
 
 http_request:
+  # Kennung, weil der Fernalarm denselben Baustein benutzt wie die
+  # Update-Pruefung - siehe script push_senden in hardware.yaml.
+  id: netz_anfrage
   # Bleibt bei der Voreinstellung true, prüft also das Zertifikat von GitHub.
   # Scheitert der Handschlag auf dem Gerät, hier verify_ssl: false setzen -
   # dann fällt allerdings die Echtheitsprüfung weg und ein Angreifer im

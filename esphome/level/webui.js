@@ -78,6 +78,15 @@
       hilfe_bewegung: "Erschütterung – jemand steigt ein, Wind, der Nachbar rangiert. Kein Alarm.",
       hilfe_driftwarnung: "Ändert sich die Temperatur so weit gegenüber der Kalibrierung, rät das Gerät zum Nachkalibrieren – Wärme verschiebt den Nullpunkt. 20 Kelvin sind ein guter Wert, kleiner meldet sich öfter.",
       hilfe_einbaulage: "„Deckel unten“ heißt: unter ein Regalbrett oder eine Decke geklebt, der Pfeil zeigt weiterhin nach vorn. Nach dem Umstellen einmal neu kalibrieren.",
+      kopf_fernalarm: "Fernalarm",
+      hilfe_fernalarm: "Der Wächter meldet sich sonst nur in dem Netz, in dem auch das Fahrzeug hängt – wer am Strand steht, während das Fahrzeug aufgebockt wird, erfährt es erst bei der Rückkehr. Trag hier die Adresse deines eigenen Push-Dienstes ein, dann schickt das Gerät die Meldung selbst dorthin. Kein Konto bei uns, keine Daten bei uns.<br><br><b>Telegram</b> – kostenlos und der einfachste Weg. Bot bei @BotFather anlegen, dann:<br><code>https://api.telegram.org/bot&lt;Kennung&gt;/sendMessage?chat_id=&lt;Nr&gt;&amp;text={text}</code><br><br><b>Home Assistant</b> – wenn du es ohnehin betreibst. Der Webhook löst eine Automatisierung aus, und die meldet, wohin du willst:<br><code>https://dein-ha/api/webhook/xyz</code><br><br><b>Eigener Dienst</b> – Node-RED, n8n, ntfy auf dem eigenen Server: einfach die Adresse deines Ablaufs.<br><br><b>Wichtig:</b> <code>{text}</code> bleibt wörtlich so stehen – dort setzt das Gerät seine Meldung selbst ein. Schreib dort nicht deinen eigenen Text hinein. Ohne <code>{text}</code> schickt das Gerät die Meldung als Text an die Adresse.<br><br>Dienste, die ein bestimmtes Formularformat verlangen (Pushover zum Beispiel), gehen nicht direkt – dafür ist der Umweg über einen Webhook der Weg. Leer lassen schaltet den Fernalarm ab.",
+      platzhalter_fernalarm: "https://api.telegram.org/bot…/sendMessage?chat_id=…&text={text}",
+      fernalarm_speichern: "Fernalarm speichern",
+      fernalarm_testen: "Testmeldung senden",
+      fernalarm_gespeichert: "Gespeichert. Schick jetzt eine Testmeldung – ein Alarmweg, den du nie ausprobiert hast, ist keiner.",
+      fernalarm_aus: "Fernalarm abgeschaltet – es wird nichts verschickt.",
+      fernalarm_test_laeuft: "Testmeldung wird verschickt …",
+      fernalarm_test_gesendet: "Verschickt. Kommt sie nicht an, stimmt die Adresse nicht – das Gerät erfährt vom Dienst nur, ob er sie angenommen hat.",
       hilfe_frost: "Das Gerät misst seine eigene Temperatur, nicht die der Raumluft. Für eine Frostwarnung reicht das, sobald du den Abgleich unter „Gerät“ einmal gegen ein Thermometer gesetzt hast.",
       hilfe_haltebereich: "Wie weit die Neigung über die Toleranz hinausgehen darf, bevor die Anzeige „eben“ zurücknimmt. Höher setzen, wenn sie an der Grenze hin und her springt.",
       hilfe_karenzzeit: "So lange nach dem Scharfschalten meldet der Wächter nichts – Zeit zum Aussteigen.",
@@ -337,6 +346,15 @@
       hilfe_bewegung: "A shake – someone getting in, wind, the neighbour manoeuvring. Not an alarm.",
       hilfe_driftwarnung: "If the temperature moves this far from the one at calibration, the device suggests calibrating again – heat shifts the zero point. 20 kelvin is a good value, lower means more reminders.",
       hilfe_einbaulage: "“Lid facing down” means: stuck under a shelf or a ceiling, with the arrow still pointing forwards. Calibrate once after changing it.",
+      kopf_fernalarm: "Remote alert",
+      hilfe_fernalarm: "Otherwise the guard only reaches you inside the same network as the vehicle – if you are on the beach while it gets jacked up, you find out when you come back. Enter the address of your own push service here and the device sends the message there itself. No account with us, no data with us.<br><br><b>Telegram</b> – free and the simplest route. Create a bot with @BotFather, then:<br><code>https://api.telegram.org/bot&lt;token&gt;/sendMessage?chat_id=&lt;id&gt;&amp;text={text}</code><br><br><b>Home Assistant</b> – if you run it anyway. The webhook triggers an automation and that notifies wherever you like:<br><code>https://your-ha/api/webhook/xyz</code><br><br><b>Your own service</b> – Node-RED, n8n, a self-hosted ntfy: just the address of your flow.<br><br><b>Important:</b> leave <code>{text}</code> exactly as it is – that is where the device inserts its own message. Do not put your own text there. Without <code>{text}</code> the device sends the message as the body.<br><br>Services that require a particular form format (Pushover, for example) do not work directly – a webhook is the way for those. Leave it empty to switch the remote alert off.",
+      platzhalter_fernalarm: "https://api.telegram.org/bot…/sendMessage?chat_id=…&text={text}",
+      fernalarm_speichern: "Save remote alert",
+      fernalarm_testen: "Send a test message",
+      fernalarm_gespeichert: "Saved. Send a test message now – an alert path you have never tried is not an alert path.",
+      fernalarm_aus: "Remote alert switched off – nothing will be sent.",
+      fernalarm_test_laeuft: "Sending a test message …",
+      fernalarm_test_gesendet: "Sent. If it does not arrive, the address is wrong – the device only learns whether the service accepted it.",
       hilfe_frost: "The device measures its own temperature, not the air in the room. That is good enough for a frost warning once you have set the offset under “Device” against a thermometer.",
       hilfe_haltebereich: "How far the tilt may go beyond the tolerance before the display takes back “level”. Set it higher if the display flips back and forth at the limit.",
       hilfe_karenzzeit: "For this long after arming, the guard stays quiet – time to get out.",
@@ -1939,6 +1957,7 @@
   var profileSelect = null;
   var mqttNote = null;
   var mqttBroker = null;
+  var pushZiel = null;
   var mqttUser = null;
   var mqttPort = null;
   var settingsNote = null;
@@ -2287,6 +2306,9 @@
      * wollte und speicherte, schickte ein leeres Brokerfeld mit - und leer
      * schaltet MQTT ab. Das Passwortfeld bleibt leer, dort heißt leer beim
      * Speichern "unverändert". */
+    if (pushZiel && pushZiel !== focused) {
+      pushZiel.value = findStateOf("text", "fernalarm_adresse") || "";
+    }
     if (mqttBroker && mqttBroker !== focused) {
       mqttBroker.value = findStateOf("text", "mqtt_broker") || "";
     }
@@ -2737,6 +2759,99 @@
     box.appendChild(mPass);
     box.appendChild(mBtn);
     box.appendChild(mNote);
+
+    /* Fernalarm.
+     *
+     * Steht hinter MQTT, weil beides dieselbe Frage beantwortet: Wie kommt
+     * eine Meldung aus dem Fahrzeug heraus? MQTT ist der Weg fuer die, die
+     * ohnehin ein System betreiben - der Fernalarm ist der Weg fuer alle
+     * anderen.
+     *
+     * Ohne ihn stimmt der wichtigste Satz ueber den Waechter nur mit
+     * Einschraenkung: Er erreicht sonst nur, wer im selben Netz ist - und
+     * das ist genau der, der nicht gewarnt werden muss. */
+    box.appendChild(el('<div class="grouphead" style="margin-top:22px">' +
+      t("kopf_fernalarm") + "</div>"));
+    box.appendChild(el('<div class="muted" style="line-height:1.5">' +
+      t("hilfe_fernalarm") + "</div>"));
+
+    var pZiel = el('<input type="text" style="width:100%;margin-top:10px">');
+    pZiel.placeholder = t("platzhalter_fernalarm");
+    var pBtn = el('<button class="act ghost" style="margin-top:8px"></button>');
+    pBtn.textContent = t("fernalarm_speichern");
+    var pTestBtn = el('<button class="act ghost" style="margin-top:8px"></button>');
+    pTestBtn.textContent = t("fernalarm_testen");
+    var pNote = el('<div class="muted" style="margin-top:10px;line-height:1.5;white-space:pre-line"></div>');
+
+    function pSay(text, kind) {
+      pNote.textContent = text;
+      pNote.style.color = kind === "bad" ? "#ff7a7a" : kind === "good" ? "#37d67a" : "#cfd6de";
+      pNote.style.fontWeight = kind ? "700" : "400";
+    }
+
+    pushZiel = pZiel;
+    pZiel.value = findStateOf("text", "fernalarm_adresse") || "";
+
+    pBtn.onclick = function () {
+      var pfad = pathFor("text", "fernalarm_adresse");
+      var pSpeichern = pathFor("button", "fernalarm_speichern");
+      if (!pfad || !pSpeichern) {
+        pSay(t("kennt_einstellung_nicht"), "bad");
+        return;
+      }
+      pBtn.disabled = true;
+      pSay(t("uebertrage"));
+      setText(pfad, pZiel.value, function (ok) {
+        if (!ok) { pBtn.disabled = false; pSay(t("eingabe_nicht_angenommen"), "bad"); return; }
+        press("fernalarm_speichern", function (status) {
+          pBtn.disabled = false;
+          if (status < 200 || status >= 300) { pSay(t("eingabe_nicht_angenommen"), "bad"); return; }
+          pSay(t(pZiel.value ? "fernalarm_gespeichert" : "fernalarm_aus"), "good");
+        });
+      });
+    };
+
+    /* Der Test ist kein Beiwerk: Ein Alarmweg, den niemand ausprobiert hat,
+     * ist keiner. Wer sich darauf verlaesst und erst im Ernstfall merkt, dass
+     * die Adresse einen Tippfehler hat, ist schlechter dran als ohne.
+     *
+     * ERST SPEICHERN, DANN SENDEN. Das Geraet testet die GESPEICHERTE
+     * Adresse - wer im Feld etwas korrigiert und gleich auf Test drueckt,
+     * pruefte sonst den alten Stand und bekaeme ein Ergebnis, das nichts mit
+     * dem zu tun hat, was er vor sich sieht. Genau das ist am 23.09.2026
+     * passiert und hat eine Runde gekostet. */
+    pTestBtn.onclick = function () {
+      var pfad = pathFor("text", "fernalarm_adresse");
+      var pSpeichern = pathFor("button", "fernalarm_speichern");
+      var pTesten = pathFor("button", "fernalarm_testen");
+      if (!pfad || !pSpeichern || !pTesten) {
+        pSay(t("kennt_einstellung_nicht"), "bad");
+        return;
+      }
+      pTestBtn.disabled = true;
+      pSay(t("fernalarm_test_laeuft"));
+      setText(pfad, pZiel.value, function (ok) {
+        if (!ok) { pTestBtn.disabled = false; pSay(t("eingabe_nicht_angenommen"), "bad"); return; }
+        press("fernalarm_speichern", function (gespeichert) {
+          if (gespeichert < 200 || gespeichert >= 300) {
+            pTestBtn.disabled = false;
+            pSay(t("eingabe_nicht_angenommen"), "bad");
+            return;
+          }
+          press("fernalarm_testen", function (status) {
+            pTestBtn.disabled = false;
+            pSay(t(status >= 200 && status < 300
+              ? "fernalarm_test_gesendet" : "eingabe_nicht_angenommen"),
+              status >= 200 && status < 300 ? "good" : "bad");
+          });
+        });
+      });
+    };
+
+    box.appendChild(pZiel);
+    box.appendChild(pBtn);
+    box.appendChild(pTestBtn);
+    box.appendChild(pNote);
 
     /* Werksreset. Steht bewusst hier unten und nicht bei den Bedienelementen
      * oben - er löscht WLAN, Kalibrierung und Fahrzeugmaße auf einmal. */

@@ -384,6 +384,12 @@ esphome:
             id(mqtt_broker_input).publish_state(id(mqtt_broker));
             id(mqtt_user_input).publish_state(id(mqtt_user));
 
+            /* Dasselbe fuer den Fernalarm: Das Feld zeigt, was gespeichert
+             * ist. Ein leeres Feld heisst dann auch wirklich "aus" und nicht
+             * "nie ausgefuellt" - der Speicherknopf darf sich darauf
+             * verlassen. */
+            id(push_ziel_input).publish_state(id(push_ziel));
+
             if (strlen(id(mqtt_broker)) == 0) return;
             mqtt::global_mqtt_client->enable();
 
@@ -891,6 +897,116 @@ globals:
   - id: mqtt_pass
     type: char[65]
     restore_value: true
+
+  # --- Fernalarm: das Ziel des Kunden ---------------------------------------
+  #
+  # Die vollstaendige Adresse eines Push-Dienstes, so wie der Kunde sie von
+  # seinem Anbieter bekommt. 191 Zeichen reichen fuer ntfy, Gotify und auch
+  # fuer Telegram mit Bot-Kennung und Chat-Nummer.
+  #
+  # Leer heisst aus. Wie beim MQTT-Broker: Wer den Fernalarm nicht benutzt,
+  # merkt nichts davon - es wird nichts versucht und nichts protokolliert.
+  - id: push_ziel
+    type: char[192]
+    restore_value: true
+
+# --- Fernalarm: die Meldung nach draussen ----------------------------------
+#
+# ZWEI BETRIEBSARTEN, und die Unterscheidung ist die ganze Kunst daran:
+#
+#   Adresse ohne {text}   -> die Meldung geht als Rumpf einer POST-Anfrage
+#                            raus. So arbeiten ntfy und Gotify.
+#                            Beispiel:  https://ntfy.sh/mein-wohnmobil
+#
+#   Adresse mit {text}    -> die Meldung wird an dieser Stelle in die Adresse
+#                            eingesetzt (und dafuer kodiert), dann GET.
+#                            So arbeitet Telegram.
+#                            Beispiel:  https://api.telegram.org/bot<Kennung>/
+#                                       sendMessage?chat_id=<Nummer>&text={text}
+#
+# Damit deckt EIN Eingabefeld die verbreiteten Dienste ab, ohne dass das
+# Geraet einen davon kennen muss. Kein Konto bei uns, keine Daten bei uns,
+# keine Verfuegbarkeitszusage - das war die Bedingung, unter der Stufe 2
+# ueberhaupt gebaut wurde (docs/produktentscheidungen.md, "Fernalarm").
+#
+# Der Aufruf blockiert bis zum Zeitlimit des http_request-Bausteins (15 s).
+# Das ist hier vertretbar: Er laeuft einmal beim Einrasten des Alarms und
+# einmal auf Knopfdruck, nicht im Takt.
+script:
+  - id: push_senden
+    parameters:
+      text: string
+    then:
+      - lambda: |-
+          if (strlen(id(push_ziel)) == 0) return;
+
+          std::string adresse = id(push_ziel);
+
+          /* Die drei Faelle, die wirklich vorkommen - und zwar BEVOR gesendet
+           * wird. Sonst meldet der HTTP-Baustein nur "client could not be
+           * initialized", und die Seite zeigt "keine Verbindung": Das schickt
+           * den Nutzer los, sein WLAN zu pruefen, waehrend in Wahrheit ein
+           * Tippfehler in der Adresse steht. */
+          if (adresse.compare(0, 7, "http://") != 0 &&
+              adresse.compare(0, 8, "https://") != 0) {
+            ESP_LOGW("push", "Adresse muss mit https:// beginnen - nicht gesendet.");
+            return;
+          }
+          if (adresse.find(' ') != std::string::npos) {
+            ESP_LOGW("push", "Adresse enthaelt ein Leerzeichen - gehoert dort "
+                             "nicht hin. Der Platzhalter heisst {text}, dein "
+                             "eigener Text gehoert nicht in die Adresse.");
+            return;
+          }
+          if (adresse.find('{') != std::string::npos &&
+              adresse.find("{text}") == std::string::npos) {
+            ESP_LOGW("push", "Der Platzhalter muss woertlich {text} heissen - "
+                             "nicht gesendet.");
+            return;
+          }
+
+          const std::string marke = "{text}";
+          const size_t stelle = adresse.find(marke);
+
+          std::shared_ptr<esphome::http_request::HttpContainer> antwort;
+          if (stelle == std::string::npos) {
+            antwort = id(netz_anfrage)->post(adresse, text);
+          } else {
+            /* Fuer die Adresszeile kodieren: Leerzeichen, Umlaute und
+             * Satzzeichen wuerden die Anfrage sonst zerreissen. */
+            std::string kodiert;
+            kodiert.reserve(text.size() * 3);
+            for (unsigned char z : text) {
+              if (isalnum(z) || z == '-' || z == '_' || z == '.' || z == '~') {
+                kodiert += (char) z;
+              } else {
+                char puffer[4];
+                snprintf(puffer, sizeof(puffer), "%%%02X", z);
+                kodiert += puffer;
+              }
+            }
+            adresse.replace(stelle, marke.size(), kodiert);
+            antwort = id(netz_anfrage)->get(adresse);
+          }
+
+          if (antwort == nullptr) {
+            /* Hier kommt beides zusammen: kein Netz UND eine Adresse, die der
+             * HTTP-Baustein nicht auswerten kann. Die haeufigsten Tippfehler
+             * sind oben abgefangen, deshalb steht die Adresse hier trotzdem
+             * mit in der Meldung - ohne sie sucht man an der falschen
+             * Stelle. */
+            ESP_LOGW("push", "Fernalarm nicht zugestellt. Entweder kein "
+                             "Internet, oder die Adresse ist unbrauchbar.");
+            return;
+          }
+          if (antwort->status_code >= 200 && antwort->status_code < 300) {
+            ESP_LOGI("push", "Fernalarm zugestellt (Status %d).",
+                     antwort->status_code);
+          } else {
+            ESP_LOGW("push", "Fernalarm abgelehnt (Status %d) - Adresse pruefen.",
+                     antwort->status_code);
+          }
+          antwort->end();
 
 # --- Fahrzeugmaße ---------------------------------------------------------
 # Gehören ins Gerät, nicht ins Handy: sie beschreiben das Fahrzeug, nicht den
@@ -2269,6 +2385,21 @@ interval:
             id(wache_alarm_lauf) = jetzt;
             id(wache_alarm_uhr) = uhr_gilt ? id(uhr).now().timestamp : 0;
             ESP_LOGW("wache", "ALARM - die Lage hat sich veraendert.");
+
+            /* Stufe 2 des Fernalarms: Die Meldung geht nach draussen, sobald
+             * der Alarm einrastet - nicht erst, wenn jemand die Seite
+             * oeffnet. Ohne das erreicht der Waechter nur den, der ohnehin
+             * im selben Netz ist, und das ist genau der, der nicht gewarnt
+             * werden muss.
+             *
+             * Der Satz kommt vom Textsensor, der ihn ohnehin bildet - mit
+             * Uhrzeit, wenn das Geraet eine gueltige Uhr hatte, sonst mit
+             * einer Zeitspanne. */
+            std::string satz = "CamperMinder: Das Fahrzeug hat seine Lage verlassen.";
+            if (id(wache_text).has_state() && !id(wache_text).state.empty()) {
+              satz = std::string("CamperMinder: ") + id(wache_text).state;
+            }
+            id(push_senden)->execute(satz);
           }
 
   # --- Selbstüberwachung: sitzt der Sensor noch? -----------------------------
@@ -3106,6 +3237,27 @@ text:
     max_length: 63
     optimistic: true
 
+  # --- Fernalarm: Adresse des Push-Dienstes ---------------------------------
+  #
+  # Ein Feld, kein Auswahlmenue. Wer ntfy benutzt, traegt seine Themenadresse
+  # ein; wer Telegram benutzt, seine Bot-Adresse mit {text} darin. Das Geraet
+  # muss keinen dieser Dienste kennen, und es kommt keiner dazu, den wir
+  # pflegen muessten.
+  #
+  # KEIN Passwortfeld: Bei ntfy ist die Adresse selbst das Geheimnis, bei
+  # Telegram steht die Bot-Kennung darin. Als Passwort maskiert koennte der
+  # Kunde nicht mehr nachsehen, was er eingetragen hat - und schuetzen wuerde
+  # es nichts, weil die Adresse ohnehin im Geraet steht.
+  - platform: template
+    name: "Fernalarm Adresse"
+    id: push_ziel_input
+    icon: mdi:cellphone-message
+    entity_category: config
+    mode: text
+    min_length: 0
+    max_length: 191
+    optimistic: true
+
   # --- Eingabefelder für den MQTT-Broker ------------------------------------
   # Adresse leer lassen und speichern schaltet MQTT wieder ab.
   - platform: template
@@ -3198,6 +3350,49 @@ button:
       # safe_reboot sichert vorher ohnehin ab.
       - delay: 5s
       - lambda: 'App.safe_reboot();'
+
+  # --- Fernalarm speichern --------------------------------------------------
+  #
+  # Kein Neustart noetig: Das Ziel wird erst beim Senden gelesen.
+  - platform: template
+    name: "Fernalarm speichern"
+    id: push_save
+    icon: mdi:content-save-cog
+    entity_category: config
+    on_press:
+      - lambda: |-
+          const std::string neu = id(push_ziel_input).state;
+          strncpy(id(push_ziel), neu.c_str(), sizeof(id(push_ziel)) - 1);
+          id(push_ziel)[sizeof(id(push_ziel)) - 1] = '\0';
+          if (strlen(id(push_ziel)) == 0) {
+            ESP_LOGI("push", "Fernalarm abgeschaltet - keine Adresse.");
+          } else {
+            ESP_LOGI("push", "Fernalarm-Ziel gespeichert.");
+          }
+      - lambda: 'global_preferences->sync();'
+
+  # --- Fernalarm testen -----------------------------------------------------
+  #
+  # WARUM ES DIESEN KNOPF GIBT: Ein Alarmweg, den niemand ausprobiert hat, ist
+  # kein Alarmweg. Wer sich darauf verlaesst und erst im Ernstfall merkt, dass
+  # die Adresse einen Tippfehler hat, waere schlechter dran als ohne.
+  #
+  # Der Text sagt ausdruecklich, dass es ein Test ist - sonst steht bei
+  # jemandem eine Alarmmeldung auf dem Handy, die keine ist.
+  - platform: template
+    name: "Fernalarm testen"
+    id: push_test
+    icon: mdi:cellphone-check
+    entity_category: config
+    on_press:
+      - lambda: |-
+          if (strlen(id(push_ziel)) == 0) {
+            ESP_LOGW("push", "Kein Ziel eingetragen - nichts zu testen.");
+            return;
+          }
+          id(push_senden)->execute(
+            "CamperMinder: Test des Fernalarms. Wenn du das liest, kommt auch "
+            "der echte Alarm an.");
 
   # Übernimmt die drei Felder darüber. Neustart danach, weil eine bestehende
   # Verbindung ihre Zugangsdaten nicht wechseln kann.
