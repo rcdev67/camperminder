@@ -19,6 +19,12 @@ setlocal
 set ROOT=%~dp0..
 set ESPHOME=%ROOT%\.venv\Scripts\esphome.exe
 
+rem Welche Geraetedatei gebaut und veroeffentlicht wird, steht in
+rem release_geraet.txt - eine Zeile, derselbe Wert wie in build_release.ps1.
+rem Fehlt die Datei, gilt das Produkt. Begruendung in build_release.ps1.
+set GERAET=camperminder-level.yaml
+if exist "%~dp0release_geraet.txt" set /p GERAET=<"%~dp0release_geraet.txt"
+
 rem Werkzeugkette von esp-idf in einen kurzen Pfad. Unter dem Vorgabeort in
 rem AppData\Local reichen die Pfade des Compilers ueber die 260-Zeichen-Grenze
 rem von Windows, und der Bau bricht mit "bits/c++config.h: No such file" ab.
@@ -67,7 +73,7 @@ echo ============================================================
 echo  Firmware bauen
 echo ============================================================
 pushd "%ROOT%\esphome\level"
-"%ESPHOME%" compile camperminder-level.yaml
+"%ESPHOME%" compile %GERAET%
 set BUILD=%ERRORLEVEL%
 popd
 
