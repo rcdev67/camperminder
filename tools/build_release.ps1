@@ -110,19 +110,40 @@ Write-Host "Bedienoberflaeche traegt dieselbe Nummer: $seitenVersion"
 # Gesucht wird der Name, den ESPHome vergibt. Das Produktpräfix bekommt erst
 # die Kopie im Ausgabeordner - die Release-Anhänge müssen je Produkt
 # unterscheidbar sein, im Bauverzeichnis heißen sie bei allen gleich.
-# NUR das Bauverzeichnis des PRODUKTS. Vorher stand hier die neueste
-# firmware.ota.bin unterhalb von esphome/ - und das war beim Gegentest am
-# 22.09.2026 das Handmuster (camperminder-muster). Ein Release haette
-# damit die Musterfirmware ausgeliefert: gedrosselte Sendeleistung,
-# anderer Geraetename, Achsen eines handgeloeteten Breakouts. Der Name
-# kommt aus der Gerätedatei, nicht aus einer Suche.
-$geraeteName = 'camperminder-level'
+# NUR das Bauverzeichnis der Gerätedatei aus tools/release_geraet.txt. Vorher
+# stand hier die neueste firmware.ota.bin unterhalb von esphome/ - und das war
+# beim Gegentest am 22.09.2026 das Handmuster (camperminder-muster), ohne dass
+# es jemand gewollt hätte. Der Name kommt aus der Gerätedatei, nicht aus einer
+# Suche.
+#
+# Die Wahl steht in EINER Datei, weil bauen.cmd und veroeffentlichen.cmd
+# dieselbe Gerätedatei übersetzen müssen, die hier eingesammelt wird. Fehlt
+# sie oder ist sie leer, gilt das Produkt.
+#
+# Solange nur Handmuster im Einsatz sind (seit 4.0.0, bis die Platinen Rev B
+# da sind), steht dort muster-supermini.yaml: gedrosselte Sendeleistung und
+# die Achsen des Breakouts. Mit den Platinen zurück auf camperminder-level.yaml
+# - sonst bekommt jedes Board per OTA die Musterfirmware.
+$wahlDatei = Join-Path $PSScriptRoot 'release_geraet.txt'
+$geraeteDatei = 'camperminder-level.yaml'
+if (Test-Path $wahlDatei) {
+  $gewaehlt = Get-Content $wahlDatei -TotalCount 1
+  if ($gewaehlt) { $geraeteDatei = $gewaehlt.Trim() }
+}
+$geraetePfad = Join-Path $here $geraeteDatei
+if (-not (Test-Path $geraetePfad)) { throw "Gerätedatei aus tools\release_geraet.txt nicht gefunden: $geraetePfad" }
+$m = [regex]::Match((Get-Content $geraetePfad -Raw), '(?m)^\s*device_name\s*:\s*"?([A-Za-z0-9_-]+)"?')
+if (-not $m.Success) { throw "device_name nicht gefunden in $geraeteDatei" }
+$geraeteName = $m.Groups[1].Value
+if ($geraeteDatei -ne 'camperminder-level.yaml') {
+  Write-Warning "Release aus $geraeteDatei ($geraeteName) - NICHT die Produktfirmware."
+  Write-Warning "Jedes Geraet mit Internet bekommt diesen Stand. Umstellen in tools\release_geraet.txt."
+}
 $bauPfad = Join-Path $here (Join-Path '.esphome\build' (Join-Path $geraeteName 'build'))
 $bin = Get-Item (Join-Path $bauPfad 'firmware.ota.bin') -ErrorAction SilentlyContinue
 if (-not $bin) {
   throw "Nicht gefunden: $bauPfad\firmware.ota.bin
-Erst das PRODUKT bauen:  esphome compile camperminder-level.yaml
-(Ein Musterbau unter .esphome\build\camperminder-muster zaehlt nicht.)"
+Erst bauen:  esphome compile $geraeteDatei"
 }
 Write-Host ("Firmware: {0}  ({1:N0} Bytes, {2})" -f $bin.FullName, $bin.Length, $bin.LastWriteTime)
 
@@ -140,7 +161,8 @@ if (-not (Test-Path $factory)) { throw "firmware.factory.bin nicht gefunden nebe
 # eingeht: die Gerätedatei, das Paket und die Bedienoberfläche. Letztere steckt
 # über js_include mit im Abbild - eine Änderung daran ist von außen nicht zu
 # sehen, fällt also ohne diese Prüfung erst beim Anwender auf.
-$quellen = @('camperminder-level.yaml', 'hardware.yaml', 'webui.js') |
+$quellen = @($geraeteDatei, 'camperminder-level.yaml', 'hardware.yaml', 'webui.js') |
+           Select-Object -Unique |
            ForEach-Object { Join-Path $here $_ } |
            Where-Object   { Test-Path $_ } |
            ForEach-Object { Get-Item $_ }
