@@ -51,8 +51,12 @@ def test_versionsnummern_gleich():
 
 
 def test_karte_liest_version_nicht_aus_der_adresse():
-    """Die Adresse beschreibt den Verweis, nicht den Code (Fehler bis 4.0.3)."""
-    assert "import.meta.url" not in KARTE
+    """Die Adresse beschreibt den Verweis, nicht den Code (Fehler bis 4.0.3).
+
+    Die Ladeadresse selbst darf die Karte kennen - sie nennt sie in ihrer
+    Meldung an das Protokoll. Nur die Nummer darf nicht daraus kommen."""
+    assert 'searchParams.get("v")' not in KARTE
+    assert re.search(r'^const VERSION = "[^"]+";', KARTE, re.MULTILINE)
 
 
 def test_rasterung_gleich():
