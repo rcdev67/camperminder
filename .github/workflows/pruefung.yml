@@ -21,6 +21,21 @@ jobs:
       - uses: actions/checkout@v7
       - uses: home-assistant/actions/hassfest@master
 
+  # Die Logik: Rechenkern, Dialog, Ansage - und der Gleichlauf von Firmware,
+  # Integration, Karte und Geräteseite. hassfest prüft nur, ob die Integration
+  # formal zu Home Assistant passt, nicht ob sie richtig rechnet. Ohne Home
+  # Assistant installiert; warum, steht in tests/conftest.py.
+  tests:
+    name: Tests (Logik und Gleichlauf)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+      - run: python -m pip install pytest
+      - run: python -m pytest tests -q
+
 # ---------------------------------------------------------------------------
 # Warum hier keine HACS-Prüfung läuft
 #
