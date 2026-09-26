@@ -17,6 +17,7 @@ release/
 __pycache__/
 *.py[cod]
 .venv/
+.pytest_cache/
 
 # OS
 Thumbs.db
