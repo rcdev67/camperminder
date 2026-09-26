@@ -44,7 +44,15 @@ def _webui_deutsch() -> str:
 def test_versionsnummern_gleich():
     firmware = re.search(r'firmware_version:\s*"([^"]+)"', HARDWARE).group(1)
     seite = re.search(r'var SEITE_VERSION = "([^"]+)"', WEBUI).group(1)
-    assert firmware == seite == MANIFEST["version"]
+    # Seit 4.0.4 im Inhalt der Karte - sonst hielte sie sich bei jedem Nutzer
+    # für veraltet und lüde die Seite neu.
+    karte = re.search(r'^const VERSION = "([^"]+)";', KARTE, re.MULTILINE).group(1)
+    assert firmware == seite == karte == MANIFEST["version"]
+
+
+def test_karte_liest_version_nicht_aus_der_adresse():
+    """Die Adresse beschreibt den Verweis, nicht den Code (Fehler bis 4.0.3)."""
+    assert "import.meta.url" not in KARTE
 
 
 def test_rasterung_gleich():

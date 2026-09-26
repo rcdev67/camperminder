@@ -13,31 +13,87 @@
 const STATIC = "/camperminder_static";
 
 /*
- * Version für die Fußzeile - aus der eigenen Skriptadresse gelesen.
+ * Die Nummer dieser Karte - im INHALT, nicht aus der Adresse.
  *
- * Die Integration registriert die Karte als ".../camperminder-card.js?v=<Version
- * aus manifest.json>". Diese Angabe hier abzuschreiben hieße, eine zweite
- * Wahrheit zu pflegen, die früher oder später von der ersten abweicht. Also
- * fragen wir die Adresse, unter der wir selbst geladen wurden.
+ * Bis 4.0.3 las die Karte sie aus der Adresse, unter der sie geladen wurde
+ * ("?v=..."). Das war der Kern des Fehlers mit "3.5.2" in der Companion-App:
+ * Die App hielt eine alte Seite mit einer alten Adresse im Zwischenspeicher,
+ * und diese Adresse gab selbst neuen Code als "3.5.2" aus. Eine Nummer, die
+ * am Verweis hängt statt am Code, beschreibt den Verweis.
  *
- * Nebenwirkung, die uns gerade recht ist: Die Zeile zeigt genau dann eine neue
- * Nummer, wenn der Browser die Datei wirklich neu geholt hat. Bleibt sie nach
- * einem Update stehen, liegt noch die alte Fassung im Zwischenspeicher - das
- * ist dann kein Rätsel, sondern eine Anzeige.
- *
- * BEDINGUNG: Die Datei muss als Modul geladen werden. Beide Wege tun das -
- * add_extra_js_url legt sie ohne es5 unter den Modul-URLs ab, und die
- * Lovelace-Ressource trägt res_type "module". Wer das umstellt, bekommt hier
- * keinen leeren Wert, sondern einen Syntaxfehler beim Einlesen - und damit
- * keine Karte mehr.
+ * Eine zweite Wahrheit neben manifest.json ist es trotzdem nicht:
+ * tools/build_release.ps1 bricht ab und tests/test_gleichlauf.py schlägt an,
+ * sobald sie voneinander abweichen - wie bei SEITE_VERSION der Geräteseite.
  */
-const VERSION = (() => {
-  try {
-    return new URL(import.meta.url).searchParams.get("v") || "";
-  } catch (e) {
-    return "";
+const VERSION = "4.0.3";
+
+/* Ist Fassung a älter als Fassung b? "4.0.3" gegen "4.0.10" - zahlweise. */
+function aelterAls(a, b) {
+  const teile = (v) => String(v).split(/[.-]/).map((t) => (/^\d+$/.test(t) ? Number(t) : t));
+  const x = teile(a);
+  const y = teile(b);
+  for (let i = 0; i < Math.max(x.length, y.length); i++) {
+    const p = x[i] ?? 0;
+    const q = y[i] ?? 0;
+    if (p === q) continue;
+    if (typeof p === "number" && typeof q === "number") return p < q;
+    return String(p) < String(q);
   }
-})();
+  return false;
+}
+
+/* Eine ältere Karte ersetzen - ohne dass jemand einen Zwischenspeicher leert.
+
+   Läuft noch alter Code - die Companion-App hält die HA-Oberfläche samt
+   Kartendatei im Zwischenspeicher, auch über einen Neustart der App -, dann:
+   jede Adresse, unter der diese Karte geladen wurde, frisch vom Server holen
+   (das überschreibt die alte Kopie im Zwischenspeicher), alte Einträge aus
+   dem Cache Storage löschen und die Seite EINMAL neu laden.
+
+   Einmal je Sitzung und Anlass: Hilft es nicht, bleibt der Hinweis stehen,
+   statt die Seite endlos neu zu laden. Nie im Bearbeitungsmodus des
+   Dashboards - dort gingen Änderungen verloren. Ein Fingertipp auf den
+   Hinweis (erzwingen) übergeht beides. */
+async function karteErneuern(anlass, erzwingen = false) {
+  const schluessel = `camperminder-erneuert-${anlass}`;
+  try {
+    if (!erzwingen && sessionStorage.getItem(schluessel)) return false;
+    sessionStorage.setItem(schluessel, "1");
+  } catch (e) {
+    // Ohne Gedächtnis kein selbsttätiges Neuladen - sonst droht eine Schleife.
+    if (!erzwingen) return false;
+  }
+  if (!erzwingen && new URLSearchParams(window.location.search).has("edit")) return false;
+
+  const adressen = new Set();
+  try {
+    for (const eintrag of performance.getEntriesByType("resource")) {
+      if (eintrag.name.includes("camperminder-card.js")) adressen.add(eintrag.name);
+    }
+  } catch (e) {
+    // Ohne Performance-Schnittstelle bleiben die Skript-Tags.
+  }
+  for (const skript of document.querySelectorAll('script[src*="camperminder-card.js"]')) {
+    adressen.add(skript.src);
+  }
+  await Promise.all(
+    [...adressen].map((adresse) => fetch(adresse, { cache: "reload" }).catch(() => undefined))
+  );
+  try {
+    if (window.caches) {
+      for (const name of await caches.keys()) {
+        const speicher = await caches.open(name);
+        for (const anfrage of await speicher.keys()) {
+          if (anfrage.url.includes("camperminder-card.js")) await speicher.delete(anfrage);
+        }
+      }
+    }
+  } catch (e) {
+    // Cache Storage ist nicht überall erreichbar - dann bleibt der HTTP-Weg.
+  }
+  window.location.reload();
+  return true;
+}
 
 const COLORS = {
   ok: "#37d67a",
@@ -83,7 +139,8 @@ const TEXTS = {
   hintLift: "Alle Stützen auf einmal, höchste zuerst. Das nicht genannte Rad bleibt stehen.",
   hintCaravan: "Erst das Rad auf den Keil, dann das Stützrad – das Auffahren kippt den Wagen längs mit.",
   thenJockey: "Danach das Stützrad – sein Maß folgt, wenn das Rad auf dem Keil steht.",
-  outdated: "Diese Karte ist älter als die Integration (Karte {karte}, Integration {integration}). Zum Neuladen hier tippen. Hilft das in der Companion-App nicht: Einstellungen → Companion-App → Fehlerbehebung → Frontend-Cache zurücksetzen.",
+  outdated: "Diese Karte ist älter als die Integration (Karte {karte}, Integration {integration}) und wird gerade erneuert. Bleibt dieser Hinweis stehen: hier tippen.",
+  restartNeeded: "Die Karte ist neuer als die laufende Integration (Karte {karte}, Integration {integration}). Home Assistant einmal neu starten, dann ist das Update abgeschlossen.",
   bTilt: "Neigung",
   bMotion: "Bewegung",
   bPos: "Lage",
@@ -170,6 +227,11 @@ function deflect(value, tolerance, atTolerance, full) {
 }
 
 class CamperMinderCard extends HTMLElement {
+  /* Damit eine später geladene Fassung erkennt, wer schon definiert ist. */
+  static get version() {
+    return VERSION;
+  }
+
   constructor() {
     super();
     this.attachShadow({ mode: "open" });
@@ -843,26 +905,34 @@ class CamperMinderCard extends HTMLElement {
    *
    * Die Montage geht vor: Wenn der Sensor gar nicht mehr richtig sitzt, ist
    * die Frage nach der Kalibrierung zweitrangig. */
-  /* Die Karte ist älter als die Integration.
+  /* Karte und Integration tragen verschiedene Nummern.
 
-     Die Nummer der Karte steht in ihrer eigenen Adresse (VERSION), die der
-     Integration kommt aus dem Rechenkern. Weichen sie ab, läuft im Browser
-     oder in der Companion-App noch die alte Karte - nach dem Update auf 4.0.2
-     zeigte die App unten weiter "3.5.2", und nichts wies darauf hin. Auf
-     Fingertipp neu laden, nicht von allein - wie der Balken der Geräteseite. */
+     Ist die Karte älter, läuft im Browser oder in der Companion-App noch der
+     alte Code: Sie erneuert sich selbst (karteErneuern). Ist sie neuer, hat
+     HACS die Dateien schon ersetzt, Home Assistant aber noch nicht neu
+     gestartet - Neuladen hülfe dort nichts. */
   _renderVeraltet(node, a) {
     if (!node) return;
     const integration = a.integration_version;
-    if (!VERSION || !integration || VERSION === integration) {
+    if (!integration || integration === VERSION) {
       node.hidden = true;
       return;
     }
-    node.hidden = false;
-    node.textContent = `⚠️ ${TEXTS.outdated
+    const aelter = aelterAls(VERSION, integration);
+    const text = (aelter ? TEXTS.outdated : TEXTS.restartNeeded)
       .replace("{karte}", VERSION)
-      .replace("{integration}", integration)}`;
-    node.style.cursor = "pointer";
-    node.onclick = () => window.location.reload();
+      .replace("{integration}", integration);
+    node.hidden = false;
+    node.textContent = `⚠️ ${text}`;
+    if (aelter) {
+      const anlass = `integration-${integration}`;
+      node.style.cursor = "pointer";
+      node.onclick = () => karteErneuern(anlass, true);
+      karteErneuern(anlass);
+    } else {
+      node.style.cursor = "";
+      node.onclick = null;
+    }
   }
 
   _renderHinweis(node, a) {
@@ -1092,8 +1162,14 @@ class CamperMinderCard extends HTMLElement {
  */
 const TAG = "camperminder-card";
 
-if (!customElements.get(TAG)) {
+const vorhanden = customElements.get(TAG);
+if (!vorhanden) {
   customElements.define(TAG, CamperMinderCard);
+} else if (!vorhanden.version || aelterAls(vorhanden.version, VERSION)) {
+  /* Eine ältere Fassung war schneller - aus einem Zwischenspeicher, über
+     einen alten Verweis. Ein definiertes Element lässt sich nicht ersetzen;
+     also die alten Dateien frisch holen und die Seite einmal neu laden. */
+  karteErneuern(`modul-${VERSION}`);
 }
 
 window.customCards = window.customCards || [];

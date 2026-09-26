@@ -138,7 +138,7 @@ mitgelieferte Firmware läuft.
 „CamperMinder" suchen.
 
 Erscheint sie nicht in der Auswahl, prüf unter Einstellungen → Dashboards → ⋮
-→ *Ressourcen*, ob `/camperminder_static/camperminder-card.js` eingetragen ist.
+→ *Ressourcen*, ob `/camperminder_karte/camperminder-card.js` eingetragen ist.
 Die Integration legt den Eintrag beim Start selbst an.
 
 ---

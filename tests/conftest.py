@@ -60,10 +60,14 @@ def _platzhalter(name: str, **attrs) -> types.ModuleType:
 
 
 class _Finder:
-    """Jedes weitere homeassistant.*-Modul als Platzhalter liefern."""
+    """homeassistant, voluptuous und aiohttp als Platzhalter liefern.
+
+    aiohttp nur, weil __init__.py der Integration es für den Karten-View
+    importiert; geprüft wird dort hier nichts."""
 
     def find_spec(self, name, path=None, target=None):
-        if name == "homeassistant" or name.startswith("homeassistant.") or name == "voluptuous":
+        wurzel = name.split(".")[0]
+        if wurzel in ("homeassistant", "voluptuous", "aiohttp"):
             return importlib.machinery.ModuleSpec(name, self, is_package=True)
         return None
 
