@@ -24,6 +24,9 @@
         }
       }
     },
+    "error": {
+      "device_unreachable": "The levelling device is not reachable right now. Wheelbase, track width, tolerance and ramp step are stored on the device – please switch it on and save again."
+    },
     "abort": {
       "already_configured": "Levelling is already set up for this sensor."
     }
@@ -32,7 +35,7 @@
     "step": {
       "init": {
         "title": "CamperMinder",
-        "description": "Change sensors, vehicle dimensions and announcement target.",
+        "description": "Change sensors and vehicle dimensions. The dimensions live on the levelling device and are saved there – this form always shows what currently applies.",
         "data": {
           "pitch_sensor": "Pitch (front to back)",
           "roll_sensor": "Roll (side to side)",
@@ -45,6 +48,9 @@
           "notify_tts": "Read the text out loud"
         }
       }
+    },
+    "error": {
+      "device_unreachable": "The levelling device is not reachable right now. Wheelbase, track width, tolerance and ramp step are stored on the device – please switch it on and save again."
     }
   },
   "entity": {
