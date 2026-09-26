@@ -260,10 +260,13 @@ class CamperMinderCard extends HTMLElement {
       this._built = false;
       return;
     }
-    if (!this._built) {
+    // Auch neu aufbauen, wenn diese Karte noch mit dem Aufbau einer älteren
+    // Fassung dasteht - nach einer Übernahme im laufenden Betrieb (uebernehmen).
+    if (!this._built || this._gebautMit !== VERSION) {
       this._build();
     }
     this._render(source, hass);
+    meldungenSenden(hass);
   }
 
   /* Die Quelle ist der Phasen-Sensor - erkennbar an seiner Rollenkennung. */
@@ -553,6 +556,7 @@ class CamperMinderCard extends HTMLElement {
       </ha-card>
     `;
     this._built = true;
+    this._gebautMit = VERSION;
     // Der Neuaufbau setzt die Bilder auf die Wohnmobil-Fassung zurück.
     // Ohne das Vergessen hier würde _setArtwork den Wechsel verschlafen.
     this._artwork = null;
@@ -1162,14 +1166,64 @@ class CamperMinderCard extends HTMLElement {
  */
 const TAG = "camperminder-card";
 
+/* Meldungen an das Protokoll von Home Assistant - für das, was nur im
+   Browser oder in der App geschieht und sonst niemand zu sehen bekommt.
+   Gesendet wird beim nächsten "hass", weil erst dann eine Verbindung da ist. */
+const meldungen = [];
+
+function melden(text) {
+  meldungen.push(text);
+}
+
+function meldungenSenden(hass) {
+  if (!meldungen.length || !hass || typeof hass.callWS !== "function") return;
+  for (const message of meldungen.splice(0)) {
+    hass
+      .callWS({ type: "system_log/write", message, level: "warning", logger: "camperminder.karte" })
+      .catch(() => undefined);
+  }
+}
+
+/* Eine ältere, schon definierte Karte im laufenden Betrieb übernehmen.
+
+   Die Companion-App hielt die Karte 3.5.2 über drei Updates hinweg fest -
+   weder der Zwischenspeicher-Fix (4.0.3) noch das Neuladen (4.0.4) kamen an
+   ihr vorbei, während Chrome auf demselben Handy längst 4.0.4 zeigte. Ein
+   definiertes Custom Element lässt sich nicht ersetzen, seine Klasse aber
+   schon: Alle Methoden der neuen Fassung kommen auf die alte Klasse, und
+   jede vorhandene Karte baut sich beim nächsten "hass" neu auf (_gebautMit).
+   Das braucht kein Neuladen und keinen Zwischenspeicher - nur, dass diese
+   Datei überhaupt geladen wird. Der Konstruktor der alten Fassung bleibt;
+   er legt dieselben Felder an (geprüft bis zurück zu 3.5.2). */
+function uebernehmen(Alt) {
+  for (const name of Object.getOwnPropertyNames(CamperMinderCard.prototype)) {
+    if (name === "constructor") continue;
+    Object.defineProperty(
+      Alt.prototype, name, Object.getOwnPropertyDescriptor(CamperMinderCard.prototype, name)
+    );
+  }
+  for (const name of Object.getOwnPropertyNames(CamperMinderCard)) {
+    if (["length", "name", "prototype"].includes(name)) continue;
+    Object.defineProperty(Alt, name, Object.getOwnPropertyDescriptor(CamperMinderCard, name));
+  }
+}
+
 const vorhanden = customElements.get(TAG);
 if (!vorhanden) {
   customElements.define(TAG, CamperMinderCard);
-} else if (!vorhanden.version || aelterAls(vorhanden.version, VERSION)) {
-  /* Eine ältere Fassung war schneller - aus einem Zwischenspeicher, über
-     einen alten Verweis. Ein definiertes Element lässt sich nicht ersetzen;
-     also die alten Dateien frisch holen und die Seite einmal neu laden. */
-  karteErneuern(`modul-${VERSION}`);
+} else if (
+  vorhanden !== CamperMinderCard &&
+  (!vorhanden.version || aelterAls(vorhanden.version, VERSION))
+) {
+  const alteFassung = vorhanden.version || "ohne Nummer";
+  uebernehmen(vorhanden);
+  melden(
+    `CamperMinder-Karte ${VERSION} hat eine ältere, schon geladene Karte ` +
+      `(${alteFassung}) im laufenden Betrieb übernommen. ` +
+      `Geladen von ${import.meta.url}. ` +
+      `Service Worker: ${navigator.serviceWorker && navigator.serviceWorker.controller ? "ja" : "nein"}. ` +
+      `Browser: ${navigator.userAgent}`
+  );
 }
 
 window.customCards = window.customCards || [];
