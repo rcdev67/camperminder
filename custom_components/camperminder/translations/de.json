@@ -24,6 +24,9 @@
         }
       }
     },
+    "error": {
+      "device_unreachable": "Das Nivelliergerät ist gerade nicht erreichbar. Radstand, Spurweite, Toleranz und Keilstufe werden im Gerät gespeichert – bitte das Gerät einschalten und noch einmal speichern."
+    },
     "abort": {
       "already_configured": "Für diesen Sensor ist bereits eine Nivellierung eingerichtet."
     }
@@ -32,7 +35,7 @@
     "step": {
       "init": {
         "title": "CamperMinder",
-        "description": "Sensoren, Fahrzeugmaße und Ansageziel ändern.",
+        "description": "Sensoren und Fahrzeugmaße ändern. Die Maße gelten im Nivelliergerät und werden dort gespeichert – hier steht immer, was gerade gilt.",
         "data": {
           "pitch_sensor": "Neigung längs (Pitch)",
           "roll_sensor": "Neigung quer (Roll)",
@@ -45,6 +48,9 @@
           "notify_tts": "Text vorlesen lassen"
         }
       }
+    },
+    "error": {
+      "device_unreachable": "Das Nivelliergerät ist gerade nicht erreichbar. Radstand, Spurweite, Toleranz und Keilstufe werden im Gerät gespeichert – bitte das Gerät einschalten und noch einmal speichern."
     }
   },
   "entity": {

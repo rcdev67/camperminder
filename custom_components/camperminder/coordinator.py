@@ -174,6 +174,38 @@ def _as_float(state) -> float | None:
         return None
 
 
+def find_device_sources(hass: HomeAssistant, pitch_entity_id: str) -> dict[str, str]:
+    """Die Werte suchen, die das Gerät selbst führt.
+
+    Gesucht wird ausschließlich auf dem Gerät, zu dem der Neigungssensor
+    gehört. Über alle Geräte zu suchen wäre gefährlich: bei zwei Fahrzeugen
+    im selben Home Assistant könnte sonst der Radstand des einen mit der
+    Neigung des anderen zusammentreffen.
+
+    Findet sich nichts - etwa weil jemand einen fremden Neigungssensor
+    eingerichtet hat -, bleibt es bei den eigenen Reglern.
+
+    Steht hier und nicht im Rechenkern, weil auch der Einrichtungsdialog
+    wissen muss, welche seiner Felder in Wahrheit das Gerät hält.
+    """
+    registry = er.async_get(hass)
+    pitch = registry.async_get(pitch_entity_id)
+    if pitch is None or pitch.device_id is None:
+        return {}
+
+    wanted = {
+        (domain, name): key
+        for key, (domain, name) in DEVICE_VALUE_ENTITIES.items()
+    }
+    found: dict[str, str] = {}
+    for entry in registry.entities.values():
+        if entry.device_id != pitch.device_id or entry.disabled_by is not None:
+            continue
+        if (key := wanted.get((entry.domain, entry.original_name))) is not None:
+            found[key] = entry.entity_id
+    return found
+
+
 class CamperCoordinator:
     """Hält Messwerte und Einstellungen und leitet daraus alles Weitere ab."""
 
@@ -232,32 +264,7 @@ class CamperCoordinator:
         self._read_sources()
 
     def _find_device_sources(self) -> dict[str, str]:
-        """Die Werte suchen, die das Gerät selbst führt.
-
-        Gesucht wird ausschließlich auf dem Gerät, zu dem der Neigungssensor
-        gehört. Über alle Geräte zu suchen wäre gefährlich: bei zwei
-        Fahrzeugen im selben Home Assistant könnte sonst der Radstand des
-        einen mit der Neigung des anderen zusammentreffen.
-
-        Findet sich nichts - etwa weil jemand einen fremden Neigungssensor
-        eingerichtet hat -, bleibt es bei den eigenen Reglern.
-        """
-        registry = er.async_get(self.hass)
-        pitch = registry.async_get(self._config[CONF_PITCH_SENSOR])
-        if pitch is None or pitch.device_id is None:
-            return {}
-
-        wanted = {
-            (domain, name): key
-            for key, (domain, name) in DEVICE_VALUE_ENTITIES.items()
-        }
-        found: dict[str, str] = {}
-        for entry in registry.entities.values():
-            if entry.device_id != pitch.device_id or entry.disabled_by is not None:
-                continue
-            if (key := wanted.get((entry.domain, entry.original_name))) is not None:
-                found[key] = entry.entity_id
-
+        found = find_device_sources(self.hass, self._config[CONF_PITCH_SENSOR])
         if found:
             _LOGGER.debug("Werte vom Gerät übernommen: %s", sorted(found))
         return found
