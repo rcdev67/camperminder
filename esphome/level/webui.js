@@ -113,8 +113,8 @@
       hilfe_zuruecksetzen: "Löscht WLAN-Zugangsdaten, Kalibrierung, Fahrzeugmaße und ein selbst vergebenes Netz-Passwort. Das Gerät startet danach neu und öffnet wieder sein eigenes, offenes Netz.",
       hinweis_hebesystem: "Alle Stützen auf einmal, höchste zuerst. Nicht genannte Räder bleiben stehen.",
       hinweis_keile_einzeln: "Eine Anweisung nach der anderen – nach dem Auffahren neu messen.",
-      hinweis_neu_messen: "Danach neu messen.",
       hinweis_wagen_reihenfolge: "Erst das Rad auf den Keil, dann das Stützrad – das Auffahren kippt den Wagen längs mit.",
+      danach_stuetzrad: "Danach das Stützrad – sein Maß folgt, wenn das Rad auf dem Keil steht.",
       hoch_front: "FRONT hoch",
       hoch_heck: "HECK hoch",
       hoch_links: "LINKE Seite hoch",
@@ -242,13 +242,9 @@
       profil_ablassen_erklaerung: "Das Fahrzeug neigt sich zum Ablasspunkt, damit Boiler und Tank wirklich leer laufen. Wer eben steht, behält einen Rest drin – und der friert im Winter.",
       profil_ausrichten_erklaerung: "Eben ausrichten, wie gewohnt.",
       profil_schlafen_erklaerung: "Das Kopfende liegt etwas höher – das schläft sich für viele besser. Die Anzeige rechnet ab jetzt gegen dieses Ziel: „EBEN“ heißt dann „steht, wie du es wolltest“. Eingerichtet wird es weiter unten in den Einstellungen, Abschnitt „Ziele“.",
-      rad_hinten: "Hinten",
       rad_hinten_links: "Hinten links",
       rad_hinten_rechts: "Hinten rechts",
-      rad_links: "Linke Seite",
-      rad_rechts: "Rechte Seite",
       rad_stuetzrad: "Stützrad",
-      rad_vorne: "Vorne",
       rad_vorne_links: "Vorne links",
       rad_vorne_rechts: "Vorne rechts",
       reiter_anzeige: "Anzeige",
@@ -381,8 +377,8 @@
       hilfe_zuruecksetzen: "Deletes the Wi-Fi credentials, the calibration, the vehicle dimensions and any network password you set. The device then restarts and opens its own, open network again.",
       hinweis_hebesystem: "All jacks at once, the highest first. Wheels not listed stay where they are.",
       hinweis_keile_einzeln: "One step at a time – measure again after driving up.",
-      hinweis_neu_messen: "Then measure again.",
       hinweis_wagen_reihenfolge: "Drive the wheel onto the ramp first, then crank the jockey wheel – driving up tilts the caravan lengthwise as well.",
+      danach_stuetzrad: "Then the jockey wheel – its height follows once the wheel is on the ramp.",
       hoch_front: "Raise the FRONT",
       hoch_heck: "Raise the REAR",
       hoch_links: "Raise the LEFT side",
@@ -510,13 +506,9 @@
       profil_ablassen_erklaerung: "The vehicle tilts towards the drain point so boiler and tank really run empty. Standing level leaves a remainder behind – and that freezes in winter.",
       profil_ausrichten_erklaerung: "Level as usual.",
       profil_schlafen_erklaerung: "The head end sits a little higher, which many people find more comfortable. The display now works towards that target: “LEVEL” then means “standing the way you wanted”. You set it up in the settings below, section “Targets”.",
-      rad_hinten: "Rear",
       rad_hinten_links: "Rear left",
       rad_hinten_rechts: "Rear right",
-      rad_links: "Left side",
-      rad_rechts: "Right side",
       rad_stuetzrad: "Jockey wheel",
-      rad_vorne: "Front",
       rad_vorne_links: "Front left",
       rad_vorne_rechts: "Front right",
       reiter_anzeige: "Display",
@@ -870,7 +862,6 @@
 
   var MIN_TOLERANCE_DEG = 0.05;
   var IMPLAUSIBLE_DEG = 45;
-  var WHEEL_LIFT_IGNORE_CM = 1;
 
   /* Rückfallwert für den Haltebereich, solange das Gerät seinen noch nicht
    * gemeldet hat. Muss mit LEVEL_RELEASE in const.py übereinstimmen. */
@@ -998,7 +989,11 @@
    * Zeit: Der angezeigte Wert weicht nie weiter ab als diese 0,75 Schritte,
    * und einer echten Änderung hinkt er nicht hinterher. */
   var shown = {};
-  /* Das Raster ist bewusst so fein wie die angezeigte Stelle - nicht gröber.
+  /* Gerastet werden hier nur noch Grad. Zentimeter kommen fertig aus dem
+   * Gerät - Hub, Abweichung und die Anweisung, die dort auf halbe
+   * Zentimeter rastet.
+   *
+   * Das Raster ist bewusst so fein wie die angezeigte Stelle - nicht gröber.
    *
    * Vorher stand hier ein halber Zentimeter, mit der Begründung, feiner lasse
    * sich ohnehin kein Keil legen. Das stimmt für die ANWEISUNG, war für die
@@ -1012,7 +1007,6 @@
    * Stelle. Wie ruhig es darüber hinaus zugeht, entscheidet der Regler - und
    * das ist auch die Stelle, an der der Nutzer es erwartet.
    */
-  var STEP_CM = 0.1, STEP_CM_FEIN = 0.1;
   var STEP_DEG = 0.1, STEP_DEG_FEIN = 0.05;
 
   function steady(key, value, step) {
@@ -1024,9 +1018,6 @@
     return shown[key];
   }
 
-  function steadyCm(key, value) {
-    return steady(key, value, cfg.precise ? STEP_CM_FEIN : STEP_CM);
-  }
   function steadyDeg(key, value) {
     var v = steady(key, value, cfg.precise ? STEP_DEG_FEIN : STEP_DEG);
     return v === null ? 0 : v;
@@ -1039,111 +1030,34 @@
 
   function isCaravan() { return cfg.vehicle === "wohnwagen"; }
 
-  /* Wohnwagen: zwei Räder auf einer Achse plus Stützrad.
+  /* Die Anweisung - aus dem Gerät, nicht aus einer eigenen Rechnung.
    *
-   * Quer wie beim Wohnmobil über die Spurweite - ein Keil unter das tiefere
-   * Rad. Längs dagegen über das Stützrad, und das kurbelt in BEIDE
-   * Richtungen; "nur anheben" wäre hier eine künstliche Einschränkung.
+   * Die Firmware bildet sie einmal (hardware.yaml, "Der nächste Handgriff")
+   * und liefert sie zweimal: als deutschen Satz an Home Assistant und MQTT,
+   * und als Werte in den Statuswerten ("a", "d") für diese Seite, die zwei
+   * Sprachen kann. Vorher rechnete die Seite selbst - mit zusammengefassten
+   * Seiten, ungerastet und gegen die Waagerechte statt gegen das Ziel des
+   * Profils. Dann sagten Gerät und Seite verschiedene Dinge.
    *
-   * Reihenfolge ist Absicht: erst quer, dann längs. Das Auffahren auf den
-   * Keil kippt den Wagen längs mit - eine vorher berechnete Stützradhöhe
-   * wäre danach falsch. */
-  function caravanPlan() {
-    if (!available()) return null;
-    var out = [];
+   * Liefert null, solange das Gerät noch keine Statuswerte geschickt hat. */
+  var ECKEN = { vl: "vorne_links", vr: "vorne_rechts", hl: "hinten_links",
+                hr: "hinten_rechts", st: "stuetzrad" };
 
-    /* Eine Achse innerhalb der Toleranz ist fertig und kommt nicht in die
-     * Anweisung - dieselbe Regel wie beim Wohnmobil in wheelLifts(). Ohne sie
-     * stünde "Stützrad hoch, 3 cm" unter einer Anzeige, die für dieselbe Achse
-     * gerade "EBEN - STOP" meldet. */
-    var across = levelRoll()
-      ? 0
-      : Math.round(cfg.track * Math.tan(Math.abs(state.roll) * Math.PI / 180) / 10 * 10) / 10;
-    if (across >= WHEEL_LIFT_IGNORE_CM) {
-      out.push({
-        wheel: state.roll > 0 ? "hinten_links" : "hinten_rechts",
-        cm: across,
-        steps: cfg.wedge_step > 0 ? Math.max(Math.round(across / cfg.wedge_step), 1) : null,
-        direction: "hoch"
+  function anweisung() {
+    var werte = statusWerte();
+    if (werte.a === undefined) return null;
+    var schritte = [];
+    werte.a.split(",").forEach(function (eintrag) {
+      var teil = eintrag.split(":");
+      if (teil.length < 4 || !ECKEN[teil[0]]) return;
+      schritte.push({
+        wheel: ECKEN[teil[0]],
+        cm: parseFloat(teil[1]),
+        steps: parseInt(teil[2], 10) || 0,
+        direction: teil[3] === "r" ? "runter" : "hoch"
       });
-    }
-
-    var along = levelPitch()
-      ? 0
-      : Math.round(cfg.wheelbase * Math.tan(Math.abs(state.pitch) * Math.PI / 180) / 10 * 10) / 10;
-    if (along >= WHEEL_LIFT_IGNORE_CM) {
-      out.push({
-        wheel: "stuetzrad",
-        cm: along,
-        steps: null,                       // gekurbelt wird stufenlos
-        direction: state.pitch > 0 ? "runter" : "hoch"
-      });
-    }
-    return out;
-  }
-
-  function wheelLifts() {
-    if (isCaravan()) return caravanPlan();
-    if (!available()) return null;
-    /* Eine Achse, die innerhalb ihrer Toleranz steht, ist FERTIG - ihr
-     * Restwinkel darf die Anweisung nicht mehr formen.
-     *
-     * Ohne das nützt der Zusammenzug weiter unten nichts. Von Hand kippt
-     * niemand exakt auf einer Achse: Schon 0,3 Grad Rest längs - ein Drittel
-     * der Toleranz - erzeugen aus einer reinen Querneigung wieder drei
-     * verschiedene Eckmaße, und die Anweisung nennt eine Längsrichtung, die
-     * nach den eigenen Maßstäben des Nutzers gar nicht korrigiert werden muss.
-     *
-     * Bezugsgröße ist dieselbe Toleranz, die auch über "steht eben" entscheidet.
-     * Damit kann die Anweisung nichts verlangen, was die Anzeige darüber
-     * bereits als erledigt ausweist - vorher konnte sie genau das. */
-    var pitch = levelPitch() ? 0 : state.pitch;
-    var roll = levelRoll() ? 0 : state.roll;
-    var halfLong = cfg.wheelbase * Math.tan(pitch * Math.PI / 180) / 20;
-    var halfLat = cfg.track * Math.tan(roll * Math.PI / 180) / 20;
-    // pitch > 0 = Front höher, roll > 0 = rechts höher.
-    var ground = {
-      vorne_links: +halfLong - halfLat,
-      vorne_rechts: +halfLong + halfLat,
-      hinten_links: -halfLong - halfLat,
-      hinten_rechts: -halfLong + halfLat
-    };
-    var highest = -Infinity;
-    for (var k in ground) { if (ground[k] > highest) highest = ground[k]; }
-    var out = [];
-    for (var w in ground) {
-      var cm = Math.round((highest - ground[w]) * 10) / 10;
-      if (cm >= WHEEL_LIFT_IGNORE_CM) {
-        out.push({ wheel: w, cm: cm, steps: cfg.wedge_step > 0 ? Math.max(Math.round(cm / cfg.wedge_step), 1) : null });
-      }
-    }
-    out.sort(function (a, b) { return b.cm - a.cm; });
-    return mergeSide(out);
-  }
-
-  /* Zwei Räder mit demselben Maß, die eine Seite teilen, zu einer Anweisung
-   * zusammenziehen.
-   *
-   * Steht das Fahrzeug nur quer schief, brauchen beide linken Räder exakt
-   * dasselbe. Die Rechnung liefert dafür zwei Einträge, und die lasen sich als
-   * "Vorne links 4,0 cm" und "Hinten links 4,0 cm" - zwei Handgriffe, wo einer
-   * gemeint ist, und beide nennen eine Längsrichtung, die gar nicht korrigiert
-   * wird. Wer nach Anweisung arbeitet, sucht dann nach einem Unterschied
-   * zwischen den beiden Zeilen, den es nicht gibt.
-   *
-   * Nur bei GENAU zwei Einträgen: Sobald beide Achsen schief stehen, entstehen
-   * drei mit verschiedenen Maßen, und dann ist jede Ecke wirklich einzeln
-   * gemeint. Ein zufälliges Zusammenfallen kann es dabei nicht geben - die
-   * beiden gleich großen Einträge lägen dann über Kreuz und teilten sich keine
-   * Seite. */
-  function mergeSide(list) {
-    if (list.length !== 2 || list[0].cm !== list[1].cm) return list;
-    var a = list[0].wheel.split("_");
-    var b = list[1].wheel.split("_");
-    if (a.length !== 2 || b.length !== 2) return list;
-    var seite = a[0] === b[0] ? a[0] : (a[1] === b[1] ? a[1] : null);
-    if (!seite || TEXTE.de["rad_" + seite] === undefined) return list;
-    return [{ wheel: seite, cm: list[0].cm, steps: list[0].steps }];
+    });
+    return { schritte: schritte, danach: ECKEN[werte.d] || null };
   }
 
   // -- Aufbau ---------------------------------------------------------------
@@ -1488,37 +1402,25 @@
       html += '<div class="muted">' + t("winkel_zeile", {
         laengs: zahl(degP, places()), quer: zahl(degR, places())
       }) + (state.motion ? " · " + t("in_bewegung") : "") + "</div>";
-      var lifts = level ? [] : (wheelLifts() || []);
-      var label = function (i) { return radName(i.wheel); };
-      // Auch die Zentimeter der Anweisung gerastet: ein Maß, das beim Lesen
-      // zwischen 4,3 und 5,2 wechselt, ist keine Anweisung, sondern eine Frage.
-      var planCm = function (i) { return steadyCm("plan_" + i.wheel, i.cm).toFixed(1); };
+      var plan0 = anweisung();
+      var lifts = level || !plan0 ? [] : plan0.schritte;
+      /* Wie der Satz der Firmware: Ecke, Maß, Richtung - und bei Keilen die
+       * Stufe dazu. Gerastet hat schon das Gerät; hier wird nur geschrieben. */
+      var zeile = function (i) {
+        return "<li><b>" + radName(i.wheel) + "</b> " + t("zentimeter", { n: zahl(i.cm, 1) }) +
+          " " + t("richtung_" + i.direction) +
+          (i.steps ? " – " + t("keilstufe", { n: i.steps }) : "") + "</li>";
+      };
 
       if (lifts.length) {
-        html += "<ul>";
-        if (isCaravan()) {
-          // Beide Schritte auf einmal, aber in fester Reihenfolge - und mit
-          // Richtung, weil das Stützrad auch runter kann.
-          lifts.forEach(function (i) {
-            html += "<li><b>" + label(i) + "</b> " + t("richtung_" + i.direction) + ", " +
-              (i.steps ? t("keilstufe", { n: i.steps }) : t("zentimeter", { n: planCm(i) })) + "</li>";
-          });
-          html += "</ul>";
-          html += '<div class="muted">' + (lifts.length > 1
-            ? t("hinweis_wagen_reihenfolge") : t("hinweis_neu_messen")) + "</div>";
-        } else if (cfg.method === "hebesystem") {
-          lifts.forEach(function (i) {
-            html += "<li><b>" + label(i) + "</b> " + t("zentimeter", { n: planCm(i) }) + "</li>";
-          });
-          // "Räder" im Plural: Bei einer zusammengezogenen Seitenanweisung
-          // bleiben zwei stehen, nicht eines.
-          html += '</ul><div class="muted">' + t("hinweis_hebesystem") + "</div>";
-        } else {
-          var first = lifts[0];
-          html += "<li><b>" + label(first) + "</b> " +
-            (first.steps ? t("keilstufe", { n: first.steps }) : t("zentimeter", { n: planCm(first) })) +
-            "</li></ul><div class=\"muted\">" + t("hinweis_keile_einzeln") + "</div>";
+        html += "<ul>" + lifts.map(zeile).join("");
+        if (isCaravan() && plan0.danach) {
+          html += '<li class="muted">' + t("danach_stuetzrad") + "</li>";
         }
+        html += '</ul><div class="muted">' + (isCaravan()
+          ? t("hinweis_wagen_reihenfolge")
+          : cfg.method === "hebesystem" ? t("hinweis_hebesystem") : t("hinweis_keile_einzeln")) +
+          "</div>";
       }
     } else {
       html += '<div class="muted">' + t("keine_werte_warnung") + "</div>";

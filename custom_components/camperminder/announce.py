@@ -17,64 +17,21 @@ from homeassistant.helpers.event import async_call_later, async_track_state_chan
 from homeassistant.util import dt as dt_util
 
 from .const import (
-    ANNOUNCE_CM_STEP,
     ANNOUNCE_STABLE_SECONDS,
     CALIBRATION_CHECK_DELAY,
     CALIBRATION_MAX_RESIDUAL_DEG,
+    CARAVAN_INSTRUCTION_NAMES,
     CONF_CALIBRATE_BUTTON,
     CONF_NOTIFY_TTS,
     DIRECTION_PHASES,
     DOMAIN,
+    INSTRUCTION_NAMES,
     PHASE_CLOSE,
-    PHASE_FRONT,
-    PHASE_LEFT,
     PHASE_LEVEL,
-    PHASE_REAR,
-    PHASE_RIGHT,
-    POINT_JOCKEY,
-    SIDE_FRONT,
-    SIDE_LEFT,
-    SIDE_REAR,
-    SIDE_RIGHT,
-    WHEEL_FRONT_LEFT,
-    WHEEL_FRONT_RIGHT,
-    WHEEL_REAR_LEFT,
-    WHEEL_REAR_RIGHT,
 )
 from .coordinator import CamperCoordinator
 
 _LOGGER = logging.getLogger(__name__)
-
-SIDE_NAMES = {
-    PHASE_LEFT: "Linke Seite",
-    PHASE_RIGHT: "Rechte Seite",
-    PHASE_REAR: "Heck",
-    PHASE_FRONT: "Front",
-}
-
-WHEEL_NAMES = {
-    WHEEL_FRONT_LEFT: "Vorne links",
-    WHEEL_FRONT_RIGHT: "Vorne rechts",
-    WHEEL_REAR_LEFT: "Hinten links",
-    WHEEL_REAR_RIGHT: "Hinten rechts",
-    POINT_JOCKEY: "Stützrad",
-    # Steht nur eine Achse schief, zieht der Rechenkern die beiden Räder
-    # derselben Seite zu EINER Anweisung zusammen und liefert statt zweier
-    # Radpositionen eine Seite. Die Namen müssen hier stehen, sonst spräche die
-    # Ansage die rohe Kennung aus.
-    SIDE_LEFT: "Linke Seite",
-    SIDE_RIGHT: "Rechte Seite",
-    SIDE_FRONT: "Vorne",
-    SIDE_REAR: "Hinten",
-}
-
-# Beim Wohnwagen sitzen beide Räder auf einer Achse - "hinten links" wäre
-# dort schlicht falsch.
-CARAVAN_NAMES = {
-    WHEEL_REAR_LEFT: "Linkes Rad",
-    WHEEL_REAR_RIGHT: "Rechtes Rad",
-    POINT_JOCKEY: "Stützrad",
-}
 
 # Beim Auffahren auf einen Keil zählt jede Sekunde: drei Sekunden Wartezeit
 # sind im Schritttempo etwa ein Meter. Die Stabilisierung ist gegen das
@@ -83,9 +40,11 @@ CARAVAN_NAMES = {
 IMMEDIATE_PHASES = (PHASE_LEVEL,)
 
 
-def _round_to_step(centimetres: float) -> int:
-    """Auf 5-cm-Stufen runden, mindestens eine Stufe."""
-    return max(round(centimetres / ANNOUNCE_CM_STEP) * ANNOUNCE_CM_STEP, ANNOUNCE_CM_STEP)
+def _spoken_cm(centimetres: float) -> str:
+    """Zahl zum Vorlesen: "4" statt "4,0", aber "4,5" bleibt."""
+    if float(centimetres).is_integer():
+        return str(int(centimetres))
+    return f"{centimetres:.1f}".replace(".", ",")
 
 
 class CamperAnnouncer:
@@ -181,72 +140,37 @@ class CamperAnnouncer:
             return "Fast geschafft. Nur noch feinjustieren."
         if phase not in DIRECTION_PHASES:
             return None
+        return self._build_instruction_announcement()
 
-        # Wohnwagen: quer der Keil, längs das Stützrad. Zwei verschiedene
-        # Handgriffe an zwei Stellen - eine Richtungsansage wäre hier
-        # nutzlos.
-        if self.coordinator.is_caravan:
-            return self._build_caravan_announcement()
+    def _build_instruction_announcement(self) -> str | None:
+        """Die Anweisung zum Vorlesen - dieselbe wie auf Karte und Geräteseite.
 
-        # Mit Hydraulik oder Luftkissen steht das Fahrzeug. Dann ist nicht die
-        # nächste Fahrtrichtung gefragt, sondern was an welcher Ecke zu tun
-        # ist - und zwar alles auf einmal, weil nichts neu angefahren wird.
-        if not self.coordinator.uses_wedges:
-            return self._build_lift_announcement()
-
-        if phase in (PHASE_LEFT, PHASE_RIGHT):
-            centimetres = self.coordinator.correction_roll_cm
-        else:
-            centimetres = self.coordinator.correction_pitch_cm
-        if centimetres is None:
-            return None
-
-        side = SIDE_NAMES[phase]
-        if (steps := self.coordinator.wedge_steps_for(centimetres)) is not None:
-            return f"{side} anheben, Keilstufe {steps}."
-        return f"{side} anheben, etwa {_round_to_step(centimetres)} Zentimeter."
-
-    def _build_caravan_announcement(self) -> str | None:
-        """Wohnwagen: erst der Keil, dann das Stützrad.
-
-        Die Reihenfolge kommt aus dem Rechenkern und ist keine Kosmetik - das
-        Auffahren auf den Keil kippt den Wagen längs mit. Wer zuerst kurbelt,
-        kurbelt zweimal.
+        Ecke für Ecke und auf halbe Zentimeter gerastet, aus coordinator.
+        instruction. Vorher sprach die Ansage Achsen in 5-cm-Stufen ("Heck
+        anheben, etwa 5 Zentimeter"), während der Bildschirm eine Ecke nannte -
+        wer beides hört und liest, glaubt keinem von beiden.
         """
-        plan = self.coordinator.wheel_plan
-        if not plan:
+        instruction = self.coordinator.instruction
+        if not instruction or not instruction["steps"]:
             return None
-
-        teile = []
-        for item in plan:
-            name = CARAVAN_NAMES.get(item["wheel"], WHEEL_NAMES.get(item["wheel"], ""))
-            if item.get("steps"):
-                teile.append(f"{name} {item['direction']}, Keilstufe {item['steps']}")
-            else:
-                teile.append(f"{name} {item['direction']}, {item['cm']:.0f} Zentimeter")
-        return ". ".join(teile) + "."
-
-    def _build_lift_announcement(self) -> str | None:
-        """Alle Stützen auf einmal - für Hydraulik und Luftkissen.
-
-        Bewusst ohne Rundung auf 5-cm-Schritte: ein Hebesystem fährt
-        stufenlos, da wäre Runden ein künstlich verschenkter Rest. Und
-        bewusst höchstes Rad zuerst, weil man dort anfängt.
-        """
-        plan = self.coordinator.wheel_plan
-        if not plan:
-            return None
-
+        steps = instruction["steps"]
+        names = (
+            CARAVAN_INSTRUCTION_NAMES if self.coordinator.is_caravan else INSTRUCTION_NAMES
+        )
         # .get und kein direkter Zugriff: Ein unbekannter Schlüssel wäre hier
         # ein KeyError mitten in einer Ansage - also genau dann, wenn niemand
         # am Rechner sitzt. Lieber die rohe Kennung vorlesen als abbrechen.
         teile = [
-            f"{WHEEL_NAMES.get(item['wheel'], item['wheel'])} {item['cm']:.0f} Zentimeter"
-            for item in plan
+            f"{names.get(step['wheel'], step['wheel'])} {_spoken_cm(step['cm'])}"
+            for step in steps
         ]
-        if len(teile) == 1:
-            return f"{teile[0]} anheben."
-        return f"Anheben: {', '.join(teile[:-1])} und {teile[-1]}."
+        text = teile[0] if len(teile) == 1 else f"{', '.join(teile[:-1])} und {teile[-1]}"
+        text += f" Zentimeter {steps[-1]['direction']}"
+        if len(steps) == 1 and steps[0]["wedge_steps"]:
+            text += f", Keilstufe {steps[0]['wedge_steps']}"
+        if instruction["then"]:
+            text += f", danach {names.get(instruction['then'], instruction['then'])}"
+        return text + "."
 
     async def _async_speak(self, text: str) -> None:
         # Aus dem Rechenkern, nicht aus der Einrichtung: das Ziel ist eine

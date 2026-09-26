@@ -71,12 +71,13 @@ async def _async_register_resource(hass: HomeAssistant, card_url: str) -> None:
     resources = getattr(lovelace, "resources", None)
 
     # Bei YAML-verwalteten Dashboards ist die Liste unveränderlich. Dort
-    # bleibt es beim script-Tag aus add_extra_js_url.
+    # bleibt nur das script-Tag aus add_extra_js_url.
     if resources is None or not hasattr(resources, "async_create_item"):
         _LOGGER.debug(
             "Ressourcenliste nicht beschreibbar (YAML-Modus?) - "
             "die Karte kommt nur über die Index-Seite"
         )
+        add_extra_js_url(hass, card_url)
         return
 
     await resources.async_get_info()
@@ -149,9 +150,12 @@ async def _async_register_card(hass: HomeAssistant) -> None:
     integration = await async_get_integration(hass, DOMAIN)
     card_url = f"{CARD_URL}?v={integration.version}"
 
-    # Zweiter Weg, kostenlos und für YAML-Dashboards der einzige. Dass die
-    # Karte dadurch doppelt geladen werden kann, fängt sie selbst ab.
-    add_extra_js_url(hass, card_url)
+    # Das script-Tag aus add_extra_js_url NUR, wo die Ressourcenliste nicht
+    # geht (YAML-Dashboards, Fehler beim Eintragen) - nicht mehr zusätzlich.
+    # Es steht in der Index-Seite, und die hält die Companion-App über Updates
+    # hinweg im Zwischenspeicher: Nach dem Update auf 4.0.2 lud sie weiter
+    # "?v=3.5.2", und weil dieser Weg zuerst lädt, gewann die alte Karte. Die
+    # Ressourcenliste holt das Frontend dagegen bei jedem Laden neu.
     hass.data[CARD_REGISTERED] = True
 
     async def _register_when_ready(_: HomeAssistant) -> None:
@@ -167,6 +171,8 @@ async def _async_register_card(hass: HomeAssistant) -> None:
                 "URL %s, Typ JavaScript-Modul",
                 card_url,
             )
+            # Bis dahin wenigstens über die Index-Seite.
+            add_extra_js_url(hass, card_url)
 
     async_at_started(hass, _register_when_ready)
 
@@ -182,6 +188,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     config = {**entry.data, **entry.options}
 
     coordinator = CamperCoordinator(hass, entry.entry_id, config)
+    coordinator.version = str((await async_get_integration(hass, DOMAIN)).version)
     announcer = CamperAnnouncer(hass, coordinator, config)
 
     # Der Rechenkern meldet jede Änderung; die Ansage entscheidet selbst, ob
