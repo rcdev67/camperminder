@@ -147,6 +147,28 @@ Erst bauen:  esphome compile $geraeteDatei"
 }
 Write-Host ("Firmware: {0}  ({1:N0} Bytes, {2})" -f $bin.FullName, $bin.Length, $bin.LastWriteTime)
 
+# --- Steckt die Version wirklich in der Firmware? --------------------------
+# Am 26.09.2026 lief der Bau aus der Git-Bash (MSYS). ESP-IDF übersetzte dort
+# nichts ("MSys/Mingw is no longer supported"), esphome meldete trotzdem
+# "Successfully compiled", und firmware.ota.bin enthielt weiter den alten
+# Stand. So ging 4.0.1 mit der Firmware von 4.0.0 hinaus: Jedes Gerät hätte
+# das Update installiert und danach wieder "Update verfügbar" gemeldet. Die
+# Prüfung auf das Alter der Datei oben half nicht - sie war frisch geschrieben.
+#
+# Gesucht wird die Nummer als C-Zeichenkette, also mit abschließendem
+# Nullbyte: Sie steht so im Sensor "Firmware Version". Ohne das Nullbyte
+# träfe "4.0.1" auch in "4.0.12".
+$inhalt = [System.Text.Encoding]::ASCII.GetString([System.IO.File]::ReadAllBytes($bin.FullName))
+if (-not $inhalt.Contains("$version`0")) {
+  throw @"
+Die Firmware enthaelt die Nummer $version nicht - sie ist ein alter Stand.
+    $($bin.FullName)
+Neu bauen, und zwar aus cmd.exe oder PowerShell (bauen.cmd), NICHT aus der
+Git-Bash: Dort uebersetzt ESP-IDF nichts und meldet trotzdem Erfolg.
+"@
+}
+Write-Host "Firmware traegt dieselbe Nummer: $version"
+
 # Die Factory-Datei liegt daneben und enthält zusätzlich Bootloader und
 # Partitionstabelle. Sie gehört ans Release, damit sich jede veröffentlichte
 # Version auch auf ein leeres Board bringen lässt - ohne vorher zu bauen und
