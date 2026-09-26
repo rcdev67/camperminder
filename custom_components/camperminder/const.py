@@ -131,20 +131,32 @@ WHEELS: Final = (
     WHEEL_REAR_RIGHT,
 )
 
-# --- Seiten -----------------------------------------------------------------
-# Steht nur EINE Achse schief, brauchen beide Räder derselben Seite exakt
-# dasselbe Maß. Der Plan trägt dann nicht zwei Radpositionen, sondern eine
-# Seite: "Vorne links 4 cm" und "Hinten links 4 cm" sind zwei Zeilen für einen
-# Handgriff, und beide nennen eine Längsrichtung, die gar nicht korrigiert wird.
+# --- Die Anweisung ----------------------------------------------------------
+# Ecke für Ecke, nie eine zusammengefasste Seite, und auf halbe Zentimeter
+# gerastet. DIESELBE Regel wie in der Firmware ("Der nächste Handgriff" in
+# esphome/level/hardware.yaml): Geräteseite, Home Assistant, MQTT und Ansage
+# müssen denselben Satz sagen. Wer hier etwas ändert, ändert es dort mit.
 #
-# Die Kennungen sind bewusst die Bestandteile der Radnamen - "vorne_links"
-# zerfällt in "vorne" und "links". Dadurch findet der Zusammenzug sie ohne
-# eigene Zuordnungstabelle.
-SIDE_LEFT: Final = "links"
-SIDE_RIGHT: Final = "rechts"
-SIDE_FRONT: Final = "vorne"
-SIDE_REAR: Final = "hinten"
-SIDES: Final = (SIDE_LEFT, SIDE_RIGHT, SIDE_FRONT, SIDE_REAR)
+# Feiner als einen halben Zentimeter legt niemand einen Keil. Die Hysterese
+# verhindert, dass der gerastete Wert an der Viertelgrenze hin und her kippt.
+INSTRUCTION_GRID_CM: Final = 0.5
+INSTRUCTION_HYSTERESIS_CM: Final = 0.3
+
+# Namen im Satz - wortgleich zur Firmware.
+INSTRUCTION_NAMES: Final = {
+    WHEEL_FRONT_LEFT: "Vorne links",
+    WHEEL_FRONT_RIGHT: "Vorne rechts",
+    WHEEL_REAR_LEFT: "Hinten links",
+    WHEEL_REAR_RIGHT: "Hinten rechts",
+}
+# Beim Wohnwagen sitzen beide Räder auf einer Achse - "hinten links" wäre dort
+# schlicht falsch.
+CARAVAN_INSTRUCTION_NAMES: Final = {
+    WHEEL_REAR_LEFT: "Linkes Rad",
+    WHEEL_REAR_RIGHT: "Rechtes Rad",
+    POINT_JOCKEY: "Stützrad",
+}
+INSTRUCTION_LEVEL_TEXT: Final = "Steht eben - fertig"
 
 # Unterhalb dieser Hubhöhe wird ein Rad nicht erwähnt. Ein halber Zentimeter
 # ist weder mit einem Keil noch mit einer Stütze sinnvoll einstellbar und
@@ -323,9 +335,6 @@ MIN_TOLERANCE_DEG: Final = 0.05
 # Prozentangabe. Wie ruhig eine Anzeige sein soll, ist Geschmack und gehört
 # deshalb nicht in eine Konstante - siehe CONF_LEVEL_HOLD.
 LEVEL_RELEASE: Final = 1.25
-
-# Ansage-Entfernungen werden auf dieses Raster gerundet.
-ANNOUNCE_CM_STEP: Final = 5
 
 SIGNAL_UPDATE: Final = f"{DOMAIN}_update_{{}}"
 

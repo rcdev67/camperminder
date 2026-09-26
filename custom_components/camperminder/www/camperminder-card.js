@@ -82,6 +82,8 @@ const TEXTS = {
   hintWedge: "Eine Anweisung nach der anderen – nach dem Auffahren neu messen.",
   hintLift: "Alle Stützen auf einmal, höchste zuerst. Das nicht genannte Rad bleibt stehen.",
   hintCaravan: "Erst das Rad auf den Keil, dann das Stützrad – das Auffahren kippt den Wagen längs mit.",
+  thenJockey: "Danach das Stützrad – sein Maß folgt, wenn das Rad auf dem Keil steht.",
+  outdated: "Diese Karte ist älter als die Integration (Karte {karte}, Integration {integration}). Zum Neuladen hier tippen. Hilft das in der Companion-App nicht: Einstellungen → Companion-App → Fehlerbehebung → Frontend-Cache zurücksetzen.",
   bTilt: "Neigung",
   bMotion: "Bewegung",
   bPos: "Lage",
@@ -116,16 +118,6 @@ const CARAVAN_WHEEL_NAMES = {
   hinten_links: "Linkes Rad",
   hinten_rechts: "Rechtes Rad",
   stuetzrad: "Stützrad",
-};
-
-/* Steht nur eine Achse schief, zieht der Rechenkern die beiden Räder derselben
- * Seite zu EINER Anweisung zusammen und liefert statt zweier Radpositionen eine
- * Seite. Ohne diese Namen stünde die rohe Kennung auf der Karte. */
-const SIDE_NAMES = {
-  links: "Linke Seite",
-  rechts: "Rechte Seite",
-  vorne: "Vorne",
-  hinten: "Hinten",
 };
 
 const clamp = (value, limit) => Math.max(-limit, Math.min(limit, value));
@@ -439,6 +431,7 @@ class CamperMinderCard extends HTMLElement {
       </style>
 
       <ha-card>
+        <div class="wache hinweis" id="veraltet" hidden></div>
         <div class="wache hinweis" id="hinweis" hidden></div>
         <div class="wache" id="wache" hidden></div>
 
@@ -564,19 +557,12 @@ class CamperMinderCard extends HTMLElement {
     const tolR = Number(a.tolerance_roll) || 1.59;
     const precise = a.precise === true;
 
-    /* Rastermaß der Zahlen - so fein wie die angezeigte Stelle, nicht gröber.
-
-       Hier stand ein halber Zentimeter, weil sich feiner ohnehin kein Keil
-       legen lässt. Das gilt für die ANWEISUNG, für die ANZEIGE war es ein
-       Fehler: Seit die Firmware den Regler "Anzeigeruhe" hat, tun beide
-       dasselbe, und das Raster gewann. Das Restrauschen liegt über den
-       gesamten Regelbereich zwischen 0,03 und 0,11 cm, die Umschaltschwelle
-       des Rasters lag bei 0,375 cm - der Regler konnte sich nicht auswirken.
-
-       Das Raster bremst jetzt nur noch das Flackern der letzten Stelle. */
-    const stepCm = 0.1;
+    /* Rastermaß der Grad - so fein wie die angezeigte Stelle, nicht gröber.
+       Es bremst nur das Flackern der letzten Stelle; wie ruhig es darüber
+       hinaus zugeht, entscheidet der Regler "Anzeigeruhe" der Firmware.
+       Zentimeter rastet die Karte nicht selbst: Die Anweisung kommt auf
+       halbe Zentimeter gerastet aus der Integration, wie in der Firmware. */
     const stepDeg = precise ? 0.05 : 0.1;
-    const cm = (key, value) => this._steady(key, value, stepCm);
     const deg = (key, value) => this._steady(key, value, stepDeg) ?? 0;
 
     /* Ob eine Achse eben steht, entscheidet der Rechenkern - dort trägt die
@@ -621,16 +607,15 @@ class CamperMinderCard extends HTMLElement {
       bub.style.boxShadow = `0 3px 8px rgba(0,0,0,.45), 0 0 12px ${color}`;
     };
 
-    const cmRoll = cm("roll_cm", a.correction_roll_cm);
-    const cmPitch = cm("pitch_cm", a.correction_pitch_cm);
-
+    /* Nur die Richtung, wie auf der Geräteseite. Hier stand ein Achsmaß
+       ("HECK hoch – noch 3,4 cm"); neben der Anweisung, die eine Ecke nennt,
+       war das eine zweite Zahl für denselben Handgriff. */
     let textRoll;
     if (!available) textRoll = `⚠️ ${TEXTS.noSensor}`;
     else if (implausible) textRoll = TEXTS.implausible;
     else if (levelRoll) textRoll = `✅ ${TEXTS.level}`;
     else {
-      const side = roll > 0 ? TEXTS.raiseLeft : TEXTS.raiseRight;
-      textRoll = `${side} – ${this._distance(a, cmRoll, a.wedge_steps_roll)}`;
+      textRoll = roll > 0 ? TEXTS.raiseLeft : TEXTS.raiseRight;
     }
 
     let textPitch;
@@ -638,8 +623,7 @@ class CamperMinderCard extends HTMLElement {
     else if (implausible) textPitch = TEXTS.implausible;
     else if (levelPitch) textPitch = `✅ ${TEXTS.level}`;
     else {
-      const side = pitch > 0 ? TEXTS.raiseRear : TEXTS.raiseFront;
-      textPitch = `${side} – ${this._distance(a, cmPitch, a.wedge_steps_pitch)}`;
+      textPitch = pitch > 0 ? TEXTS.raiseRear : TEXTS.raiseFront;
     }
 
     setBar("valRoll", "bubRoll", roll, tolR, levelRoll, colRoll, textRoll);
@@ -789,23 +773,11 @@ class CamperMinderCard extends HTMLElement {
      * Rest bleibt aber sichtbar. Vorher stand dort "0", und im Stand sah man
      * nur noch Grad.
      *
-     * Fasst der Plan beide Räder einer Seite zusammen ("links"), gilt der
-     * Eintrag für beide. Vorher fand die Ecke ihn nicht und zeigte 0, während
-     * die Anweisung "Links 4 cm hoch" verlangte.
-     *
      * Beim Wohnwagen tragen die hinteren Felder die beiden Räder der einen
      * Achse; vorne links zeigt das Stützrad, vorne rechts bleibt leer. */
-    const SIDE_WHEELS = {
-      links: ["vorne_links", "hinten_links"],
-      rechts: ["vorne_rechts", "hinten_rechts"],
-      vorne: ["vorne_links", "vorne_rechts"],
-      hinten: ["hinten_links", "hinten_rechts"],
-    };
     const hub = {};
     if (Array.isArray(a.wheel_plan)) {
-      for (const item of a.wheel_plan) {
-        for (const wheel of SIDE_WHEELS[item.wheel] || [item.wheel]) hub[wheel] = item;
-      }
+      for (const item of a.wheel_plan) hub[item.wheel] = item;
     }
     const rest = a.wheel_heights || {};
     const zentimeter = (wert) => Math.abs(wert).toFixed(1).replace(".", ",");
@@ -851,11 +823,9 @@ class CamperMinderCard extends HTMLElement {
       places,
       levelPitch,
       levelRoll,
-      cmPitch,
-      cmRoll,
-      cm,
     });
 
+    this._renderVeraltet(root.getElementById("veraltet"), a);
     this._renderHinweis(root.getElementById("hinweis"), a);
     this._renderWache(root.getElementById("wache"), hass, a);
 
@@ -873,6 +843,28 @@ class CamperMinderCard extends HTMLElement {
    *
    * Die Montage geht vor: Wenn der Sensor gar nicht mehr richtig sitzt, ist
    * die Frage nach der Kalibrierung zweitrangig. */
+  /* Die Karte ist älter als die Integration.
+
+     Die Nummer der Karte steht in ihrer eigenen Adresse (VERSION), die der
+     Integration kommt aus dem Rechenkern. Weichen sie ab, läuft im Browser
+     oder in der Companion-App noch die alte Karte - nach dem Update auf 4.0.2
+     zeigte die App unten weiter "3.5.2", und nichts wies darauf hin. Auf
+     Fingertipp neu laden, nicht von allein - wie der Balken der Geräteseite. */
+  _renderVeraltet(node, a) {
+    if (!node) return;
+    const integration = a.integration_version;
+    if (!VERSION || !integration || VERSION === integration) {
+      node.hidden = true;
+      return;
+    }
+    node.hidden = false;
+    node.textContent = `⚠️ ${TEXTS.outdated
+      .replace("{karte}", VERSION)
+      .replace("{integration}", integration)}`;
+    node.style.cursor = "pointer";
+    node.onclick = () => window.location.reload();
+  }
+
   _renderHinweis(node, a) {
     if (!node) return;
     const montage = a.mount_check === true;
@@ -958,14 +950,6 @@ class CamperMinderCard extends HTMLElement {
       : `Profil <b>${a.profile}</b> – Ziel: eben`;
   }
 
-  _distance(attributes, centimetres, steps) {
-    if (centimetres === null || centimetres === undefined) return "–";
-    if (attributes.wedge_step > 0 && steps) {
-      return `${TEXTS.step} ${steps}`;
-    }
-    return `noch ${Number(centimetres).toFixed(1)} cm`;
-  }
-
   _renderPlan(node, source, a, ctx) {
     if (!ctx.available) {
       node.innerHTML =
@@ -982,14 +966,23 @@ class CamperMinderCard extends HTMLElement {
     const almost = source.state === "fast";
     const heading = level ? `✅ ${TEXTS.level}` : almost ? TEXTS.almost : "Ausrichten";
 
+    /* Die Anweisung der Integration - Ecke für Ecke, auf halbe Zentimeter
+       gerastet, und wortgleich zum Satz der Firmware. Vorher baute die Karte
+       eigene Zeilen: Achsen mit Keilen ("Heck noch 3,4 cm"), zusammengefasste
+       Seiten, ungerastet. Dann sagten Karte und Gerät verschiedene Dinge. */
     const caravan = a.vehicle_type === "wohnwagen";
-    const rows = level
-      ? []
-      : caravan
-        ? this._caravanRows(a, ctx)
-        : a.level_method === "hebesystem"
-          ? this._liftRows(a, ctx)
-          : this._wedgeRows(a, ctx);
+    const instruction = a.instruction || {};
+    const steps = level || !Array.isArray(instruction.steps) ? [] : instruction.steps;
+    const names = caravan ? CARAVAN_WHEEL_NAMES : WHEEL_NAMES;
+    const rows = steps.map(
+      (step) =>
+        `<li><b>${names[step.wheel] || step.wheel}</b> ` +
+        `${Number(step.cm).toFixed(1).replace(".", ",")} cm ${step.direction}` +
+        `${step.wedge_steps ? ` – ${TEXTS.step} ${step.wedge_steps}` : ""}</li>`
+    );
+    if (rows.length && caravan && instruction.then) {
+      rows.push(`<li class="muted">${TEXTS.thenJockey}</li>`);
+    }
 
     /* Läuft ein Zielprofil, MUSS das hier stehen.
        Die Anzeige darüber rechnet dann gegen das Ziel - ohne diesen Satz
@@ -999,65 +992,15 @@ class CamperMinderCard extends HTMLElement {
 
     node.innerHTML = `
       <h2>${heading}</h2>
-      <div class="muted">Längs ${ctx.pitch.toFixed(ctx.places)}° · Quer ${ctx.roll.toFixed(ctx.places)}°</div>
+      <div class="muted">Längs ${ctx.pitch.toFixed(ctx.places).replace(".", ",")}° · Quer ${ctx.roll.toFixed(ctx.places).replace(".", ",")}°</div>
       ${zielSatz ? `<div class="muted hint">${zielSatz}</div>` : ""}
       ${rows.length ? `<ul>${rows.join("")}</ul>` : ""}
       ${rows.length ? `<div class="muted hint">${
         caravan
-          ? (rows.length > 1 ? TEXTS.hintCaravan : TEXTS.hintWedge)
+          ? TEXTS.hintCaravan
           : a.level_method === "hebesystem" ? TEXTS.hintLift : TEXTS.hintWedge
       }</div>` : ""}
     `;
-  }
-
-  /* Keile: eine Anweisung nach der anderen. Zwischen zwei Versuchen muss das
-     Fahrzeug bewegt werden, eine Liste aller vier Räder wäre hier also
-     nicht hilfreich, sondern verwirrend. */
-  _wedgeRows(a, ctx) {
-    const rows = [];
-    if (!ctx.levelPitch) {
-      const what = ctx.pitch > 0 ? "Heck" : "Front";
-      rows.push(
-        `<li><b>${what}</b> ${this._distance(a, ctx.cmPitch, a.wedge_steps_pitch)}</li>`
-      );
-    }
-    if (!ctx.levelRoll) {
-      const what = ctx.roll > 0 ? "Linke Seite" : "Rechte Seite";
-      rows.push(
-        `<li><b>${what}</b> ${this._distance(a, ctx.cmRoll, a.wedge_steps_roll)}</li>`
-      );
-    }
-    return rows;
-  }
-
-  /* Wohnwagen: quer der Keil unter das tiefere Rad, längs das Stützrad.
-     Mit Richtung, weil das Stützrad auch nach unten kann - und in der
-     Reihenfolge aus dem Rechenkern, die nicht vertauscht werden darf. */
-  _caravanRows(a, ctx) {
-    if (!Array.isArray(a.wheel_plan)) return [];
-    return a.wheel_plan.map((item) => {
-      const name =
-        CARAVAN_WHEEL_NAMES[item.wheel] ||
-        WHEEL_NAMES[item.wheel] ||
-        SIDE_NAMES[item.wheel] ||
-        item.wheel;
-      const wie = item.steps
-        ? `Keilstufe ${item.steps}`
-        : `${ctx.cm(`plan_${item.wheel}`, item.cm).toFixed(1)} cm`;
-      return `<li><b>${name}</b> ${item.direction} – ${wie}</li>`;
-    });
-  }
-
-  /* Hebesystem: alle Ecken auf einmal, höchste zuerst. Stufenlos, deshalb in
-     Zentimetern statt in Stufen - und ohne Rundung, die es hier nicht braucht. */
-  _liftRows(a, ctx) {
-    if (!Array.isArray(a.wheel_plan)) return [];
-    return a.wheel_plan.map(
-      (item) =>
-        `<li><b>${WHEEL_NAMES[item.wheel] || SIDE_NAMES[item.wheel] || item.wheel}</b> ${ctx
-          .cm(`plan_${item.wheel}`, item.cm)
-          .toFixed(1)} cm</li>`
-    );
   }
 
   _renderControls(node, hass, a) {

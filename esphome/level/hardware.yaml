@@ -857,11 +857,14 @@ globals:
     type: uint32_t
     initial_value: "0"
 
-  # Der Wert, der in der Anweisung steht. Mit Gedächtnis, damit der Satz nicht
-  # im Sekundentakt wechselt - siehe interval-Block.
-  - id: anweisung_cm
-    type: float
-    initial_value: "0.0"
+  # Die Anweisung als Werte statt als Satz - für die Geräteseite, die zwei
+  # Sprachen kann und den Satz deshalb selbst bilden muss (Statuswerte "a" und
+  # "d"). Beides entsteht im interval-Block zusammen mit dem deutschen Satz,
+  # damit Seite, Home Assistant und MQTT nie auseinanderlaufen.
+  - id: anweisung_werte
+    type: std::string
+  - id: anweisung_danach
+    type: std::string
 
   # --- Zielneigung ----------------------------------------------------------
   #
@@ -2190,6 +2193,8 @@ interval:
           const float r_roh = id(roll).state;
           if (isnan(p_roh) || isnan(r_roh)) {
             id(anweisung) = "Kein Messwert";
+            id(anweisung_werte) = "";
+            id(anweisung_danach) = "";
             return;
           }
 
@@ -2334,55 +2339,103 @@ interval:
            * Dazu Hysterese von 0,3 cm: Ohne sie kippt der gerundete Wert
            * genau auf der Viertelgrenze hin und her.
            */
+          /* Die tausendstel Zentimeter Spiel sind Absicht: Die Maße liegen im
+           * 0,1-Raster, der Abstand trifft die 0,3 also oft genau - und im
+           * float mal knapp darüber (4,3 - 4,0), mal knapp darunter (4,0 -
+           * 3,7). Ohne das Spiel hinge das Rasten von der Richtung ab und
+           * wiche von _steady_cm in coordinator.py ab. */
           auto ruhig = [](float neu, float alt) {
-            return fabsf(neu - alt) >= 0.3f ? roundf(neu * 2.0f) / 2.0f : alt;
+            return fabsf(neu - alt) >= 0.3f - 0.001f ? roundf(neu * 2.0f) / 2.0f : alt;
           };
 
-          char text[160];
+          /* Ecke für Ecke, nie eine zusammengefasste Seite - und DIESELBE
+           * Regel wie CamperCoordinator.instruction in coordinator.py
+           * (Integration, Karte, Ansage), damit Geräteseite,
+           * Home Assistant, MQTT und Ansage denselben Satz sagen:
+           *
+           *   Wohnmobil, Keile:     nur die höchste Ecke, mit Keilstufe.
+           *                         Zwischen zwei Versuchen muss das
+           *                         Fahrzeug bewegt werden.
+           *   Wohnmobil, Hydraulik: alle Ecken, höchste zuerst - sie fahren
+           *                         unabhängig voneinander.
+           *   Wohnwagen:            nur der nächste Schritt, erst das Rad,
+           *                         dann das Stützrad. Das Auffahren kippt
+           *                         den Wagen längs mit; eine vorher genannte
+           *                         Stützradhöhe wäre danach falsch. Der
+           *                         Schritt danach steht ohne Maß dabei.
+           *
+           * Gedächtnis je Auflagepunkt (vl, vr, hl, hr, Stützrad), nicht eines
+           * für alle: Mit Hydraulik stehen mehrere Maße gleichzeitig da. */
+          static float gerastet[5] = { 0.0f, 0.0f, 0.0f, 0.0f, 0.0f };
+          const bool keile = id(level_method).current_option() == "Auffahrkeile";
+          const float stufe = isnan(id(wedge_step_cm).state) ? 0.0f : id(wedge_step_cm).state;
+          const char *codes[5] = { "vl", "vr", "hl", "hr", "st" };
+          const char *namen_mobil[5] = { "Vorne links", "Vorne rechts",
+                                         "Hinten links", "Hinten rechts", "Stützrad" };
+          const char *namen_wagen[5] = { "", "", "Linkes Rad", "Rechtes Rad", "Stützrad" };
+          const char *const *namen = wohnwagen ? namen_wagen : namen_mobil;
+
+          int reihe[5];
+          int anzahl = 0;
+          int danach = -1;
           if (wohnwagen) {
-            // Reihenfolge ist Absicht: erst quer, dann längs. Das Auffahren
-            // kippt den Wagen längs mit - eine vorher berechnete
-            // Stützradhöhe wäre danach falsch.
-            if (id(hub_hl) >= 1.0f) {
-              id(anweisung_cm) = ruhig(id(hub_hl), id(anweisung_cm));
-              snprintf(text, sizeof(text), "Linkes Rad %.1f cm hoch", id(anweisung_cm));
-            } else if (id(hub_hr) >= 1.0f) {
-              id(anweisung_cm) = ruhig(id(hub_hr), id(anweisung_cm));
-              snprintf(text, sizeof(text), "Rechtes Rad %.1f cm hoch", id(anweisung_cm));
-            } else if (fabsf(id(stuetzrad)) >= 1.0f) {
-              id(anweisung_cm) = ruhig(fabsf(id(stuetzrad)), id(anweisung_cm));
-              snprintf(text, sizeof(text), "Stützrad %.1f cm %s",
-                       id(anweisung_cm), id(stuetzrad) > 0.0f ? "hoch" : "runter");
-            } else {
-              snprintf(text, sizeof(text), "Steht eben - fertig");
+            if (zu_tun[2] >= 1.0f) reihe[anzahl++] = 2;
+            else if (zu_tun[3] >= 1.0f) reihe[anzahl++] = 3;
+            if (fabsf(zu_tun[4]) >= 1.0f) {
+              if (anzahl == 0) reihe[anzahl++] = 4;
+              else danach = 4;
             }
           } else {
-            const char *namen[4] = { "Vorne links", "Vorne rechts",
-                                     "Hinten links", "Hinten rechts" };
-            float werte[4] = { id(hub_vl), id(hub_vr), id(hub_hl), id(hub_hr) };
-            int groesster = 0, offen = 0;
-            for (int i = 0; i < 4; i++) {
-              if (werte[i] > werte[groesster]) groesster = i;
-              if (werte[i] >= 1.0f) offen++;
+            for (int i = 0; i < 4; i++) if (zu_tun[i] >= 1.0f) reihe[anzahl++] = i;
+            // Höchste zuerst; bei Gleichstand bleibt die Reihenfolge vorne
+            // links, vorne rechts, hinten links, hinten rechts.
+            for (int i = 1; i < anzahl; i++) {
+              const int x = reihe[i];
+              int j = i - 1;
+              while (j >= 0 && zu_tun[reihe[j]] < zu_tun[x]) { reihe[j + 1] = reihe[j]; j--; }
+              reihe[j + 1] = x;
             }
-            if (offen == 0) {
-              snprintf(text, sizeof(text), "Steht eben - fertig");
-            } else if (id(level_method).current_option() == "Auffahrkeile" || offen == 1) {
-              // Mit Keilen eine Anweisung nach der anderen: Zwischen zwei
-              // Versuchen muss das Fahrzeug bewegt werden, eine Liste aller
-              // vier Räder wäre hier nicht hilfreich, sondern verwirrend.
-              id(anweisung_cm) = ruhig(werte[groesster], id(anweisung_cm));
-              snprintf(text, sizeof(text), "%s %.1f cm hoch",
-                       namen[groesster], id(anweisung_cm));
-            } else {
-              // Mit Hydraulik geht jede Ecke einzeln und gleichzeitig.
-              id(anweisung_cm) = ruhig(werte[groesster], id(anweisung_cm));
-              snprintf(text, sizeof(text), "%s %.1f cm hoch, dazu %d weitere Ecke%s",
-                       namen[groesster], id(anweisung_cm), offen - 1,
-                       offen - 1 == 1 ? "" : "n");
-            }
+            if (keile && anzahl > 1) anzahl = 1;
           }
-          id(anweisung) = text;
+
+          std::string satz, werte;
+          char zahl[16], teil[64];
+          int stufen_letzte = 0;
+          bool runter = false;
+          for (int s = 0; s < anzahl; s++) {
+            const int i = reihe[s];
+            gerastet[i] = ruhig(fabsf(zu_tun[i]), gerastet[i]);
+            runter = (i == 4 && zu_tun[4] < 0.0f);
+            int stufen = 0;
+            if (keile && stufe > 0.0f && i != 4) {
+              stufen = (int) roundf(gerastet[i] / stufe);
+              if (stufen < 1) stufen = 1;
+            }
+            stufen_letzte = stufen;
+            // Deutsches Komma - der Satz ist deutsch, und die Karte schreibt
+            // dieselbe Zahl mit Komma.
+            snprintf(zahl, sizeof(zahl), "%.1f", gerastet[i]);
+            for (char *z = zahl; *z; z++) if (*z == '.') *z = ',';
+            if (s > 0) satz += " · ";
+            snprintf(teil, sizeof(teil), "%s %s cm", namen[i], zahl);
+            satz += teil;
+            snprintf(teil, sizeof(teil), "%s%s:%.1f:%d:%s", s > 0 ? "," : "",
+                     codes[i], gerastet[i], stufen, runter ? "r" : "h");
+            werte += teil;
+          }
+          if (anzahl == 0) {
+            satz = "Steht eben - fertig";
+          } else {
+            satz += runter ? " runter" : " hoch";
+            if (anzahl == 1 && stufen_letzte > 0) {
+              snprintf(teil, sizeof(teil), " – Keilstufe %d", stufen_letzte);
+              satz += teil;
+            }
+            if (danach == 4) satz += ", danach Stützrad";
+          }
+          id(anweisung) = satz;
+          id(anweisung_werte) = werte;
+          id(anweisung_danach) = danach == 4 ? "st" : "";
 
           /* --- Ruhelage nachführen --------------------------------------
            *
@@ -3233,6 +3286,10 @@ text_sensor:
   #   b  Bewegung      nie | jetzt | ZEITPUNKT | vor:SEKUNDEN
   #   m  MQTT          aus | verbunden | getrennt
   #   n  Eigenes Netz  offen | passwort
+  #   a  Anweisung     leer = nichts zu tun | ECKE:CM:STUFEN:RICHTUNG[,...]
+  #                    ECKE vl|vr|hl|hr|st, CM gerastet auf 0,5 (Punkt),
+  #                    STUFEN 0 = keine, RICHTUNG h|r
+  #   d  Danach        leer | st   (Wohnwagen: Stützrad kommt als Nächstes)
   - platform: template
     name: "Statuswerte"
     id: status_werte
@@ -3241,7 +3298,7 @@ text_sensor:
     update_interval: 1s
     lambda: |-
       const uint32_t jetzt = millis() / 1000;
-      char w[40], k[32], c[48], b[24], alles[208];
+      char w[40], k[32], c[48], b[24], alles[320];
 
       if (id(wache_alarm)) {
         if (id(wache_alarm_uhr) > 0) {
@@ -3298,8 +3355,9 @@ text_sensor:
           : (mqtt::global_mqtt_client->is_connected() ? "verbunden" : "getrennt");
       const char *n = strlen(id(ap_passwort)) >= 8 ? "passwort" : "offen";
 
-      snprintf(alles, sizeof(alles), "w=%s;k=%s;c=%s;b=%s;m=%s;n=%s",
-               w, k, c, b, m, n);
+      snprintf(alles, sizeof(alles), "w=%s;k=%s;c=%s;b=%s;m=%s;n=%s;a=%s;d=%s",
+               w, k, c, b, m, n, id(anweisung_werte).c_str(),
+               id(anweisung_danach).c_str());
       return {std::string(alles)};
     filters:
       - lambda: |-

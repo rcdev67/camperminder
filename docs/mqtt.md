@@ -54,7 +54,7 @@ weiter.
 | `camperminder/level/sensor/abweichung_hinten_links/state` | Abweichung in cm |
 | `camperminder/level/sensor/abweichung_hinten_rechts/state` | Abweichung in cm |
 | `camperminder/level/sensor/abweichung_stuetzrad/state` | Wohnwagen: `+` hoch, `−` runter |
-| `camperminder/level/text_sensor/anweisung/state` | `Hinten links 4.5 cm hoch` |
+| `camperminder/level/text_sensor/anweisung/state` | `Hinten links 4,5 cm hoch – Keilstufe 1` – Ecke für Ecke, auf 0,5 cm gerastet, derselbe Satz wie auf Geräteseite und Karte |
 
 Beim **Wohnwagen** bedeuten „hinten links/rechts" die beiden Räder der einen
 Achse; „vorne" bleibt auf 0, dort steht das Stützrad.

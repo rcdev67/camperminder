@@ -67,6 +67,11 @@ from .const import (
     DEVICE_VEHICLE_MAP,
     DIRECTION_DOWN,
     DIRECTION_UP,
+    CARAVAN_INSTRUCTION_NAMES,
+    INSTRUCTION_GRID_CM,
+    INSTRUCTION_HYSTERESIS_CM,
+    INSTRUCTION_LEVEL_TEXT,
+    INSTRUCTION_NAMES,
     IMPLAUSIBLE_DEG,
     LEVEL_RELEASE,
     METHOD_WEDGE,
@@ -80,7 +85,6 @@ from .const import (
     PHASE_RIGHT,
     PHASE_UNKNOWN,
     POINT_JOCKEY,
-    SIDES,
     SIGNAL_UPDATE,
     VEHICLE_CARAVAN,
     VEHICLE_TYPES,
@@ -93,44 +97,6 @@ from .const import (
 
 _LOGGER = logging.getLogger(__name__)
 
-
-def _merge_side(
-    plan: list[dict[str, float | int | None]],
-) -> list[dict[str, float | int | None]]:
-    """Zwei Räder derselben Seite mit gleichem Maß zu einer Anweisung machen.
-
-    Steht das Fahrzeug nur quer schief, brauchen beide linken Räder exakt
-    dasselbe. Die Rechnung liefert dafür zwei Einträge, und die lasen sich als
-    "Vorne links 4 cm" und "Hinten links 4 cm" - zwei Handgriffe, wo einer
-    gemeint ist, und beide nennen eine Längsrichtung, die gar nicht korrigiert
-    wird. Wer nach Anweisung arbeitet, sucht dann nach einem Unterschied
-    zwischen den beiden Zeilen, den es nicht gibt.
-
-    Nur bei GENAU zwei Einträgen: Sobald beide Achsen schief stehen, entstehen
-    drei mit verschiedenen Maßen, und dann ist jede Ecke wirklich einzeln
-    gemeint. Ein zufälliges Zusammenfallen kann es dabei nicht geben - die
-    beiden gleich großen Einträge lägen über Kreuz und teilten sich keine Seite.
-    """
-    if len(plan) != 2 or plan[0]["cm"] != plan[1]["cm"]:
-        return plan
-
-    erste = str(plan[0]["wheel"]).split("_")
-    zweite = str(plan[1]["wheel"]).split("_")
-    if len(erste) != 2 or len(zweite) != 2:
-        return plan
-
-    if erste[0] == zweite[0]:
-        seite = erste[0]
-    elif erste[1] == zweite[1]:
-        seite = erste[1]
-    else:
-        return plan
-    if seite not in SIDES:
-        return plan
-
-    zusammen = dict(plan[0])
-    zusammen["wheel"] = seite
-    return [zusammen]
 
 # Einstellbare Werte und ihre Voreinstellungen. Alles hier drin gehört einer
 # Entität und ist damit auf der Geräteseite sichtbar, in Automationen
@@ -162,6 +128,11 @@ NUMERIC_VALUES = (
     CONF_LEVEL_HOLD,
     CONF_TILT_LIMIT,
 )
+
+
+def _komma(centimetres: float) -> str:
+    """Eine Nachkommastelle mit deutschem Komma - wie die Firmware schreibt."""
+    return f"{centimetres:.1f}".replace(".", ",")
 
 
 def _as_float(state) -> float | None:
@@ -213,6 +184,8 @@ class CamperCoordinator:
         self.hass = hass
         self.entry_id = entry_id
         self._config = config
+        # Aus der manifest.json, gesetzt von async_setup_entry.
+        self.version: str | None = None
 
         self.pitch: float | None = None
         self.roll: float | None = None
@@ -226,6 +199,8 @@ class CamperCoordinator:
         self._level_hold: dict[str, bool] = {"pitch": False, "roll": False}
         # Gedächtnis der Schräglagenwarnung - siehe tilt_warning.
         self._tilt_hold: bool = False
+        # Gedächtnis der Rasterung je Auflagepunkt - siehe _steady_cm.
+        self._instruction_cm: dict[str, float] = {}
 
         # Wird in async_start gefüllt, sobald die Entitätsregistrierung
         # befragt werden kann.
@@ -871,12 +846,11 @@ class CamperCoordinator:
         # Eine Achse, die innerhalb ihrer Toleranz steht, ist FERTIG - ihr
         # Restwinkel darf die Anweisung nicht mehr formen.
         #
-        # Ohne das nützt der Zusammenzug in _merge_side nichts. Von Hand kippt
-        # niemand exakt auf einer Achse: Schon 0,3 Grad Rest längs - ein Drittel
-        # der Toleranz - erzeugen aus einer reinen Querneigung wieder drei
-        # verschiedene Eckmaße, und die Anweisung nennt eine Längsrichtung, die
-        # nach den eigenen Maßstäben des Nutzers gar nicht korrigiert werden
-        # muss.
+        # Von Hand kippt niemand exakt auf einer Achse: Schon 0,3 Grad Rest
+        # längs - ein Drittel der Toleranz - erzeugen aus einer reinen
+        # Querneigung vier verschiedene Eckmaße, und die Anweisung nennt eine
+        # Längsrichtung, die nach den eigenen Maßstäben des Nutzers gar nicht
+        # korrigiert werden muss.
         #
         # Bezugsgröße ist dieselbe Toleranz, die auch über "steht eben"
         # entscheidet. Damit kann die Anweisung nichts verlangen, was die
@@ -1036,5 +1010,108 @@ class CamperCoordinator:
                     "direction": DIRECTION_UP,
                 }
             )
+        # Stabil sortiert: Bei gleichem Maß bleibt die Reihenfolge vorne links,
+        # vorne rechts, hinten links, hinten rechts - wie in der Firmware.
         plan.sort(key=lambda item: item["cm"], reverse=True)
-        return _merge_side(plan)
+        return plan
+
+    # -- Die Anweisung -----------------------------------------------------
+
+    def _steady_cm(self, key: str, centimetres: float) -> float:
+        """Auf halbe Zentimeter rasten, mit Hysterese - wie ruhig() in der Firmware.
+
+        Der gerastete Wert liegt höchstens einen Viertelzentimeter neben dem
+        Messwert, also innerhalb der Hysterese. Wiederholtes Abfragen mit
+        demselben Messwert ändert deshalb nichts - die Karte, der Sensor und
+        die Ansage fragen unabhängig voneinander.
+        """
+        previous = self._instruction_cm.get(key, 0.0)
+        # Die Maße liegen im 0,1-Raster, der Abstand trifft die Grenze also
+        # oft genau: 4,3 - 4,0 ist in Python 0,2999..., im float der Firmware
+        # 0,3000002. Ohne die tausendstel Zentimeter Spiel rasteten beide an
+        # derselben Stelle verschieden - siehe ruhig() in hardware.yaml.
+        if abs(centimetres - previous) >= INSTRUCTION_HYSTERESIS_CM - 0.001:
+            # Kaufmännisch wie roundf, nicht wie Pythons round(): Das rundet
+            # 2,5 auf 2 und läge damit neben der Firmware.
+            previous = (
+                math.floor(centimetres / INSTRUCTION_GRID_CM + 0.5) * INSTRUCTION_GRID_CM
+            )
+            self._instruction_cm[key] = previous
+        return previous
+
+    def _instruction_wedge_steps(self, wheel: str, centimetres: float) -> int | None:
+        """Keilstufen zu einem gerasteten Maß - nur mit Keilen, nie am Stützrad."""
+        if wheel == POINT_JOCKEY or not self.uses_wedges or self.wedge_step <= 0:
+            return None
+        return max(math.floor(centimetres / self.wedge_step + 0.5), 1)
+
+    @property
+    def instruction(self) -> dict | None:
+        """Der nächste Handgriff - Ecke für Ecke, auf halbe Zentimeter gerastet.
+
+        DIESELBE Regel wie die Firmware ("Der nächste Handgriff" in
+        hardware.yaml), damit Karte, Ansage, Geräteseite und MQTT dasselbe
+        sagen:
+
+        - Wohnmobil mit Keilen: nur die höchste Ecke, mit Keilstufe. Zwischen
+          zwei Versuchen muss das Fahrzeug bewegt werden.
+        - Wohnmobil mit Hydraulik oder Luftkissen: alle Ecken, höchste zuerst -
+          sie fahren unabhängig voneinander.
+        - Wohnwagen: nur der nächste Schritt, erst das Rad, dann das Stützrad.
+          Das Auffahren kippt den Wagen längs mit, eine vorher genannte
+          Stützradhöhe wäre danach falsch. "then" nennt den Schritt danach
+          ohne Maß.
+
+        None heißt: keine Messwerte. Eine leere Schrittliste heißt: eben.
+        """
+        plan = self.wheel_plan
+        if plan is None:
+            return None
+        by_wheel = {item["wheel"]: item for item in plan}
+
+        then = None
+        if self.is_caravan:
+            order = [w for w in (WHEEL_REAR_LEFT, WHEEL_REAR_RIGHT) if w in by_wheel][:1]
+            if POINT_JOCKEY in by_wheel:
+                if order:
+                    then = POINT_JOCKEY
+                else:
+                    order = [POINT_JOCKEY]
+        else:
+            order = [item["wheel"] for item in plan]
+            if self.uses_wedges:
+                order = order[:1]
+
+        steps = []
+        for wheel in order:
+            item = by_wheel[wheel]
+            centimetres = self._steady_cm(wheel, float(item["cm"]))
+            steps.append(
+                {
+                    "wheel": wheel,
+                    "cm": centimetres,
+                    "wedge_steps": self._instruction_wedge_steps(wheel, centimetres),
+                    "direction": item["direction"],
+                }
+            )
+        return {
+            "steps": steps,
+            "then": then,
+            "text": self._instruction_text(steps, then),
+        }
+
+    def _instruction_text(self, steps: list[dict], then: str | None) -> str:
+        """Der Satz, wortgleich zum Sensor "Anweisung" der Firmware."""
+        if not steps:
+            return INSTRUCTION_LEVEL_TEXT
+        names = CARAVAN_INSTRUCTION_NAMES if self.is_caravan else INSTRUCTION_NAMES
+        text = " · ".join(
+            f"{names.get(step['wheel'], step['wheel'])} {_komma(step['cm'])} cm"
+            for step in steps
+        )
+        text += f" {steps[-1]['direction']}"
+        if len(steps) == 1 and steps[0]["wedge_steps"]:
+            text += f" – Keilstufe {steps[0]['wedge_steps']}"
+        if then:
+            text += f", danach {names.get(then, then)}"
+        return text

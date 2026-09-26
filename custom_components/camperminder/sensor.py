@@ -186,6 +186,11 @@ class CamperPhaseSensor(CamperEntity, SensorEntity):
             "vehicle_type": coordinator.vehicle_type,
             "wheel_plan": coordinator.wheel_plan,
             "wheel_heights": coordinator.wheel_heights_cm,
+            "instruction": coordinator.instruction,
+            # Die Karte vergleicht damit ihre eigene Nummer. Hält ein Browser
+            # oder die Companion-App noch die alte Karte, sagt sie es selbst,
+            # statt still den alten Stand zu zeigen.
+            "integration_version": coordinator.version,
             "in_motion": coordinator.in_motion,
             # Der Wächter. Er gehört mit in dieses Bündel, weil die Karte
             # sonst vier weitere Entitäten selbst suchen müsste - und sie
