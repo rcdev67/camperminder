@@ -344,4 +344,12 @@ STATIC_URL: Final = "/camperminder_static"
 # URL lässt sich im Browser direkt aufrufen und ist damit die schnellste
 # Antwort auf die Frage, ob die Integration eingerichtet ist: liefert sie 404,
 # lief async_setup_entry nie.
-CARD_URL: Final = f"{STATIC_URL}/camperminder-card.js"
+#
+# Eigene Adresse, nicht mehr unter STATIC_URL: Dort liefert Home Assistant
+# ohne Cache-Control aus, und die Companion-App behielt die Karte so über
+# Updates UND App-Neustarts hinweg. Diese Adresse bedient ein eigener View mit
+# "Cache-Control: no-cache" - siehe CamperCardView.
+CARD_URL: Final = "/camperminder_karte/camperminder-card.js"
+# Die alte Adresse - Ressourceneinträge darauf werden umgestellt, und die
+# Datei liegt dort weiter, damit alte Verweise nicht ins Leere laufen.
+LEGACY_CARD_URL: Final = f"{STATIC_URL}/camperminder-card.js"

@@ -5,8 +5,10 @@ from __future__ import annotations
 import logging
 from pathlib import Path
 
+from aiohttp import web
+
 from homeassistant.components.frontend import add_extra_js_url
-from homeassistant.components.http import StaticPathConfig
+from homeassistant.components.http import HomeAssistantView, StaticPathConfig
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant, callback
@@ -22,6 +24,7 @@ from .const import (
     CONF_PITCH_SENSOR,
     CONF_ROLL_SENSOR,
     DOMAIN,
+    LEGACY_CARD_URL,
     STATIC_URL,
 )
 from .coordinator import CamperCoordinator
@@ -56,6 +59,30 @@ LOVELACE_DOMAIN = "lovelace"
 RESOURCE_TYPE_MODULE = "module"
 
 
+class CamperCardView(HomeAssistantView):
+    """Die Karte - mit "immer nachfragen" statt Zwischenspeicher.
+
+    Unter STATIC_URL liefert Home Assistant ohne Cache-Control aus. Browser und
+    vor allem die Companion-App dürfen die Datei dann nach eigenem Ermessen
+    behalten - und die App behielt sie über Updates und App-Neustarts hinweg:
+    Nach 4.0.3 lief dort weiter die Karte von 3.5.2. "no-cache" heißt nicht
+    "nicht speichern", sondern "vor jeder Verwendung beim Server nachfragen";
+    dank ETag antwortet der mit 304, solange sich nichts geändert hat.
+    """
+
+    url = CARD_URL
+    name = "camperminder:karte"
+    # Wie die statischen Dateien daneben: Die Karte ist kein Geheimnis, und die
+    # Ressourcenliste lädt sie ohne Anmeldekopf.
+    requires_auth = False
+
+    def __init__(self, path: Path) -> None:
+        self._path = path
+
+    async def get(self, request: web.Request) -> web.FileResponse:
+        return web.FileResponse(self._path, headers={"Cache-Control": "no-cache"})
+
+
 async def _async_register_resource(hass: HomeAssistant, card_url: str) -> None:
     """Die Karte in die Ressourcenliste der Dashboards eintragen.
 
@@ -84,7 +111,9 @@ async def _async_register_resource(hass: HomeAssistant, card_url: str) -> None:
 
     for item in resources.async_items():
         url = str(item.get("url", ""))
-        if not url.startswith(CARD_URL):
+        # Auch die alte Adresse unter STATIC_URL: Sie wird umgestellt, damit
+        # die Karte ab jetzt über den View ohne Zwischenspeicher kommt.
+        if not url.startswith((CARD_URL, LEGACY_CARD_URL)):
             continue
 
         # Vorhandener Eintrag - nach einem Update zeigt er auf die alte
@@ -143,6 +172,10 @@ async def _async_register_card(hass: HomeAssistant) -> None:
         return
 
     www_dir = Path(__file__).parent / "www"
+    # Die Karte über ihren eigenen View, die Bilder daneben statisch. Die
+    # Datei bleibt auch unter STATIC_URL erreichbar: Alte, zwischengespeicherte
+    # Seiten verweisen noch dorthin, und die Karte heilt sich darüber selbst.
+    hass.http.register_view(CamperCardView(www_dir / "camperminder-card.js"))
     await hass.http.async_register_static_paths(
         [StaticPathConfig(STATIC_URL, str(www_dir), cache_headers=False)]
     )

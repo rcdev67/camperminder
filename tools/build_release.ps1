@@ -105,6 +105,26 @@ angleichen, dann erneut bauen.
 }
 Write-Host "Bedienoberflaeche traegt dieselbe Nummer: $seitenVersion"
 
+# --- Die Lovelace-Karte muss dieselbe Nummer tragen -------------------------
+# Seit 4.0.4 steht sie im Inhalt der Karte (const VERSION), nicht mehr in der
+# Adresse. Die Karte vergleicht sie mit der laufenden Integration und erneuert
+# sich selbst, wenn sie aelter ist. Stimmt die Nummer nicht, wuerde sie sich
+# bei JEDEM Nutzer fuer veraltet halten und die Seite neu laden.
+$karte = Join-Path $root 'custom_components\camperminder\www\camperminder-card.js'
+if (-not (Test-Path $karte)) { throw "Nicht gefunden: $karte" }
+$m = [regex]::Match((Get-Content $karte -Raw -Encoding UTF8), '(?m)^const VERSION = "([^"]+)";')
+if (-not $m.Success) { throw "const VERSION nicht gefunden in $karte" }
+$kartenVersion = $m.Groups[1].Value
+if ($kartenVersion -cne $version) {
+  throw @"
+Versionen weichen ab:
+    esphome/level/hardware.yaml                          firmware_version = $version
+    custom_components/camperminder/www/camperminder-card.js  VERSION      = $kartenVersion
+Beide angleichen, dann erneut bauen.
+"@
+}
+Write-Host "Karte traegt dieselbe Nummer: $kartenVersion"
+
 # --- Gebaute Firmware suchen -----------------------------------------------
 # esphome legt sie unter .esphome/build/<name>/.pioenvs/<name>/ ab.
 # Gesucht wird der Name, den ESPHome vergibt. Das Produktpräfix bekommt erst
