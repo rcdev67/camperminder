@@ -663,6 +663,26 @@ globals:
   - id: stuetzrad
     type: float
     initial_value: "0.0"
+  # Dieselben fünf Werte noch einmal, aber OHNE die Toleranz: der echte
+  # Höhenunterschied bis ganz waagerecht (Sensoren "Abweichung ..."). Die
+  # Hub-Werte darüber sagen, was zu tun ist, und fallen auf 0, sobald eine
+  # Achse in ihrer Toleranz steht. Die Eckfelder zeigten dann im Stand überall
+  # "0" und nur noch Grad. Diese hier stehen dort grau neben den orangen.
+  - id: rest_vl
+    type: float
+    initial_value: "0.0"
+  - id: rest_vr
+    type: float
+    initial_value: "0.0"
+  - id: rest_hl
+    type: float
+    initial_value: "0.0"
+  - id: rest_hr
+    type: float
+    initial_value: "0.0"
+  - id: rest_stuetzrad
+    type: float
+    initial_value: "0.0"
   # Der nächste Handgriff als Satz. std::string ohne restore_value: Er wird
   # jede Sekunde neu gebildet, gespeichert werden müsste er nie.
   - id: anweisung
@@ -2033,6 +2053,76 @@ sensor:
     lambda: 'return id(stuetzrad);'
     filters: [ or: [ delta: 0.05, heartbeat: 60s ] ]
 
+  # --- Abweichung je Ecke ------------------------------------------------------
+  #
+  # Der echte Höhenunterschied bis ganz waagerecht, OHNE die Toleranz. Die
+  # Hub-Werte darüber sagen, was zu tun ist, und fallen auf 0, sobald eine
+  # Achse in der Toleranz steht; diese hier zeigen, wie weit die Ecke dann
+  # noch abweicht.
+  #
+  # Bewusst NICHT internal: Geräteseite, Home Assistant und MQTT liefern
+  # dieselben Werte. Eine Zahl, die es nur auf einem der Wege gibt, taugt für
+  # keinen - wer auf dem Cerbo GX etwas anderes sieht als auf dem Handy, glaubt
+  # keinem von beiden.
+  - platform: template
+    name: "Abweichung vorne links"
+    id: abweichung_vorne_links
+    unit_of_measurement: cm
+    icon: mdi:arrow-expand-vertical
+    accuracy_decimals: 1
+    state_class: measurement
+    update_interval: 1s
+    lambda: 'return id(rest_vl);'
+    filters: [ or: [ delta: 0.05, heartbeat: 60s ] ]
+
+  - platform: template
+    name: "Abweichung vorne rechts"
+    id: abweichung_vorne_rechts
+    unit_of_measurement: cm
+    icon: mdi:arrow-expand-vertical
+    accuracy_decimals: 1
+    state_class: measurement
+    update_interval: 1s
+    lambda: 'return id(rest_vr);'
+    filters: [ or: [ delta: 0.05, heartbeat: 60s ] ]
+
+  - platform: template
+    name: "Abweichung hinten links"
+    id: abweichung_hinten_links
+    unit_of_measurement: cm
+    icon: mdi:arrow-expand-vertical
+    accuracy_decimals: 1
+    state_class: measurement
+    update_interval: 1s
+    lambda: 'return id(rest_hl);'
+    filters: [ or: [ delta: 0.05, heartbeat: 60s ] ]
+
+  - platform: template
+    name: "Abweichung hinten rechts"
+    id: abweichung_hinten_rechts
+    unit_of_measurement: cm
+    icon: mdi:arrow-expand-vertical
+    accuracy_decimals: 1
+    state_class: measurement
+    update_interval: 1s
+    lambda: 'return id(rest_hr);'
+    filters: [ or: [ delta: 0.05, heartbeat: 60s ] ]
+
+  # Vorzeichenbehaftet wie "Stützrad": positiv hoch, negativ runter. Eigenes
+  # state_topic aus demselben Grund wie dort - aus dem Umlaut würde sonst
+  # "abweichung_st_tzrad".
+  - platform: template
+    name: "Abweichung Stützrad"
+    id: abweichung_stuetzrad
+    state_topic: camperminder/level/sensor/abweichung_stuetzrad/state
+    unit_of_measurement: cm
+    icon: mdi:tow-truck
+    accuracy_decimals: 1
+    state_class: measurement
+    update_interval: 1s
+    lambda: 'return id(rest_stuetzrad);'
+    filters: [ or: [ delta: 0.05, heartbeat: 60s ] ]
+
   # Der Betrag des Beschleunigungsvektors. Er muss im Stillstand immer 1,0 g
   # betragen, ganz gleich wie das Fahrzeug steht - die Erdbeschleunigung ändert
   # sich nicht mit der Neigung. Jede Abweichung, die mit der Temperatur
@@ -2181,38 +2271,58 @@ interval:
           const float BOGEN = 3.14159265358979323846f / 180.0f;
           const bool wohnwagen = (id(vehicle_type).current_option() == "Wohnwagen");
 
-          if (wohnwagen) {
-            /* Zwei Räder auf einer Achse plus Stützrad.
-             *
-             * Quer wie beim Wohnmobil über die Spurweite - ein Keil unter das
-             * tiefere Rad. Längs dagegen über das Stützrad, und das kurbelt
-             * in BEIDE Richtungen; "nur anheben" wäre hier eine künstliche
-             * Einschränkung. Deshalb bewusst nicht über die Vier-Ecken-
-             * Rechnung, die das höchste Rad als Bezug nimmt.
-             */
-            id(hub_vl) = 0.0f;
-            id(hub_vr) = 0.0f;
-            const float quer = roundf(spur * tanf(fabsf(r) * BOGEN)) / 10.0f;
-            id(hub_hl) = (r > 0.0f) ? quer : 0.0f;   // roll > 0 = rechts höher
-            id(hub_hr) = (r > 0.0f) ? 0.0f : quer;
-            const float laengs = roundf(radstand * tanf(fabsf(p) * BOGEN)) / 10.0f;
-            id(stuetzrad) = (p > 0.0f) ? -laengs : laengs;  // pitch > 0 = Front höher
-          } else {
-            /* Vier Auflagepunkte. Bezug ist das höchste Rad: Es bleibt
-             * stehen, alle anderen steigen. Anders herum ginge es nicht -
-             * absenken kann weder ein Keil noch eine Stütze. */
-            const float halb_l = radstand * tanf(p * BOGEN) / 20.0f;
-            const float halb_q = spur * tanf(r * BOGEN) / 20.0f;
-            float boden[4] = { +halb_l - halb_q, +halb_l + halb_q,
-                               -halb_l - halb_q, -halb_l + halb_q };
-            float hoechster = boden[0];
-            for (int i = 1; i < 4; i++) if (boden[i] > hoechster) hoechster = boden[i];
-            id(hub_vl) = roundf((hoechster - boden[0]) * 10.0f) / 10.0f;
-            id(hub_vr) = roundf((hoechster - boden[1]) * 10.0f) / 10.0f;
-            id(hub_hl) = roundf((hoechster - boden[2]) * 10.0f) / 10.0f;
-            id(hub_hr) = roundf((hoechster - boden[3]) * 10.0f) / 10.0f;
-            id(stuetzrad) = 0.0f;
-          }
+          /* Höhe je Auflagepunkt für ein Winkelpaar: vorne links, vorne
+           * rechts, hinten links, hinten rechts, Stützrad.
+           *
+           * Zweimal gebraucht - mit den Winkeln nach der Toleranz für die
+           * Hub-Werte, die die Anweisung tragen, und mit den ungekürzten für
+           * den echten Rest, den die Geräteseite grau daneben zeigt. Die
+           * Geometrie steht damit an einer Stelle. */
+          auto hoehen_fuer = [&](float wp, float wr, float h[5]) {
+            if (wohnwagen) {
+              /* Zwei Räder auf einer Achse plus Stützrad.
+               *
+               * Quer wie beim Wohnmobil über die Spurweite - ein Keil unter
+               * das tiefere Rad. Längs dagegen über das Stützrad, und das
+               * kurbelt in BEIDE Richtungen; "nur anheben" wäre hier eine
+               * künstliche Einschränkung. Deshalb bewusst nicht über die
+               * Vier-Ecken-Rechnung, die das höchste Rad als Bezug nimmt.
+               */
+              h[0] = 0.0f;
+              h[1] = 0.0f;
+              const float quer = roundf(spur * tanf(fabsf(wr) * BOGEN)) / 10.0f;
+              h[2] = (wr > 0.0f) ? quer : 0.0f;   // roll > 0 = rechts höher
+              h[3] = (wr > 0.0f) ? 0.0f : quer;
+              const float laengs = roundf(radstand * tanf(fabsf(wp) * BOGEN)) / 10.0f;
+              h[4] = (wp > 0.0f) ? -laengs : laengs;  // pitch > 0 = Front höher
+            } else {
+              /* Vier Auflagepunkte. Bezug ist das höchste Rad: Es bleibt
+               * stehen, alle anderen steigen. Anders herum ginge es nicht -
+               * absenken kann weder ein Keil noch eine Stütze. */
+              const float halb_l = radstand * tanf(wp * BOGEN) / 20.0f;
+              const float halb_q = spur * tanf(wr * BOGEN) / 20.0f;
+              float boden[4] = { +halb_l - halb_q, +halb_l + halb_q,
+                                 -halb_l - halb_q, -halb_l + halb_q };
+              float hoechster = boden[0];
+              for (int i = 1; i < 4; i++) if (boden[i] > hoechster) hoechster = boden[i];
+              for (int i = 0; i < 4; i++) h[i] = roundf((hoechster - boden[i]) * 10.0f) / 10.0f;
+              h[4] = 0.0f;
+            }
+          };
+
+          float zu_tun[5], echt[5];
+          hoehen_fuer(p, r, zu_tun);
+          hoehen_fuer(p_soll, r_soll, echt);
+          id(hub_vl) = zu_tun[0];
+          id(hub_vr) = zu_tun[1];
+          id(hub_hl) = zu_tun[2];
+          id(hub_hr) = zu_tun[3];
+          id(stuetzrad) = zu_tun[4];
+          id(rest_vl) = echt[0];
+          id(rest_vr) = echt[1];
+          id(rest_hl) = echt[2];
+          id(rest_hr) = echt[3];
+          id(rest_stuetzrad) = echt[4];
 
           /* --- Der nächste Handgriff als Satz ---------------------------
            *

@@ -782,16 +782,33 @@ class CamperMinderCard extends HTMLElement {
 
     /* Vier Eckwerte, an ihrem Platz im Bild.
      *
-     * Aus demselben wheel_plan wie die Anweisung darunter - beide müssen
-     * dasselbe sagen, sonst sucht der Nutzer den Unterschied. Räder, die der
-     * Rechenkern nicht nennt, stehen auf 0 und damit auf "fertig".
+     * Orange steht, was der wheel_plan verlangt - derselbe Wert wie in der
+     * Anweisung darunter, sonst sucht der Nutzer den Unterschied. Räder, die
+     * der Plan nicht nennt, zeigen grau den echten Höhenunterschied bis ganz
+     * waagerecht (wheel_heights): Eine Achse in der Toleranz ist fertig, ihr
+     * Rest bleibt aber sichtbar. Vorher stand dort "0", und im Stand sah man
+     * nur noch Grad.
+     *
+     * Fasst der Plan beide Räder einer Seite zusammen ("links"), gilt der
+     * Eintrag für beide. Vorher fand die Ecke ihn nicht und zeigte 0, während
+     * die Anweisung "Links 4 cm hoch" verlangte.
      *
      * Beim Wohnwagen tragen die hinteren Felder die beiden Räder der einen
      * Achse; vorne links zeigt das Stützrad, vorne rechts bleibt leer. */
+    const SIDE_WHEELS = {
+      links: ["vorne_links", "hinten_links"],
+      rechts: ["vorne_rechts", "hinten_rechts"],
+      vorne: ["vorne_links", "vorne_rechts"],
+      hinten: ["hinten_links", "hinten_rechts"],
+    };
     const hub = {};
     if (Array.isArray(a.wheel_plan)) {
-      for (const item of a.wheel_plan) hub[item.wheel] = item;
+      for (const item of a.wheel_plan) {
+        for (const wheel of SIDE_WHEELS[item.wheel] || [item.wheel]) hub[wheel] = item;
+      }
     }
+    const rest = a.wheel_heights || {};
+    const zentimeter = (wert) => Math.abs(wert).toFixed(1).replace(".", ",");
     const setzeEcke = (id, schluessel, oben, links) => {
       const e = root.getElementById(id);
       e.style.top = oben;
@@ -800,10 +817,17 @@ class CamperMinderCard extends HTMLElement {
       e.hidden = false;
       const eintrag = hub[schluessel];
       if (!available) { e.textContent = "–"; e.className = "ecke fertig"; return; }
-      if (!eintrag) { e.textContent = "0"; e.className = "ecke fertig"; return; }
-      const pfeil = eintrag.direction === "runter" ? "▼ " : "";
-      e.textContent = pfeil + Math.abs(Number(eintrag.cm)).toFixed(1).replace(".", ",");
-      e.className = "ecke tun";
+      if (eintrag) {
+        const pfeil = eintrag.direction === "runter" ? "▼ " : "";
+        e.textContent = pfeil + zentimeter(Number(eintrag.cm));
+        e.className = "ecke tun";
+        return;
+      }
+      const wert = Number(rest[schluessel]);
+      if (!Number.isFinite(wert)) { e.textContent = "0"; e.className = "ecke fertig"; return; }
+      // Nur das Stützrad kann negativ werden - dann ist es "runter".
+      e.textContent = (wert <= -0.05 ? "▼ " : "") + zentimeter(wert);
+      e.className = "ecke fertig";
     };
 
     if (caravanTop) {

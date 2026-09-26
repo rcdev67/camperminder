@@ -156,6 +156,41 @@
       "wert": 0.0
     },
     {
+      "kennung": "sensor/Abweichung vorne links",
+      "name": "Abweichung vorne links",
+      "bereich": "sensor",
+      "zustand": "0.0",
+      "wert": 0.0
+    },
+    {
+      "kennung": "sensor/Abweichung vorne rechts",
+      "name": "Abweichung vorne rechts",
+      "bereich": "sensor",
+      "zustand": "0.0",
+      "wert": 0.0
+    },
+    {
+      "kennung": "sensor/Abweichung hinten links",
+      "name": "Abweichung hinten links",
+      "bereich": "sensor",
+      "zustand": "0.0",
+      "wert": 0.0
+    },
+    {
+      "kennung": "sensor/Abweichung hinten rechts",
+      "name": "Abweichung hinten rechts",
+      "bereich": "sensor",
+      "zustand": "0.0",
+      "wert": 0.0
+    },
+    {
+      "kennung": "sensor/Abweichung Stützrad",
+      "name": "Abweichung Stützrad",
+      "bereich": "sensor",
+      "zustand": "0.0",
+      "wert": 0.0
+    },
+    {
       "kennung": "sensor/Diagnose Betrag",
       "name": "Diagnose Betrag",
       "bereich": "sensor",
