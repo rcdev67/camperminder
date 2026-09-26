@@ -70,7 +70,7 @@ substitutions:
   # Ein Bindestrich macht die Nummer zur Vorabfassung: "2.0.4-rc1" statt
   # "2.0.4". Daran erkennen die Werkzeuge, dass dieser Stand NICHT
   # veröffentlicht werden soll - Einzelheiten in docs/firmware_update.md.
-  firmware_version: "4.0.1"
+  firmware_version: "4.0.2"
 
   # --- Anschluesse: Platine "CamperMinder Level" Rev B -----------------------
   #
