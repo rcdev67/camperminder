@@ -887,7 +887,10 @@ class CamperCoordinator:
         # unverändert.
         pitch = 0.0 if self.level_pitch else self.deviation_pitch
         roll = 0.0 if self.level_roll else self.deviation_roll
+        return self._ground_lifts(pitch, roll)
 
+    def _ground_lifts(self, pitch: float, roll: float) -> dict[str, float]:
+        """Die Vier-Ecken-Geometrie für ein Winkelpaar - höchstes Rad als Bezug."""
         half_long = self.wheelbase * math.tan(math.radians(pitch)) / 20.0
         half_lat = self.track * math.tan(math.radians(roll)) / 20.0
 
@@ -899,6 +902,41 @@ class CamperCoordinator:
         }
         highest = max(ground.values())
         return {wheel: round(highest - value, 1) for wheel, value in ground.items()}
+
+    def _caravan_lifts(self, pitch: float, roll: float) -> dict[str, float]:
+        """Die Wohnwagen-Geometrie für ein Winkelpaar.
+
+        Quer hebt ein Keil das tiefere Rad (roll > 0 = rechts höher). Das
+        Stützrad ist vorzeichenbehaftet wie in der Firmware: positiv hoch,
+        negativ runter (pitch > 0 = Front höher, also senken).
+        """
+        across = round(self.track * math.tan(math.radians(abs(roll))) / 10.0, 1)
+        along = round(self.wheelbase * math.tan(math.radians(abs(pitch))) / 10.0, 1)
+        return {
+            WHEEL_REAR_LEFT: across if roll > 0 else 0.0,
+            WHEEL_REAR_RIGHT: 0.0 if roll > 0 else across,
+            POINT_JOCKEY: -along if pitch > 0 else along,
+        }
+
+    @property
+    def wheel_heights_cm(self) -> dict[str, float] | None:
+        """Der echte Höhenunterschied je Rad bis ganz waagerecht.
+
+        Dieselbe Geometrie wie wheel_plan, aber OHNE die Toleranz. Der Plan
+        sagt, was zu tun ist, und nennt eine Achse in der Toleranz nicht mehr -
+        die Karte zeigte dann an allen vier Ecken "0" und im Stand nur noch
+        Grad. Diese Werte stehen dort grau neben den orangen aus dem Plan.
+
+        Gegen das Ziel des Profils wie alles andere, nicht gegen die
+        Waagerechte - siehe deviation_pitch.
+        """
+        if self.pitch is None or self.roll is None:
+            return None
+        if abs(self.pitch) > IMPLAUSIBLE_DEG or abs(self.roll) > IMPLAUSIBLE_DEG:
+            return None
+        if self.is_caravan:
+            return self._caravan_lifts(self.deviation_pitch, self.deviation_roll)
+        return self._ground_lifts(self.deviation_pitch, self.deviation_roll)
 
     @property
     def vehicle_type(self) -> str:
@@ -934,51 +972,34 @@ class CamperCoordinator:
         # Anweisung - dieselbe Regel wie beim Wohnmobil in wheel_lifts_cm.
         # Ohne sie stünde beim Wohnwagen "Stützrad hoch, 3 cm" unter einer
         # Anzeige, die für dieselbe Achse gerade "EBEN - STOP" meldet.
-
-        # Quer: das tiefere Rad auf den Keil. roll > 0 = rechts höher.
-        across_cm = (
-            0.0
-            if self.level_roll
-            else round(
-                self.track * math.tan(math.radians(abs(self.deviation_roll))) / 10.0, 1
-            )
+        lifts = self._caravan_lifts(
+            0.0 if self.level_pitch else self.deviation_pitch,
+            0.0 if self.level_roll else self.deviation_roll,
         )
-        if across_cm >= WHEEL_LIFT_IGNORE_CM:
-            plan.append(
-                {
-                    "wheel": (
-                        WHEEL_REAR_LEFT
-                        if self.deviation_roll > 0
-                        else WHEEL_REAR_RIGHT
-                    ),
-                    "cm": across_cm,
-                    "steps": self.wedge_steps_for(across_cm),
-                    "direction": DIRECTION_UP,
-                }
-            )
 
-        # Längs: Stützrad. pitch > 0 = Front höher, also senken.
-        along_cm = (
-            0.0
-            if self.level_pitch
-            else round(
-                self.wheelbase
-                * math.tan(math.radians(abs(self.deviation_pitch)))
-                / 10.0,
-                1,
-            )
-        )
-        if along_cm >= WHEEL_LIFT_IGNORE_CM:
+        # Quer: das tiefere Rad auf den Keil - höchstens eines ist nicht null.
+        for wheel in (WHEEL_REAR_LEFT, WHEEL_REAR_RIGHT):
+            if lifts[wheel] >= WHEEL_LIFT_IGNORE_CM:
+                plan.append(
+                    {
+                        "wheel": wheel,
+                        "cm": lifts[wheel],
+                        "steps": self.wedge_steps_for(lifts[wheel]),
+                        "direction": DIRECTION_UP,
+                    }
+                )
+
+        # Längs: Stützrad.
+        jockey = lifts[POINT_JOCKEY]
+        if abs(jockey) >= WHEEL_LIFT_IGNORE_CM:
             plan.append(
                 {
                     "wheel": POINT_JOCKEY,
-                    "cm": along_cm,
+                    "cm": abs(jockey),
                     # Gekurbelt wird stufenlos - eine Keilstufe wäre hier
                     # eine Angabe, die niemand umsetzen kann.
                     "steps": None,
-                    "direction": (
-                        DIRECTION_DOWN if self.deviation_pitch > 0 else DIRECTION_UP
-                    ),
+                    "direction": DIRECTION_DOWN if jockey < 0 else DIRECTION_UP,
                 }
             )
         return plan

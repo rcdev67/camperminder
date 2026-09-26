@@ -1547,41 +1547,57 @@
     bubTop.style.boxShadow = "0 4px 12px rgba(0,0,0,.45),0 0 16px " + overall;
     /* Vier Eckwerte, an ihrem Platz im Bild.
      *
-     * Sie kommen aus dem Gerät (Hub-Sensoren), nicht aus einer zweiten
-     * Rechnung hier: Die Anweisung darunter und diese Zahlen müssen dasselbe
-     * sagen, sonst sucht der Nutzer den Unterschied.
+     * Sie kommen aus dem Gerät, nicht aus einer zweiten Rechnung hier. Orange
+     * steht der Hub-Wert, den auch die Anweisung darunter nennt - beide müssen
+     * dasselbe sagen, sonst sucht der Nutzer den Unterschied. Verlangt eine
+     * Ecke nichts, steht dort grau der echte Höhenunterschied bis ganz
+     * waagerecht (Sensoren "Abweichung ..."): Eine Achse in der Toleranz ist
+     * fertig, ihre Abweichung bleibt aber sichtbar. Vorher stand dort "0", und
+     * im Stand sah man nur noch Grad.
      *
      * Beim Wohnwagen tragen die beiden hinteren Werte die Räder der einen
      * Achse, und vorne steht mittig das Stützrad - deshalb dort nur ein Feld
-     * statt zweier. */
+     * statt zweier. Gesucht wird es mit dem Teilstück ab dem Umlaut wie in
+     * IDS ("tzrad", "abweichung_st"): Aus "Stützrad" wird "st_tzrad" oder
+     * "st__tzrad", je nach ESPHome-Fassung - "stuetzrad" traf nie. Der
+     * kürzeste Teiltreffer gewinnt, "tzrad" findet also das Stützrad selbst
+     * und nicht seine Abweichung. */
     var hub = function (kennung) {
       var w = parseFloat(findStateOf("sensor", kennung));
       return isNaN(w) ? null : w;
     };
-    var ecke = function (wert, oben, links, text) {
+    var pfeil = function (wert) { return wert < 0 ? "▼ " : "▲ "; };
+    var ecke = function (tun, rest, oben, links, mitPfeil) {
       var e = el('<div class="ecke"></div>');
       e.style.top = oben;
       e.style.left = links;
       e.style.transform = "translate(-50%,-50%)";
-      if (wert === null) { e.textContent = "–"; e.className = "ecke fertig"; }
-      else if (Math.abs(wert) < 1) { e.textContent = "0"; e.className = "ecke fertig"; }
-      else {
-        e.textContent = (text || "") + zahl(Math.abs(wert), 1);
+      if (tun !== null && Math.abs(tun) >= 1) {
+        e.textContent = (mitPfeil ? pfeil(tun) : "") + zahl(Math.abs(tun), 1);
         e.className = "ecke tun";
+      } else if (rest !== null) {
+        e.textContent = (mitPfeil && Math.abs(rest) >= 0.05 ? pfeil(rest) : "") +
+          zahl(Math.abs(rest), 1);
+        e.className = "ecke fertig";
+      } else if (tun !== null) {
+        e.textContent = "0";
+        e.className = "ecke fertig";
+      } else {
+        e.textContent = "–";
+        e.className = "ecke fertig";
       }
       top.appendChild(e);
     };
 
     if (isCaravan()) {
-      var st = hub("stuetzrad");
-      ecke(st, "16%", "50%", st !== null && st < 0 ? "▼ " : "▲ ");
-      ecke(hub("hub_hinten_links"), "78%", "22%");
-      ecke(hub("hub_hinten_rechts"), "78%", "78%");
+      ecke(hub("tzrad"), hub("abweichung_st"), "16%", "50%", true);
+      ecke(hub("hub_hinten_links"), hub("abweichung_hinten_links"), "78%", "22%");
+      ecke(hub("hub_hinten_rechts"), hub("abweichung_hinten_rechts"), "78%", "78%");
     } else {
-      ecke(hub("hub_vorne_links"), "20%", "22%");
-      ecke(hub("hub_vorne_rechts"), "20%", "78%");
-      ecke(hub("hub_hinten_links"), "80%", "22%");
-      ecke(hub("hub_hinten_rechts"), "80%", "78%");
+      ecke(hub("hub_vorne_links"), hub("abweichung_vorne_links"), "20%", "22%");
+      ecke(hub("hub_vorne_rechts"), hub("abweichung_vorne_rechts"), "20%", "78%");
+      ecke(hub("hub_hinten_links"), hub("abweichung_hinten_links"), "80%", "22%");
+      ecke(hub("hub_hinten_rechts"), hub("abweichung_hinten_rechts"), "80%", "78%");
     }
 
     top.appendChild(bubTop);

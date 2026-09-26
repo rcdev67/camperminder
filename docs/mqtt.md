@@ -49,6 +49,11 @@ weiter.
 | `camperminder/level/sensor/hub_hinten_links/state` | Hubhöhe in cm |
 | `camperminder/level/sensor/hub_hinten_rechts/state` | Hubhöhe in cm |
 | `camperminder/level/sensor/stuetzrad/state` | Wohnwagen: `+` hoch, `−` runter |
+| `camperminder/level/sensor/abweichung_vorne_links/state` | Abweichung in cm bis ganz waagerecht, auch innerhalb der Toleranz |
+| `camperminder/level/sensor/abweichung_vorne_rechts/state` | Abweichung in cm |
+| `camperminder/level/sensor/abweichung_hinten_links/state` | Abweichung in cm |
+| `camperminder/level/sensor/abweichung_hinten_rechts/state` | Abweichung in cm |
+| `camperminder/level/sensor/abweichung_stuetzrad/state` | Wohnwagen: `+` hoch, `−` runter |
 | `camperminder/level/text_sensor/anweisung/state` | `Hinten links 4.5 cm hoch` |
 
 Beim **Wohnwagen** bedeuten „hinten links/rechts" die beiden Räder der einen
@@ -57,6 +62,12 @@ Achse; „vorne" bleibt auf 0, dort steht das Stützrad.
 Die Hubhöhen sind **fertig gerechnet** — Fahrzeugmaße, Fahrzeugart und
 Toleranz sind darin schon berücksichtigt. Ein anbindendes System muss nichts
 nachrechnen und braucht die Fahrzeugmaße nicht zu kennen.
+
+**Hub oder Abweichung?** Der Hub sagt, was zu tun ist: Steht eine Achse
+innerhalb der Toleranz, ist dort nichts mehr zu tun, und der Hub fällt auf 0.
+Die Abweichung zeigt dagegen immer, wie weit die Ecke noch von ganz waagerecht
+entfernt ist. Geräteseite und Home-Assistant-Karte zeigen beides: den Hub
+orange, die Abweichung grau.
 
 ### Zustände
 
