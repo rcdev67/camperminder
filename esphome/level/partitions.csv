@@ -1,0 +1,25 @@
+# Speicheraufteilung des Geräts (4 MB Flash)
+#
+# Wie die Voreinstellung von ESPHome - mit EINER Änderung: Die Einstellungen
+# (nvs) sind 4 KB kürzer, und dahinter liegt "werk" mit der Werkskalibrierung.
+#
+# Warum ein eigener Bereich: "Werkseinstellungen" löscht in ESPHome den
+# GESAMTEN nvs-Bereich (nvs_flash_erase). Läge die Werkskalibrierung dort,
+# wäre sie nach dem ersten Zurücksetzen weg - und das Gerät stünde wieder
+# unkalibriert beim Kunden. Hier übersteht sie jedes Zurücksetzen und jedes
+# Update. Was darin steht und wie es geprüft wird: werkskalibrierung.h.
+#
+# Lage und Größe der App-Bereiche bleiben unverändert. Updates über das Netz
+# funktionieren deshalb auch auf Geräten mit der alten Aufteilung weiter -
+# dort findet die Firmware nur keinen "werk"-Bereich und meldet das. Die
+# Aufteilung selbst lässt sich NUR per USB ändern (factory.bin).
+#
+# tests/test_gleichlauf.py prüft, dass diese Tabelle zur Firmware passt.
+#
+# Name,    Type, SubType, Offset,   Size
+otadata,   data, ota,     0x9000,   0x2000
+phy_init,  data, phy,     0xb000,   0x1000
+app0,      app,  ota_0,   0x10000,  0x1C0000
+app1,      app,  ota_1,   0x1D0000, 0x1C0000
+nvs,       data, nvs,     0x390000, 0x6F000
+werk,      data, 0x40,    0x3FF000, 0x1000

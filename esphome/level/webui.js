@@ -110,7 +110,7 @@
       hilfe_wlan: "Nur nötig für automatische Updates und Home Assistant. Ohne WLAN läuft alles Übrige weiter.",
       hilfe_womit: "<b>Auffahrkeile</b>: Das Gerät nennt eine Ecke nach der anderen – beim Auffahren kippt das Fahrzeug mit, deshalb lohnt kein zweiter Schritt im Voraus. <b>Hydraulik oder Luftkissen</b>: alle Stützen auf einmal, weil sie sich unabhängig voneinander ausfahren lassen.",
       hilfe_ziele: "Hier richtest du die beiden Profile ein. Gewählt werden sie oben auf der Anzeige unter „Zielprofil“.",
-      hilfe_zuruecksetzen: "Löscht WLAN-Zugangsdaten, Kalibrierung, Fahrzeugmaße und ein selbst vergebenes Netz-Passwort. Das Gerät startet danach neu und öffnet wieder sein eigenes, offenes Netz.",
+      hilfe_zuruecksetzen: "Löscht WLAN-Zugangsdaten, die Kalibrierung im Fahrzeug, Fahrzeugmaße und ein selbst vergebenes Netz-Passwort. Die Werkskalibrierung bleibt erhalten. Das Gerät startet danach neu und öffnet wieder sein eigenes, offenes Netz.",
       hinweis_hebesystem: "Alle Stützen auf einmal, höchste zuerst. Nicht genannte Räder bleiben stehen.",
       hinweis_keile_einzeln: "Eine Anweisung nach der anderen – nach dem Auffahren neu messen.",
       hinweis_wagen_reihenfolge: "Erst das Rad auf den Keil, dann das Stützrad – das Auffahren kippt den Wagen längs mit.",
@@ -127,6 +127,28 @@
       kal_pruefen: "{wann} bei {temp} °C – jetzt {jetzt} °C, bitte prüfen",
       kalibriere_laeuft: "Kalibriere …",
       kalibrieren: "Neigung kalibrieren",
+      kal_werk: "ab Werk kalibriert",
+      kal_zuruecksetzen: "Kalibrierung zurücksetzen",
+      kal_zuruecksetzen_frage: "Kalibrierung zurücksetzen?\n\nDie Kalibrierung im Fahrzeug wird gelöscht. Danach gilt wieder die Werkskalibrierung – so, wie das Gerät ausgeliefert wurde.",
+      kal_zurueckgesetzt: "Zurückgesetzt – es gilt die Werkskalibrierung",
+      werkstatt_kopf: "Werkstatt – Werkskalibrierung",
+      werkstatt_ok: "Ab Werk kalibriert am {wann}.",
+      werkstatt_ok_ohne_uhr: "Ab Werk kalibriert (Zeitpunkt unbekannt).",
+      werkstatt_keine: "Noch keine Werkskalibrierung.",
+      werkstatt_fehlt: "Nicht möglich: alte Speicheraufteilung. Einmal per USB mit level-firmware.factory.bin neu aufspielen.",
+      werkstatt_schritt_1: "Gerät auf eine feste, ruhige Unterlage legen. Sie muss nicht genau eben sein.",
+      werkstatt_schritt_2: "„Messung 1“ drücken und das Gerät 5 Sekunden nicht berühren.",
+      werkstatt_schritt_3: "Gerät an derselben Stelle um 180° drehen – der Pfeil zeigt danach in die Gegenrichtung.",
+      werkstatt_schritt_4: "„Messung 2“ drücken und wieder 5 Sekunden nicht berühren.",
+      werkstatt_messung_1: "Messung 1",
+      werkstatt_messung_2: "Messung 2",
+      werkstatt_misst: "Messung läuft – nicht berühren …",
+      werkstatt_drehen: "Messung 1 fertig. Jetzt um 180° drehen (bisher {grad}°), dann Messung 2.",
+      werkstatt_fertig: "Gespeichert. Die Kalibrierung im Fahrzeug ist zurückgesetzt – das Gerät ist ab Werk kalibriert.",
+      werkstatt_bewegt: "Abgebrochen: Das Gerät wurde bewegt. Bitte mit Messung 1 neu beginnen.",
+      werkstatt_unplausibel: "Nicht gespeichert: Werte unplausibel – Unterlage zu schief (über 4°) oder Sensor defekt.",
+      werkstatt_schreibfehler: "Nicht gespeichert: Fehler beim Schreiben des Speichers.",
+      werkstatt_nicht_gedreht: "Nicht um 180° gedreht. Bitte mit Messung 1 neu beginnen.",
       keilstufe: "Keilstufe {n}",
       kein_wert: "⚠️ Kein Sensorwert",
       keine_bestaetigung: "Das Gerät bestätigt die Eingabe nicht. Nichts wurde gespeichert.",
@@ -301,7 +323,7 @@
       ziel_rechts_hoeher: "rechte Seite {cm} cm höher",
       zurueckgesetzt: "Zurückgesetzt. Das Gerät startet neu – verbinde dich anschließend wieder mit dem Netz CamperMinder.",
       zuruecksetzen: "Auf Werkseinstellungen zurücksetzen",
-      zuruecksetzen_frage: "Wirklich zurücksetzen?\n\nWLAN, Kalibrierung und Fahrzeugmaße gehen verloren. Das Gerät muss danach neu eingerichtet und neu kalibriert werden.\n\nEin selbst vergebenes Netz-Passwort wird ebenfalls gelöscht – das eigene Netz ist danach wieder offen.",
+      zuruecksetzen_frage: "Wirklich zurücksetzen?\n\nWLAN, die Kalibrierung im Fahrzeug und die Fahrzeugmaße gehen verloren. Das Gerät muss danach neu eingerichtet werden; die Werkskalibrierung bleibt erhalten.\n\nEin selbst vergebenes Netz-Passwort wird ebenfalls gelöscht – das eigene Netz ist danach wieder offen.",
       zuruecksetzen_laeuft: "Setze zurück …"
     },
     en: {
@@ -374,7 +396,7 @@
       hilfe_wlan: "Only needed for automatic updates and Home Assistant. Everything else works without Wi-Fi.",
       hilfe_womit: "<b>Levelling ramps</b>: the device names one corner at a time – driving up tilts the vehicle as well, so a second step planned ahead would be wrong anyway. <b>Hydraulics or air suspension</b>: all jacks at once, because they extend independently of each other.",
       hilfe_ziele: "Set the two profiles up here. You pick them at the top of the display page under “Target profile”.",
-      hilfe_zuruecksetzen: "Deletes the Wi-Fi credentials, the calibration, the vehicle dimensions and any network password you set. The device then restarts and opens its own, open network again.",
+      hilfe_zuruecksetzen: "Deletes the Wi-Fi credentials, the in-vehicle calibration, the vehicle dimensions and any network password you set. The factory calibration is kept. The device then restarts and opens its own, open network again.",
       hinweis_hebesystem: "All jacks at once, the highest first. Wheels not listed stay where they are.",
       hinweis_keile_einzeln: "One step at a time – measure again after driving up.",
       hinweis_wagen_reihenfolge: "Drive the wheel onto the ramp first, then crank the jockey wheel – driving up tilts the caravan lengthwise as well.",
@@ -391,6 +413,28 @@
       kal_pruefen: "{wann} at {temp} °C – now {jetzt} °C, please check",
       kalibriere_laeuft: "Calibrating …",
       kalibrieren: "Calibrate level",
+      kal_werk: "factory calibrated",
+      kal_zuruecksetzen: "Reset calibration",
+      kal_zuruecksetzen_frage: "Reset the calibration?\n\nThe in-vehicle calibration will be deleted. The factory calibration applies again – just as the device was delivered.",
+      kal_zurueckgesetzt: "Reset – the factory calibration applies",
+      werkstatt_kopf: "Workshop – factory calibration",
+      werkstatt_ok: "Factory calibrated on {wann}.",
+      werkstatt_ok_ohne_uhr: "Factory calibrated (time unknown).",
+      werkstatt_keine: "No factory calibration yet.",
+      werkstatt_fehlt: "Not possible: old flash layout. Flash once via USB with level-firmware.factory.bin.",
+      werkstatt_schritt_1: "Put the device on a firm, still surface. It does not have to be exactly level.",
+      werkstatt_schritt_2: "Press “Measurement 1” and do not touch the device for 5 seconds.",
+      werkstatt_schritt_3: "Turn the device by 180° on the same spot – the arrow then points the other way.",
+      werkstatt_schritt_4: "Press “Measurement 2” and again do not touch it for 5 seconds.",
+      werkstatt_messung_1: "Measurement 1",
+      werkstatt_messung_2: "Measurement 2",
+      werkstatt_misst: "Measuring – do not touch …",
+      werkstatt_drehen: "Measurement 1 done. Now turn by 180° (so far {grad}°), then measurement 2.",
+      werkstatt_fertig: "Saved. The in-vehicle calibration has been reset – the device is factory calibrated.",
+      werkstatt_bewegt: "Aborted: the device was moved. Please start again with measurement 1.",
+      werkstatt_unplausibel: "Not saved: implausible values – surface too tilted (over 4°) or sensor faulty.",
+      werkstatt_schreibfehler: "Not saved: error while writing the flash.",
+      werkstatt_nicht_gedreht: "Not turned by 180°. Please start again with measurement 1.",
       keilstufe: "ramp step {n}",
       kein_wert: "⚠️ No sensor reading",
       keine_bestaetigung: "The device does not confirm the entry. Nothing was saved.",
@@ -565,7 +609,7 @@
       ziel_rechts_hoeher: "right side {cm} cm higher",
       zurueckgesetzt: "Reset done. The device is restarting – connect to the CamperMinder network again afterwards.",
       zuruecksetzen: "Reset to factory settings",
-      zuruecksetzen_frage: "Really reset?\n\nWi-Fi, calibration and vehicle dimensions will be lost. The device has to be set up and calibrated again afterwards.\n\nAny network password you set is deleted as well – the own network is open again after that.",
+      zuruecksetzen_frage: "Really reset?\n\nWi-Fi, the in-vehicle calibration and the vehicle dimensions will be lost. The device has to be set up again afterwards; the factory calibration is kept.\n\nAny network password you set is deleted as well – the own network is open again after that.",
       zuruecksetzen_laeuft: "Resetting …"
     }
   };
@@ -1594,8 +1638,68 @@
     };
     target.appendChild(cal);
 
+    /* Zurück auf ab Werk - die Kalibrierung im Fahrzeug löschen, die
+     * Werkskalibrierung bleibt. Gesucht mit dem Teilstück VOR dem Umlaut:
+     * "Kalibrierung zurücksetzen" heißt als Kennung "kalibrierung_zur_cksetzen"
+     * oder mit zwei Unterstrichen, je nach ESPHome-Fassung. */
+    var calZurueck = el('<button class="act ghost" style="margin-top:8px"></button>');
+    calZurueck.textContent = t("kal_zuruecksetzen");
+    calZurueck.onclick = function () {
+      if (!window.confirm(t("kal_zuruecksetzen_frage"))) return;
+      calZurueck.disabled = true;
+      press("kalibrierung_zur", function () {
+        calZurueck.textContent = t("kal_zurueckgesetzt");
+        window.setTimeout(function () {
+          calZurueck.disabled = false;
+          calZurueck.textContent = t("kal_zuruecksetzen");
+        }, 5000);
+      });
+    };
+    target.appendChild(calZurueck);
+
     zielBox(target);
     waechterBox(target);
+    werkstattBox(target);
+  }
+
+  /* Werkstatt: die Werkskalibrierung messen.
+   *
+   * Nur unter der Adresse .../#werkstatt - ein Schritt vor der Auslieferung,
+   * keine Funktion für den Kunden. Die beiden Knöpfe sind im Gerät internal
+   * und erscheinen deshalb weder in Home Assistant noch über MQTT. Ablauf und
+   * Prüfungen stehen in hardware.yaml ("Werkskalibrierung: die Messung"). */
+  function werkstattBox(target) {
+    if (window.location.hash !== "#werkstatt") return;
+    var werte = statusWerte();
+    var f = String(werte.f || "").split(":");
+    var fw = String(werte.fw || "");
+    var box = el('<div class="plan"></div>');
+    var status = f[0] === "ok"
+      ? (Number(f[1]) > 0 ? t("werkstatt_ok", { wann: zeitpunkt(f[1]) }) : t("werkstatt_ok_ohne_uhr"))
+      : f[0] === "fehlt" ? t("werkstatt_fehlt") : t("werkstatt_keine");
+    var html = "<h2>" + t("werkstatt_kopf") + "</h2>" +
+      '<div class="muted">' + status + "</div><ol>";
+    for (var i = 1; i <= 4; i++) html += "<li>" + t("werkstatt_schritt_" + i) + "</li>";
+    html += "</ol>";
+    var stand = "";
+    if (fw === "misst1" || fw === "misst2") stand = t("werkstatt_misst");
+    else if (fw.indexOf("drehen") === 0) stand = t("werkstatt_drehen", { grad: fw.split(":")[1] || "0" });
+    // "fehlt" steht schon als Zustand darüber - nicht zweimal.
+    else if (fw && fw !== "fehlt") stand = t("werkstatt_" + fw);
+    if (stand) html += '<div class="muted">' + stand + "</div>";
+    box.innerHTML = html;
+
+    var m1 = el('<button class="act ghost" style="margin-top:8px"></button>');
+    m1.textContent = t("werkstatt_messung_1");
+    m1.disabled = f[0] === "fehlt" || fw === "misst1" || fw === "misst2";
+    m1.onclick = function () { press("werkskalibrierung_messung_1"); };
+    var m2 = el('<button class="act ghost" style="margin-top:8px"></button>');
+    m2.textContent = t("werkstatt_messung_2");
+    m2.disabled = fw.indexOf("drehen") !== 0;
+    m2.onclick = function () { press("werkskalibrierung_messung_2"); };
+    box.appendChild(m1);
+    box.appendChild(m2);
+    target.appendChild(box);
   }
 
 
@@ -1674,6 +1778,7 @@
   function kalibrierSatz(wert) {
     var teil = String(wert || "").split(":");
     if (teil[0] === "nie") return t("kal_nie");
+    if (teil[0] === "werk") return t("kal_werk");
     if (teil[0] === "ohne_werte") return t("kal_ohne_werte");
     if (teil.length < 4) return t("kal_nie");
     var wann = Number(teil[0]) > 0 ? zeitpunkt(teil[0]) : t("kal_ohne_uhr");
@@ -3008,4 +3113,6 @@
     build();
     connect();
   }
+  // .../#werkstatt einblenden, ohne die Seite neu zu laden.
+  window.addEventListener("hashchange", function () { render(); });
 })();

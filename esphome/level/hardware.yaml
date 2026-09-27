@@ -282,6 +282,9 @@ esp32:
   flash_size: 4MB
   framework:
     type: esp-idf
+  # Eigene Aufteilung nur wegen des Bereichs "werk" für die Werkskalibrierung -
+  # Begründung in partitions.csv.
+  partitions: partitions.csv
 
 # --- Eigenes Netz: offen, bis der Nutzer es abschliesst ---------------------
 #
@@ -302,7 +305,29 @@ esp32:
 # Laeuft VOR dem WLAN: Prioritaet 600 gegen dessen 250. Spaeter waere das Netz
 # bereits offen.
 esphome:
+  includes:
+    - werkskalibrierung.h
   on_boot:
+    # Die Werkskalibrierung zuerst - bevor der Lagesensor den ersten Wert
+    # liefert. Sonst stünde für einen Augenblick der unkorrigierte Nullpunkt
+    # in der Anzeige und in der Ruhelage der Diebstahlwarnung.
+    - priority: 800
+      then:
+        - lambda: |-
+            werk::Daten d{};
+            if (werk::bereich() == nullptr) {
+              id(werk_zustand) = 2;   // alte Speicheraufteilung, nur per USB änderbar
+              ESP_LOGW("werk", "Kein Bereich 'werk' - Speicheraufteilung vor 4.1, Werkskalibrierung nicht moeglich.");
+            } else if (werk::lesen(d)) {
+              id(werk_bx) = d.bx;
+              id(werk_by) = d.by;
+              id(werk_uhr) = d.uhr;
+              id(werk_zustand) = 1;
+              ESP_LOGI("werk", "Werkskalibrierung: X %+.4f g, Y %+.4f g", d.bx, d.by);
+            } else {
+              id(werk_zustand) = 0;
+              ESP_LOGI("werk", "Keine Werkskalibrierung gespeichert.");
+            }
     - priority: 600
       then:
         - lambda: |-
@@ -588,6 +613,68 @@ globals:
     type: float
     initial_value: "0.0"
     restore_value: true
+
+  # --- Werkskalibrierung ------------------------------------------------------
+  #
+  # Der Nullpunktfehler des Sensors je Chipachse, in g - gelesen beim Start aus
+  # dem Bereich "werk" (werkskalibrierung.h), abgezogen direkt an accel_x und
+  # accel_y. BEWUSST ohne restore_value: Die einzige Quelle ist der eigene
+  # Bereich, der "Werkseinstellungen" übersteht. Stünde der Wert auch im nvs,
+  # gäbe es zwei Wahrheiten.
+  - id: werk_bx
+    type: float
+    initial_value: "0.0"
+  - id: werk_by
+    type: float
+    initial_value: "0.0"
+  - id: werk_uhr
+    type: uint32_t
+    initial_value: "0"
+  # 0 = keine Werkskalibrierung, 1 = vorhanden, 2 = kein Bereich "werk"
+  # (Speicheraufteilung vor 4.1 - nur per USB zu ändern).
+  - id: werk_zustand
+    type: int
+    initial_value: "0"
+
+  # Die Messung in der Werkstatt: zweimal je fünf Sekunden, dazwischen wird
+  # das Gerät an derselben Stelle um 180 Grad gedreht. Die Neigung der
+  # Unterlage wechselt dabei ihr Vorzeichen, der Fehler des Sensors nicht -
+  # der Mittelwert beider Messungen ist deshalb der Sensorfehler, ganz gleich
+  # wie schief die Werkbank steht.
+  #
+  # werk_schritt: 0 = nichts, 1 = misst 1, 2 = wartet auf Messung 2, 3 = misst 2
+  # werk_ergebnis: 0 = nichts, 1 = Messung 1 fertig, 2 = gespeichert,
+  #   3 = bewegt (neu messen), 4 = unplausibel, 5 = Schreibfehler,
+  #   6 = kein Bereich, 7 = nicht um 180 Grad gedreht
+  - id: werk_schritt
+    type: int
+    initial_value: "0"
+  - id: werk_ergebnis
+    type: int
+    initial_value: "0"
+  - id: werk_summe_x
+    type: float
+    initial_value: "0.0"
+  - id: werk_summe_y
+    type: float
+    initial_value: "0.0"
+  - id: werk_anzahl
+    type: int
+    initial_value: "0"
+  - id: werk_m1_x
+    type: float
+    initial_value: "0.0"
+  - id: werk_m1_y
+    type: float
+    initial_value: "0.0"
+  # Drehung um die Hochachse zwischen den Messungen, in Grad (Drehratensensor).
+  - id: werk_drehung
+    type: float
+    initial_value: "0.0"
+  # Wartetakte vor dem ersten Messwert, solange noch Bewegung gemeldet wird.
+  - id: werk_warten
+    type: int
+    initial_value: "0"
 
   # Vorzeichen von Quer- und Hochachse, abgeleitet aus der Einbaulage.
   #
@@ -1759,11 +1846,18 @@ sensor:
     type: acceleration_x
     id: accel_x
     internal: true
+    # Der Nullpunktfehler ab Werk, hier und nur hier abgezogen - damit sehen
+    # Pitch, Roll, Betrag und Bewegungserkennung denselben korrigierten Wert.
+    # Siehe werkskalibrierung.h.
+    filters:
+      - lambda: 'return x - id(werk_bx);'
   - platform: motion
     motion_id: lagesensor
     type: acceleration_y
     id: accel_y
     internal: true
+    filters:
+      - lambda: 'return x - id(werk_by);'
   - platform: motion
     motion_id: lagesensor
     type: acceleration_z
@@ -2169,6 +2263,94 @@ sensor:
 #  später ist immer noch schneller, als er den Keil zurechtlegen kann.
 # ============================================================================
 interval:
+  # --- Werkskalibrierung: die Messung ------------------------------------------
+  #
+  # Zweimal je fünf Sekunden (50 Werte). Dazwischen wird das Gerät an derselben
+  # Stelle um 180 Grad gedreht: Die Neigung der Unterlage wechselt dabei ihr
+  # Vorzeichen, der Fehler des Sensors nicht. Mittelwert beider Messungen =
+  # Sensorfehler, halbe Differenz = Unterlage.
+  #
+  # Dass wirklich gedreht wurde, prüft der Drehratensensor: Ohne Drehung stünde
+  # sonst die Neigung der Werkbank als "Sensorfehler" in jedem Gerät.
+  - interval: 100ms
+    then:
+      - lambda: |-
+          const int schritt = id(werk_schritt);
+          if (schritt == 2) {
+            // Zwischen den Messungen: die Drehung um die Hochachse aufsummieren.
+            const float gz = id(gyro_z).state;
+            if (!isnan(gz)) id(werk_drehung) += (gz - id(gyro_null_z)) * 0.1f;
+            return;
+          }
+          if (schritt != 1 && schritt != 3) return;
+
+          // Wer das Gerät während der Messung bewegt, misst die Bewegung mit.
+          // Vor dem ersten Wert wird dagegen gewartet: Direkt nach dem Drehen
+          // meldet die Bewegungserkennung noch einige Sekunden "bewegt" - bis
+          // zu 15 Sekunden darf das Gerät zur Ruhe kommen.
+          if (id(in_motion).has_state() && id(in_motion).state) {
+            if (id(werk_anzahl) == 0 && ++id(werk_warten) < 150) return;
+            id(werk_schritt) = 0;
+            id(werk_ergebnis) = 3;
+            ESP_LOGW("werk", "Messung abgebrochen: Geraet wurde bewegt.");
+            return;
+          }
+          const float ax = id(accel_x).state;
+          const float ay = id(accel_y).state;
+          if (isnan(ax) || isnan(ay)) return;
+          id(werk_summe_x) += ax;
+          id(werk_summe_y) += ay;
+          if (++id(werk_anzahl) < 50) return;
+
+          const float mx = id(werk_summe_x) / id(werk_anzahl);
+          const float my = id(werk_summe_y) / id(werk_anzahl);
+          if (schritt == 1) {
+            id(werk_m1_x) = mx;
+            id(werk_m1_y) = my;
+            id(werk_drehung) = 0.0f;
+            id(werk_schritt) = 2;
+            id(werk_ergebnis) = 1;
+            ESP_LOGI("werk", "Messung 1: X %+.4f g, Y %+.4f g - jetzt um 180 Grad drehen.", mx, my);
+            return;
+          }
+
+          /* Messung 2. accel_x/accel_y sind schon um den bisherigen Fehler
+           * korrigiert - der neue ist also der alte plus der Rest, den die
+           * beiden Messungen gemeinsam zeigen. */
+          id(werk_schritt) = 0;
+          werk::Daten d{};
+          d.bx = id(werk_bx) + (id(werk_m1_x) + mx) / 2.0f;
+          d.by = id(werk_by) + (id(werk_m1_y) + my) / 2.0f;
+          d.unterlage_x = (id(werk_m1_x) - mx) / 2.0f;
+          d.unterlage_y = (id(werk_m1_y) - my) / 2.0f;
+          d.temp = id(chip_temp).state;
+          d.uhr = id(uhr).now().is_valid() ? id(uhr).now().timestamp : 0;
+
+          // Die Unterlage darf schief sein, aber nicht beliebig: Über rund
+          // 4 Grad wird die Drehung ungenau, und so eine Werkbank ist eher ein
+          // Versehen als eine Werkbank.
+          if (!werk::plausibel(d.bx) || !werk::plausibel(d.by) ||
+              fabsf(d.unterlage_x) > 0.07f || fabsf(d.unterlage_y) > 0.07f) {
+            id(werk_ergebnis) = 4;
+            ESP_LOGW("werk", "Unplausibel: Fehler X %+.4f / Y %+.4f g, Unterlage X %+.4f / Y %+.4f g - nicht gespeichert.",
+                     d.bx, d.by, d.unterlage_x, d.unterlage_y);
+            return;
+          }
+          if (!werk::schreiben(d)) {
+            id(werk_ergebnis) = 5;
+            ESP_LOGE("werk", "Werkskalibrierung konnte nicht geschrieben werden.");
+            return;
+          }
+          id(werk_bx) = d.bx;
+          id(werk_by) = d.by;
+          id(werk_uhr) = d.uhr;
+          id(werk_zustand) = 1;
+          id(werk_ergebnis) = 2;
+          ESP_LOGI("werk", "Werkskalibrierung gespeichert: X %+.4f g, Y %+.4f g (Unterlage X %+.4f / Y %+.4f g)",
+                   d.bx, d.by, d.unterlage_x, d.unterlage_y);
+          // Ab Werk heißt: keine Kalibrierung im Fahrzeug obendrauf.
+          id(kalibrierung_zuruecksetzen).press();
+
   # --- Bewegung: Abweichung vom eigenen Nullpunkt ----------------------------
   #
   # 100 ms, weil der Gyro in diesem Takt liefert und eine Erschütterung kurz
@@ -3109,6 +3291,30 @@ text_sensor:
   #
   # "Kalibrierung prüfen: an" beantwortet nicht die Frage, die der Nutzer dann
   # hat - nämlich warum. Dieser Satz tut es.
+  # Die Werkskalibrierung, diskret unter Diagnose. Sie ist für den Kunden
+  # keine Aufgabe, sondern eine Auskunft - deshalb steht sie nicht im Satz
+  # "Kalibrierung", sondern daneben.
+  - platform: template
+    name: "Werkskalibrierung"
+    id: werk_text
+    icon: mdi:factory
+    entity_category: diagnostic
+    update_interval: 60s
+    lambda: |-
+      if (id(werk_zustand) == 2) {
+        return {std::string("nicht möglich - Speicheraufteilung zu alt, einmal per USB neu aufspielen")};
+      }
+      if (id(werk_zustand) != 1) return {std::string("keine")};
+      if (id(werk_uhr) == 0) return {std::string("ab Werk kalibriert")};
+      auto t = ESPTime::from_epoch_local(id(werk_uhr));
+      return {"ab Werk kalibriert am " + t.strftime("%d.%m.%Y")};
+    filters:
+      - lambda: |-
+          static std::string letzter;
+          if (x == letzter) return {};
+          letzter = x;
+          return x;
+
   - platform: template
     name: "Kalibrierung"
     id: kal_text
@@ -3130,9 +3336,15 @@ text_sensor:
       if (id(kal_temp) < -900.0f) {
         const bool schon_kalibriert =
             id(pitch_offset) != 0.0f || id(roll_offset) != 0.0f;
-        return {std::string(schon_kalibriert
-          ? "kalibriert, aber ohne Vergleichswerte - einmal neu kalibrieren, "
-            "dann überwacht das Gerät den Drift"
+        if (schon_kalibriert) {
+          return {std::string("kalibriert, aber ohne Vergleichswerte - einmal neu "
+                              "kalibrieren, dann überwacht das Gerät den Drift")};
+        }
+        // Ab Werk kalibriert und nicht im Fahrzeug nachkalibriert: So kommt
+        // jedes Gerät beim Kunden an. Bewusst schlicht - bei der ersten
+        // Inbetriebnahme soll hier nichts stehen, was nach Arbeit klingt.
+        return {std::string(id(werk_zustand) == 1
+          ? "ab Werk kalibriert"
           : "noch nie kalibriert - einmal im Stand nachholen")};
       }
 
@@ -3289,7 +3501,8 @@ text_sensor:
   #   w  Wächter       aus | karenz:REST | scharf:SEIT | alarm:ZEITPUNKT
   #                    | alarm_vor:SEIT | alarm_unbekannt
   #   k  Kühlschrank   ok | STUFE:DAUER:GRAD                 (Stufe 1 bis 3)
-  #   c  Kalibrierung  nie | ohne_werte | ZEITPUNKT:TEMP:JETZT:PRUEFEN
+  #   c  Kalibrierung  nie | werk | ohne_werte | ZEITPUNKT:TEMP:JETZT:PRUEFEN
+  #                    (werk = ab Werk kalibriert, im Fahrzeug noch nicht)
   #   b  Bewegung      nie | jetzt | ZEITPUNKT | vor:SEKUNDEN
   #   m  MQTT          aus | verbunden | getrennt
   #   n  Eigenes Netz  offen | passwort
@@ -3297,6 +3510,9 @@ text_sensor:
   #                    ECKE vl|vr|hl|hr|st, CM gerastet auf 0,5 (Punkt),
   #                    STUFEN 0 = keine, RICHTUNG h|r
   #   d  Danach        leer | st   (Wohnwagen: Stützrad kommt als Nächstes)
+  #   f  Werkskalib.   ok:ZEITPUNKT | keine | fehlt (Speicheraufteilung zu alt)
+  #   fw Werkstatt     leer | misst1 | drehen:GRAD | misst2 | fertig | bewegt
+  #                    | unplausibel | schreibfehler | fehlt | nicht_gedreht
   - platform: template
     name: "Statuswerte"
     id: status_werte
@@ -3305,7 +3521,7 @@ text_sensor:
     update_interval: 1s
     lambda: |-
       const uint32_t jetzt = millis() / 1000;
-      char w[40], k[32], c[48], b[24], alles[320];
+      char w[40], k[32], c[48], b[24], f[24], fw[24], alles[380];
 
       if (id(wache_alarm)) {
         if (id(wache_alarm_uhr) > 0) {
@@ -3339,7 +3555,8 @@ text_sensor:
       if (id(kal_temp) < -900.0f) {
         const bool schon_kalibriert =
             id(pitch_offset) != 0.0f || id(roll_offset) != 0.0f;
-        snprintf(c, sizeof(c), "%s", schon_kalibriert ? "ohne_werte" : "nie");
+        snprintf(c, sizeof(c), "%s", schon_kalibriert ? "ohne_werte"
+                 : (id(werk_zustand) == 1 ? "werk" : "nie"));
       } else {
         snprintf(c, sizeof(c), "%u:%.0f:%.0f:%d", (unsigned) id(kal_uhr),
                  id(kal_temp),
@@ -3362,9 +3579,20 @@ text_sensor:
           : (mqtt::global_mqtt_client->is_connected() ? "verbunden" : "getrennt");
       const char *n = strlen(id(ap_passwort)) >= 8 ? "passwort" : "offen";
 
-      snprintf(alles, sizeof(alles), "w=%s;k=%s;c=%s;b=%s;m=%s;n=%s;a=%s;d=%s",
+      // Werkskalibrierung und der Stand der Messung in der Werkstatt.
+      if (id(werk_zustand) == 1) snprintf(f, sizeof(f), "ok:%u", (unsigned) id(werk_uhr));
+      else snprintf(f, sizeof(f), "%s", id(werk_zustand) == 2 ? "fehlt" : "keine");
+      static const char *const ERGEBNIS[] = {
+          "", "", "fertig", "bewegt", "unplausibel", "schreibfehler", "fehlt", "nicht_gedreht"};
+      if (id(werk_schritt) == 1) snprintf(fw, sizeof(fw), "misst1");
+      else if (id(werk_schritt) == 3) snprintf(fw, sizeof(fw), "misst2");
+      else if (id(werk_schritt) == 2) snprintf(fw, sizeof(fw), "drehen:%.0f", id(werk_drehung));
+      else snprintf(fw, sizeof(fw), "%s",
+                    id(werk_ergebnis) >= 0 && id(werk_ergebnis) <= 7 ? ERGEBNIS[id(werk_ergebnis)] : "");
+
+      snprintf(alles, sizeof(alles), "w=%s;k=%s;c=%s;b=%s;m=%s;n=%s;a=%s;d=%s;f=%s;fw=%s",
                w, k, c, b, m, n, id(anweisung_werte).c_str(),
-               id(anweisung_danach).c_str());
+               id(anweisung_danach).c_str(), f, fw);
       return {std::string(alles)};
     filters:
       - lambda: |-
@@ -3664,3 +3892,88 @@ button:
 
             ESP_LOGI("level", "Kalibrierung gespeichert: pitch_offset=%.3f, roll_offset=%.3f, %.1f C",
                      id(pitch_offset), id(roll_offset), id(kal_temp));
+
+  # --- Kalibrierung zurücksetzen: zurück auf ab Werk -----------------------
+  #
+  # Löscht nur die Kalibrierung im Fahrzeug. Übrig bleibt die Werkskalibrierung
+  # des Sensors - das Gerät misst danach so, wie es ausgeliefert wurde. Für
+  # alle, die umgebaut, falsch kalibriert oder das Gerät in ein anderes
+  # Fahrzeug gesetzt haben, ohne gleich alles andere mitzulöschen.
+  #
+  # Nicht internal: Wie "Neigung kalibrieren" gehört der Knopf auf alle Wege -
+  # Geräteseite, Home Assistant, MQTT. Eigenes command_topic, weil aus dem
+  # Umlaut sonst "zur_cksetzen" würde.
+  - platform: template
+    name: "Kalibrierung zurücksetzen"
+    id: kalibrierung_zuruecksetzen
+    icon: mdi:crosshairs-off
+    command_topic: camperminder/level/button/kalibrierung_zuruecksetzen/command
+    on_press:
+      then:
+        - lambda: |-
+            id(pitch_offset) = 0.0f;
+            id(roll_offset) = 0.0f;
+            // Dieselben Wächterwerte wie ab Werk - "nie im Fahrzeug
+            // kalibriert" (siehe kal_temp).
+            id(kal_temp) = -999.0f;
+            id(kal_betrag) = -1.0f;
+            id(kal_uhr) = 0;
+            // Glättung neu ansetzen: Der Nullpunkt springt, und die Anzeige
+            // soll dem sofort folgen statt Sekunden hinterherzulaufen.
+            id(pitch_smooth) = NAN;
+            id(roll_smooth) = NAN;
+            // Ruhelage der Diebstahlwarnung neu nehmen - sonst meldete sie den
+            // Sprung als Lageänderung.
+            id(ruhe_gesetzt) = false;
+            ESP_LOGI("level", "Kalibrierung zurueckgesetzt - es gilt die Werkskalibrierung (%s).",
+                     id(werk_zustand) == 1 ? "vorhanden" : "keine");
+
+  # --- Werkstatt: die Werkskalibrierung messen ------------------------------
+  #
+  # internal: Das ist ein Schritt vor der Auslieferung, keine Funktion für den
+  # Kunden - er soll sie nicht versehentlich überschreiben können. Die
+  # Geräteseite erreicht die Knöpfe trotzdem (web_server include_internal)
+  # und zeigt sie nur unter der Adresse .../#werkstatt. Ablauf und Prüfungen
+  # stehen beim interval-Block "Werkskalibrierung: die Messung".
+  - platform: template
+    name: "Werkskalibrierung Messung 1"
+    id: werk_messung_1
+    internal: true
+    on_press:
+      then:
+        - lambda: |-
+            if (werk::bereich() == nullptr) {
+              id(werk_ergebnis) = 6;
+              return;
+            }
+            id(werk_summe_x) = 0.0f;
+            id(werk_summe_y) = 0.0f;
+            id(werk_anzahl) = 0;
+            id(werk_warten) = 0;
+            id(werk_ergebnis) = 0;
+            id(werk_schritt) = 1;
+
+  - platform: template
+    name: "Werkskalibrierung Messung 2"
+    id: werk_messung_2
+    internal: true
+    on_press:
+      then:
+        - lambda: |-
+            if (id(werk_schritt) != 2) {
+              ESP_LOGW("werk", "Messung 2 ohne Messung 1 - ignoriert.");
+              return;
+            }
+            // Wirklich gedreht? Zwischen 150 und 210 Grad, in beide Richtungen.
+            const float grad = fabsf(id(werk_drehung));
+            if (grad < 150.0f || grad > 210.0f) {
+              id(werk_schritt) = 0;
+              id(werk_ergebnis) = 7;
+              ESP_LOGW("werk", "Nicht um 180 Grad gedreht (%.0f Grad) - bitte neu beginnen.", id(werk_drehung));
+              return;
+            }
+            id(werk_summe_x) = 0.0f;
+            id(werk_summe_y) = 0.0f;
+            id(werk_anzahl) = 0;
+            id(werk_warten) = 0;
+            id(werk_schritt) = 3;
