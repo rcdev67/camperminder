@@ -73,7 +73,9 @@ orange, die Abweichung grau.
 
 | Thema | Inhalt |
 |---|---|
-| `camperminder/level/binary_sensor/camper_steht_gerade/state` | `ON` = innerhalb der eingestellten Toleranz |
+| `camperminder/level/binary_sensor/camper_steht_gerade/state` | `ON` = beide Achsen eben (Toleranz mit Haltebereich) |
+| `camperminder/level/binary_sensor/pitch_eben/state` | `ON` = Längsachse eben — dieselbe Entscheidung, nach der sich Anweisung, Geräteseite und Home Assistant richten |
+| `camperminder/level/binary_sensor/roll_eben/state` | `ON` = Querachse eben |
 | `camperminder/level/binary_sensor/schraeglage/state` | `ON` = über dem Grenzwert, Vorgabe 3° (Absorberkühlschrank) |
 | `camperminder/level/binary_sensor/lageaenderung/state` | `ON` = Fahrzeug hat seine Ruhelage verlassen |
 | `camperminder/level/binary_sensor/in_bewegung/state` | `ON` = Erschütterung, also Anwesenheit |

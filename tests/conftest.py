@@ -108,6 +108,7 @@ _platzhalter(
     "homeassistant.const",
     ATTR_ENTITY_ID="entity_id",
     STATE_ON="on",
+    STATE_OFF="off",
     STATE_UNAVAILABLE="unavailable",
     STATE_UNKNOWN="unknown",
     Platform=SimpleNamespace(

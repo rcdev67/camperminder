@@ -138,6 +138,16 @@ const TEXTS = {
   hintWedge: "Eine Anweisung nach der anderen – nach dem Auffahren neu messen.",
   hintLift: "Alle Stützen auf einmal, höchste zuerst. Das nicht genannte Rad bleibt stehen.",
   hintCaravan: "Erst das Rad auf den Keil, dann das Stützrad – das Auffahren kippt den Wagen längs mit.",
+  calibrate: "Neigung kalibrieren",
+  calibrateDone: "Kalibriert",
+  resetCalibration: "Kalibrierung zurücksetzen",
+  resetCalibrationQuestion:
+    "Kalibrierung zurücksetzen?\n\nDie Kalibrierung im Fahrzeug wird gelöscht. Danach gilt wieder die Werkskalibrierung – so, wie das Gerät ausgeliefert wurde.",
+  resetCalibrationDone: "Zurückgesetzt – es gilt die Werkskalibrierung",
+  factoryReset: "Werkseinstellungen",
+  factoryResetQuestion:
+    "Gerät auf Werkseinstellungen zurücksetzen?\n\nWLAN, die Kalibrierung im Fahrzeug und die Fahrzeugmaße werden gelöscht; die Werkskalibrierung bleibt erhalten.\n\nDas Gerät startet neu und ist danach NICHT MEHR in Home Assistant erreichbar – nur noch über sein eigenes Netz „CamperMinder“ (http://192.168.4.1), bis das WLAN dort neu eingetragen ist.",
+  factoryResetDone: "Zurückgesetzt – das Gerät startet neu",
   thenJockey: "Danach das Stützrad – sein Maß folgt, wenn das Rad auf dem Keil steht.",
   outdated: "Diese Karte ist älter als die Integration (Karte {karte}, Integration {integration}) und wird gerade erneuert. Bleibt dieser Hinweis stehen: hier tippen.",
   restartNeeded: "Die Karte ist neuer als die laufende Integration (Karte {karte}, Integration {integration}). Home Assistant einmal neu starten, dann ist das Update abgeschlossen.",
@@ -479,6 +489,13 @@ class CamperMinderCard extends HTMLElement {
           padding-top: 10px; }
         .controls label { display: flex; align-items: center; gap: 6px;
           font-size: .9rem; cursor: pointer; }
+        .controls .knoepfe { display: flex; flex-wrap: wrap; gap: 8px; width: 100%; }
+        .controls .knoepfe button { flex: 1 1 auto; padding: 7px 10px; border-radius: 8px;
+          font-size: .85rem; cursor: pointer;
+          border: 1px solid var(--divider-color, rgba(255,255,255,.2));
+          background: var(--card-background-color, #1b2029);
+          color: var(--primary-text-color, #e8ecf1); }
+        .controls .knoepfe button:disabled { opacity: .6; cursor: default; }
         .controls select { padding: 5px 8px; border-radius: 8px; font-size: .9rem;
           border: 1px solid var(--divider-color, rgba(255,255,255,.2));
           background: var(--card-background-color, #1b2029);
@@ -1097,7 +1114,18 @@ class CamperMinderCard extends HTMLElement {
         ? { entityId: a.guard_entity, state: hass.states[a.guard_entity] }
         : null;
 
-    if (!voice && !precise && !wache && !a.profile_entity) {
+    /* Die Knöpfe des Geräts - dieselben wie auf der Geräteseite, und
+       ausgelöst wird immer der Knopf DES GERÄTS. Die beiden, die etwas
+       löschen, fragen vorher nach; kalibrieren tut es dort auch nicht. */
+    const knoepfe = [
+      [a.calibrate_entity, TEXTS.calibrate, null, TEXTS.calibrateDone],
+      [a.calibration_reset_entity, TEXTS.resetCalibration,
+        TEXTS.resetCalibrationQuestion, TEXTS.resetCalibrationDone],
+      [a.factory_reset_entity, TEXTS.factoryReset,
+        TEXTS.factoryResetQuestion, TEXTS.factoryResetDone],
+    ].filter(([entityId]) => entityId && hass.states[entityId]);
+
+    if (!voice && !precise && !wache && !a.profile_entity && !knoepfe.length) {
       node.innerHTML = "";
       return;
     }
@@ -1107,6 +1135,7 @@ class CamperMinderCard extends HTMLElement {
       precise && precise.state.state,
       wache && wache.state.state,
       a.profile,
+      knoepfe.map(([entityId]) => entityId).join(","),
     ].join("|");
     if (node.dataset.signature === signature) return;
     node.dataset.signature = signature;
@@ -1154,6 +1183,30 @@ class CamperMinderCard extends HTMLElement {
       });
       wrapper.appendChild(auswahl);
       node.appendChild(wrapper);
+    }
+
+    if (knoepfe.length) {
+      const reihe = document.createElement("div");
+      reihe.className = "knoepfe";
+      for (const [entityId, label, frage, fertig] of knoepfe) {
+        const knopf = document.createElement("button");
+        knopf.textContent = label;
+        knopf.addEventListener("click", () => {
+          if (frage && !window.confirm(frage)) return;
+          knopf.disabled = true;
+          Promise.resolve(hass.callService("button", "press", { entity_id: entityId }))
+            .then(() => { knopf.textContent = fertig; })
+            .catch(() => { knopf.textContent = label; })
+            .finally(() => {
+              window.setTimeout(() => {
+                knopf.disabled = false;
+                knopf.textContent = label;
+              }, 5000);
+            });
+        });
+        reihe.appendChild(knopf);
+      }
+      node.appendChild(reihe);
     }
   }
 }

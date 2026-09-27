@@ -18,7 +18,14 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.restore_state import RestoreEntity
 from homeassistant.util import dt as dt_util
 
-from .const import CONF_PRECISE, DOMAIN, PHASES
+from .const import (
+    CONF_CALIBRATE_BUTTON,
+    CONF_CALIBRATION_RESET,
+    CONF_FACTORY_RESET,
+    CONF_PRECISE,
+    DOMAIN,
+    PHASES,
+)
 from .coordinator import CamperCoordinator
 from .entity import CamperEntity
 
@@ -207,6 +214,10 @@ class CamperPhaseSensor(CamperEntity, SensorEntity):
             # des Geräts bedienen und braucht dessen Entity-ID. Steht hier
             # None, findet sie ihren eigenen über die Rollenkennung.
             "precise_entity": coordinator.device_sources.get(CONF_PRECISE),
+            # Die Knöpfe für die Karte - dieselben wie auf der Geräteseite.
+            "calibrate_entity": coordinator.config.get(CONF_CALIBRATE_BUTTON),
+            "calibration_reset_entity": coordinator.device_sources.get(CONF_CALIBRATION_RESET),
+            "factory_reset_entity": coordinator.device_sources.get(CONF_FACTORY_RESET),
             # Selbstüberwachung. Sie sagt "traue der Anzeige gerade nicht"
             # und gehört deshalb sichtbar auf die Karte, nicht in eine
             # Diagnoseliste, die niemand öffnet.
