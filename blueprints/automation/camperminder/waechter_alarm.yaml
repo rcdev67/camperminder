@@ -5,7 +5,7 @@ blueprint:
     scharf war — angehoben, aufgebockt, abgeschleppt.
 
 
-    **Warum nicht „Lageänderung"?** Die ist ein Messwert und geht wieder aus,
+    **Warum nicht „Lageänderung“?** Die ist ein Messwert und geht wieder aus,
     sobald das Fahrzeug in seine Lage zurückkommt. Wer schläft, verpasst sie.
     Der Wächter rastet ein und bleibt stehen, bis er quittiert wird — und er
     übersteht einen Stromausfall. Deshalb hängt diese Automatisierung an
@@ -17,14 +17,16 @@ blueprint:
     eine Zeitspanne.
 
 
-    **Das ist eine Meldung im Netz, kein Fernalarm.** Sie erreicht dich nur,
-    solange dein Handy dasselbe Netz erreicht wie das Fahrzeug.
+    **Das ist eine Meldung über Home Assistant.** Sie erreicht dich nur, wenn
+    Home Assistant dein Handy erreicht. Unabhängig davon kann das Gerät den
+    Alarm selbst an einen Push-Dienst schicken (ntfy, Gotify, Telegram):
+    Geräteseite → Technik → Fernalarm.
   domain: automation
   source_url: https://github.com/rcdev67/camperminder/blob/main/blueprints/automation/camperminder/waechter_alarm.yaml
   input:
     alarm:
       name: Wächter Alarm
-      description: Der eingerastete Alarm (`binary_sensor`, endet auf „Wächter Alarm").
+      description: Der eingerastete Alarm (`binary_sensor`, endet auf „Wächter Alarm“).
       selector:
         entity:
           filter:
@@ -32,14 +34,13 @@ blueprint:
     text:
       name: Meldetext des Geräts
       description: >-
-        Der Textsensor „Wächter". Er liefert den fertigen Satz, etwa
-        „ALARM - Lage verändert am 22.08. um 03:14".
-      default: {}
+        Der Sensor „Wächter“ des Geräts. Er liefert den fertigen Satz, etwa
+        „ALARM - Lage verändert am 22.08. um 03:14“.
+      default: ""
       selector:
         entity:
           filter:
             - domain: sensor
-            - domain: text_sensor
     wiederholen:
       name: Wiederholen alle … Minuten
       description: >-
@@ -57,24 +58,20 @@ blueprint:
       name: Was soll passieren?
       description: >-
         Frei wählbar — Handymeldung, Sirene, Licht, alles zusammen. Der Text
-        steht in `meldung` bereit. Für einen Alarm lohnt sich eine Meldung, die
-        auch bei stillgestelltem Telefon durchkommt (bei der Home-Assistant-App
-        unter `data.push.sound` bzw. `channel`).
+        steht in `{{ meldung }}` bereit. Für einen Alarm lohnt sich eine
+        Meldung, die auch bei stillgestelltem Telefon durchkommt (bei der
+        Home-Assistant-App unter `data.push.sound` bzw. `channel`).
       selector:
         action: {}
 
-mode: single
-max_exceeded: silent
+# restart statt single: Wird quittiert und löst der Wächter kurz danach
+# erneut aus, muss das sofort gemeldet werden - nicht erst, wenn die Wartezeit
+# des vorigen Durchlaufs abgelaufen ist.
+mode: restart
 
 variables:
   text_entitaet: !input text
   wiederholung: !input wiederholen
-  meldung: >-
-    {% if text_entitaet is string and text_entitaet | length > 0 %}
-      {{ states(text_entitaet) }}
-    {% else %}
-      Das Fahrzeug hat seine Lage verlassen - der Waechter hat ausgeloest.
-    {% endif %}
 
 trigger:
   - platform: state
@@ -82,11 +79,23 @@ trigger:
     to: "on"
 
 action:
+  # Der Melder springt sofort, den Satz schreibt das Gerät einmal pro Sekunde
+  # neu. Ohne die Pause stünde in der Meldung noch "scharf seit 2 h".
+  - delay:
+      seconds: 2
+  - variables:
+      meldung: >-
+        {% if text_entitaet is string and text_entitaet | length > 0
+              and states(text_entitaet) not in ['unknown', 'unavailable', ''] %}
+          {{ states(text_entitaet) }}
+        {% else %}
+          Das Fahrzeug hat seine Lage verlassen - der Wächter hat ausgelöst.
+        {% endif %}
   - choose: []
     default: !input benachrichtigung
-  # Wiederholen, solange nicht quittiert. Die Schleife endet von selbst,
-  # sobald der Alarm ausgeht - quittiert wird am Gerät oder über den Knopf
-  # "Alarm quittieren".
+  # Wiederholen, solange nicht quittiert - quittiert wird am Gerät oder über
+  # den Knopf "Alarm quittieren". Gewartet wird auf das Quittieren selbst:
+  # Dann endet die Schleife sofort und nicht erst nach Ablauf der Minuten.
   - condition: template
     value_template: "{{ (wiederholung | int(0)) > 0 }}"
   - repeat:
@@ -95,10 +104,25 @@ action:
           entity_id: !input alarm
           state: "on"
       sequence:
-        - delay:
+        - wait_for_trigger:
+            - platform: state
+              entity_id: !input alarm
+              to: "off"
+          timeout:
             minutes: !input wiederholen
+          continue_on_timeout: true
         - condition: state
           entity_id: !input alarm
           state: "on"
+        # Neu lesen: Ohne Uhr nennt das Gerät eine Zeitspanne ("vor 3 min"),
+        # und die stimmt bei der Wiederholung nicht mehr.
+        - variables:
+            meldung: >-
+              {% if text_entitaet is string and text_entitaet | length > 0
+                    and states(text_entitaet) not in ['unknown', 'unavailable', ''] %}
+                {{ states(text_entitaet) }}
+              {% else %}
+                Das Fahrzeug hat seine Lage verlassen - der Wächter hat ausgelöst.
+              {% endif %}
         - choose: []
           default: !input benachrichtigung

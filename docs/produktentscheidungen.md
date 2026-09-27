@@ -722,10 +722,12 @@ SIG-Gebühr, Plattformkosten, Haftung.
 14. ~~**Home-Assistant-Blueprints.**~~ Gebaut am 22.09.2026, drei Stück in
     `blueprints/automation/camperminder/` mit frei wählbarer Benachrichtigung
     (Feld „Was soll passieren?“) — Kühlschrankwarnung, Wächteralarm,
-    Frostwarnung. **In einer echten Home-Assistant-Instanz noch zu erproben**,
-    und der Import über die Adresse geht erst, wenn das Repository öffentlich
-    ist (siehe Punkt 13). Begründung der Auslöserwahl in
-    `blueprints/README.md`. Ursprünglich notiert als — der
+    Frostwarnung. **In einer echten Home-Assistant-Instanz noch zu erproben.**
+    Am 27.09.2026 durchgesehen: Meldetext erst nach einer Pause gelesen (sonst
+    stand noch der Satz davor darin), kein Doppel nach einem Neustart von
+    Home Assistant, Wächter mit `mode: restart` und Ende der Wiederholung beim
+    Quittieren; Import per Link, seit das Repository öffentlich ist.
+    Begründung der Auslöserwahl in `blueprints/README.md`. Ursprünglich notiert als — der
     Wert entsteht nicht durch neue Funktionen, sondern dadurch, dass die
     vorhandenen beim Kunden ohne Bastelei ankommen. Damit ist die Anbindung
     an Home Assistant abgeschlossen.

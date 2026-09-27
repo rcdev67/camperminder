@@ -3415,8 +3415,14 @@ text_sensor:
         : id(kuehl_stufe) == 2 ? " - die Kühlleistung fällt ab"
                                : " - noch unkritisch";
 
+      // Deutsches Komma wie in der Anweisung - der Satz steht so auf der
+      // Karte, gleich neben Gradzahlen, die sie selbst mit Komma schreibt.
+      char grad[12];
+      snprintf(grad, sizeof(grad), "%.1f", ab);
+      for (char *z = grad; *z; z++) if (*z == '.') *z = ',';
+
       char text[112];
-      snprintf(text, sizeof(text), "%.1f° schief seit %s%s", ab, wie_lange, folge);
+      snprintf(text, sizeof(text), "%s° schief seit %s%s", grad, wie_lange, folge);
       return {std::string(text)};
     filters:
       - lambda: |-

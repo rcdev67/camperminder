@@ -39,23 +39,56 @@ die richtige Meldung ist, weiß niemand außer ihm.
 
 ## Einbauen
 
-**Über die Benutzeroberfläche** — *Einstellungen → Automatisierungen und
-Szenen → Blueprints → Blueprint importieren*, dann die Adresse der
-gewünschten Datei aus diesem Ordner einfügen (die `github.com`-Adresse, nicht
-die Rohdatei).
+**Mit einem Klick** — der Link öffnet den Import im eigenen Home Assistant
+(über my.home-assistant.io):
 
-> Solange das Repository nicht öffentlich ist, funktioniert der Import über
-> die Adresse nicht. Bis dahin: Datei herunterladen und nach
-> `config/blueprints/automation/camperminder/` legen, dann in Home Assistant
-> *Entwicklerwerkzeuge → YAML → Automatisierungen neu laden*.
+- [Kühlschrankwarnung importieren](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Frcdev67%2Fcamperminder%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Fcamperminder%2Fkuehlschrank_warnung.yaml)
+- [Wächteralarm importieren](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Frcdev67%2Fcamperminder%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Fcamperminder%2Fwaechter_alarm.yaml)
+- [Frostwarnung importieren](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Frcdev67%2Fcamperminder%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Fcamperminder%2Ffrostwarnung.yaml)
+
+**Von Hand** — *Einstellungen → Automatisierungen und Szenen → Blueprints →
+Blueprint importieren*, dann die Adresse der gewünschten Datei aus diesem
+Ordner einfügen (die `github.com`-Adresse, nicht die Rohdatei).
+
+**Ohne Internet in Home Assistant** — Datei herunterladen und nach
+`config/blueprints/automation/camperminder/` legen, dann *Entwicklerwerkzeuge
+→ YAML → Automatisierungen neu laden*.
 
 Danach *Automatisierung erstellen → Aus einem Blueprint*, die Entitäten
-auswählen und die Benachrichtigung eintragen.
+auswählen und die Benachrichtigung eintragen. Eine Handymeldung sieht etwa so
+aus:
+
+```yaml
+action: notify.mobile_app_mein_handy
+data:
+  title: CamperMinder
+  message: "{{ meldung }}"
+```
+
+Ein aktualisierter Blueprint kommt nicht von selbst: Im Menü ⋮ neben dem
+Blueprint holt *erneut importieren* den neuen Stand, die eigenen
+Automatisierungen bleiben dabei erhalten.
+
+## Verhalten im Einzelnen
+
+- **Kein Doppel nach einem Neustart.** Startet Home Assistant neu oder reißt
+  die Verbindung zum Gerät kurz ab, springt ein Melder von „nicht verfügbar“
+  auf „an“. Kühlschrank- und Frostwarnung melden das nicht noch einmal, wenn
+  sie es in den letzten zwölf Stunden schon getan haben. Der Wächteralarm
+  meldet dagegen jedes Mal — ein Alarm, der nicht quittiert ist, soll lieber
+  einmal zu oft kommen.
+- **Der Satz passt zum Alarm.** Den Meldetext schreibt das Gerät in einem
+  eigenen Sensor, etwas später als der Melder umschaltet. Die Blueprints
+  warten deshalb kurz (Wächter 2 s, Kühlschrank 6 s), damit nicht noch der
+  Satz von vorher in der Meldung steht.
+- **Wiederholen bis zum Quittieren** (nur Wächter): Wird quittiert, endet die
+  Wiederholung sofort. Löst der Wächter danach erneut aus, kommt die Meldung
+  sofort und nicht erst nach Ablauf der Wartezeit.
 
 ## Was diese Blueprints nicht können
 
-**Sie erreichen dich nur im eigenen Netz.** Home Assistant meldet dorthin, wo
-es hinkommt; steht das Fahrzeug auf einem Stellplatz und dein Telefon im
-Mobilfunknetz, hilft das nur mit einem von außen erreichbaren Home Assistant.
-Der Weg dafür steht in `docs/produktentscheidungen.md` unter „Fernalarm" — er
-ist bewusst noch nicht gebaut.
+**Sie erreichen dich nur, wenn Home Assistant dich erreicht.** Steht das
+Fahrzeug auf einem Stellplatz und dein Telefon im Mobilfunknetz, hilft das nur
+mit einem von außen erreichbaren Home Assistant. Für den Wächter gibt es einen
+zweiten Weg ohne Home Assistant: Das Gerät schickt den Alarm selbst an einen
+Push-Dienst (ntfy, Gotify, Telegram) — Geräteseite → Technik → Fernalarm.
