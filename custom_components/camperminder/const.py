@@ -24,6 +24,13 @@ CONF_PRECISE: Final = "precise"
 CONF_LEVEL_HOLD: Final = "level_hold_percent"
 CONF_TILT_LIMIT: Final = "tilt_limit"
 CONF_POSITION_CHANGED: Final = "position_changed"
+# Die Entscheidung des Geräts, ob eine Achse eben ist ("Pitch eben", "Roll eben").
+CONF_LEVEL_PITCH_DEVICE: Final = "level_pitch_device"
+CONF_LEVEL_ROLL_DEVICE: Final = "level_roll_device"
+# Die Knöpfe des Geräts, die die Karte anbietet - dieselben wie auf der
+# Geräteseite.
+CONF_CALIBRATION_RESET: Final = "calibration_reset"
+CONF_FACTORY_RESET: Final = "factory_reset"
 
 # --- Kühlschrank-Zeitkonto ---------------------------------------------------
 # Was einen Absorberkühlschrank beschädigt, ist nicht der Winkel, sondern der
@@ -197,6 +204,18 @@ DEVICE_VALUE_ENTITIES: Final = {
     # braucht, die über Stunden gilt - Home Assistant kann neu starten, das
     # Gerät läuft weiter.
     CONF_POSITION_CHANGED: ("binary_sensor", "Lageänderung"),
+    # Ob eine Achse eben ist, entscheidet seit 4.1 das Gerät - einmal, mit
+    # Haltebereich, gegen das Ziel des Profils. Übernommen statt nachgerechnet:
+    # Zwei Gedächtnisse für dieselbe Hysterese entscheiden im Grenzbereich
+    # verschieden, und dann nannte das Gerät noch eine Ecke, während die Karte
+    # schon "eben" zeigte. Ohne diese Sensoren (fremder Neigungssensor, ältere
+    # Firmware) rechnet die Integration selbst - siehe _axis_level.
+    CONF_LEVEL_PITCH_DEVICE: ("binary_sensor", "Pitch eben"),
+    CONF_LEVEL_ROLL_DEVICE: ("binary_sensor", "Roll eben"),
+    # Knöpfe, damit die Karte sie anbieten kann: Was die Geräteseite kann,
+    # kann die Karte auch - ausgelöst wird immer der Knopf DES GERÄTS.
+    CONF_CALIBRATION_RESET: ("button", "Kalibrierung zurücksetzen"),
+    CONF_FACTORY_RESET: ("button", "Werkseinstellungen"),
     # --- Wächter -----------------------------------------------------------
     # Ein Textsensor der Firmware landet in Home Assistant in der Domäne
     # "sensor". Der Schalter heißt genauso wie der Textsensor; gesucht wird

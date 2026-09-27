@@ -693,8 +693,17 @@ globals:
     type: float
     initial_value: "NAN"
 
-  # Gedächtnis der Hysterese von "steht gerade" - siehe level_release.
-  - id: level_hold
+  # "eben" je Achse, mit Haltebereich - DIE Entscheidung des Geräts.
+  #
+  # Gefällt einmal je Sekunde im interval-Block und gilt für alles: Hub-Werte,
+  # Anweisung, "Camper steht gerade" und über "Pitch eben"/"Roll eben" auch für
+  # Geräteseite und Home Assistant. Vorher entschied jede dieser Stellen selbst,
+  # mit eigenem Gedächtnis - und im Bereich zwischen Toleranz und Haltebereich
+  # sagte das Gerät "1 cm hoch", während die Karte schon "eben" zeigte.
+  - id: eben_p
+    type: bool
+    initial_value: "false"
+  - id: eben_r
     type: bool
     initial_value: "false"
 
@@ -2377,6 +2386,8 @@ interval:
             id(anweisung) = "Kein Messwert";
             id(anweisung_werte) = "";
             id(anweisung_danach) = "";
+            id(eben_p) = false;
+            id(eben_r) = false;
             return;
           }
 
@@ -2445,8 +2456,21 @@ interval:
           // darf die Anweisung nicht mehr formen. Ohne das nennt die Anweisung
           // eine Richtung, die die Anzeige daneben bereits als erledigt
           // ausweist.
-          const float p = fabsf(p_soll) <= tol_p ? 0.0f : p_soll;
-          const float r = fabsf(r_soll) <= tol_r ? 0.0f : r_soll;
+          //
+          // Mit Haltebereich: Wer einmal eben steht, bleibt eben, bis die
+          // Abweichung über Toleranz x Haltebereich hinausgeht. Dieselbe Regel
+          // wie _axis_level in coordinator.py und axisLevel in webui.js - die
+          // beiden übernehmen aber, sobald das Gerät sie liefert, diese
+          // Entscheidung hier ("Pitch eben", "Roll eben").
+          const float halten = isnan(id(haltebereich).state)
+            ? ${level_release_default} : id(haltebereich).state;
+          auto eben = [&](bool vorher, float abweichung, float toleranz) {
+            return fabsf(abweichung) <= toleranz * (vorher ? halten / 100.0f : 1.0f);
+          };
+          id(eben_p) = eben(id(eben_p), p_soll, tol_p);
+          id(eben_r) = eben(id(eben_r), r_soll, tol_r);
+          const float p = id(eben_p) ? 0.0f : p_soll;
+          const float r = id(eben_r) ? 0.0f : r_soll;
 
           const float BOGEN = 3.14159265358979323846f / 180.0f;
           const bool wohnwagen = (id(vehicle_type).current_option() == "Wohnwagen");
@@ -2971,46 +2995,35 @@ binary_sensor:
     id: camper_level_ok
     icon: mdi:axis-arrow
     lambda: |-
-      if (isnan(id(pitch).state) || isnan(id(roll).state)) {
-        id(level_hold) = false;
-        return {};
-      }
+      // Keine Messwerte: lieber "unbekannt" als ein falsches Nein.
+      if (isnan(id(pitch).state) || isnan(id(roll).state)) return {};
+      // Beide Achsen eben - aus der Entscheidung des Sekundentakts, mit
+      // Haltebereich und gegen das Ziel des Profils. Keine eigene Rechnung
+      // mehr: Sie lief bis 4.0.5 mit einem gemeinsamen Gedächtnis für beide
+      // Achsen und konnte deshalb anders entscheiden als die Anzeige.
+      return id(eben_p) && id(eben_r);
 
-      // Im Präzisionsmodus eine feste Gradzahl für beide Achsen, sonst die
-      // Zentimeterangabe über das jeweilige Fahrzeugmaß umgerechnet - so ist
-      // längs und quer gleich streng bewertet. MUSS zu tolerance() in
-      // webui.js und _tolerance() in coordinator.py passen.
-      const bool genau = id(precise_mode).state;
-      const float grad = id(tolerance_deg).state;
-      const float zentimeter = id(tolerance_cm).state;
-      const float laengs = id(wheelbase_mm).state;
-      const float quer = id(track_mm).state;
-      const float halten = id(haltebereich).state;
-      // Beim Start kann ein Einstellwert noch fehlen. Dann lieber "unbekannt"
-      // melden als "steht nicht gerade" - ein falsches Nein ist hier so
-      // schlecht wie ein falsches Ja.
-      if (isnan(grad) || isnan(zentimeter) || isnan(laengs) || isnan(quer)
-          || isnan(halten)) {
-        return {};
-      }
+  # "eben" je Achse - dieselbe Entscheidung, damit Geräteseite, Home Assistant
+  # und MQTT sie übernehmen statt sie nachzurechnen. Namen ohne Umlaut: Die
+  # Kennungen (pitch_eben, roll_eben) bleiben damit in jeder ESPHome-Fassung
+  # gleich.
+  - platform: template
+    name: "Pitch eben"
+    id: pitch_eben
+    icon: mdi:arrow-left-right
+    entity_category: diagnostic
+    lambda: |-
+      if (isnan(id(pitch).state)) return {};
+      return id(eben_p);
 
-      const float tol_pitch = genau ? grad
-        : fmaxf(atanf(zentimeter * 10.0f / laengs) * 180.0f / M_PI, 0.05f);
-      const float tol_roll = genau ? grad
-        : fmaxf(atanf(zentimeter * 10.0f / quer) * 180.0f / M_PI, 0.05f);
-
-      // Hysterese: Wer einmal drinsteht, bleibt drin, bis die Neigung über den
-      // Haltebereich hinausgeht. Auch der ist ein Regler - siehe dort.
-      //
-      // Gemessen wird gegen die ZIELNEIGUNG des Profils, nicht gegen null.
-      // Bei "Ausrichten" ist die null und alles wie zuvor; im Schlafprofil
-      // heißt "steht gerade" dann eben "steht, wie du es wolltest". Die
-      // Zielwerte setzt der Sekundentakt.
-      const float faktor = id(level_hold) ? halten / 100.0f : 1.0f;
-      id(level_hold) =
-        fabsf(id(pitch).state - id(ziel_grad_p)) <= tol_pitch * faktor
-        && fabsf(id(roll).state - id(ziel_grad_r)) <= tol_roll * faktor;
-      return id(level_hold);
+  - platform: template
+    name: "Roll eben"
+    id: roll_eben
+    icon: mdi:arrow-up-down
+    entity_category: diagnostic
+    lambda: |-
+      if (isnan(id(roll).state)) return {};
+      return id(eben_r);
 
   # --- Schräglagenwarnung ---------------------------------------------------
   #

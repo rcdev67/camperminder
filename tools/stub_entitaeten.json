@@ -212,6 +212,20 @@
       "wert": false
     },
     {
+      "kennung": "binary_sensor/Pitch eben",
+      "name": "Pitch eben",
+      "bereich": "binary_sensor",
+      "zustand": "OFF",
+      "wert": false
+    },
+    {
+      "kennung": "binary_sensor/Roll eben",
+      "name": "Roll eben",
+      "bereich": "binary_sensor",
+      "zustand": "OFF",
+      "wert": false
+    },
+    {
       "kennung": "binary_sensor/Schräglage",
       "name": "Schräglage",
       "bereich": "binary_sensor",

@@ -983,8 +983,26 @@
     return hold[key];
   }
 
-  function levelPitch() { return axisLevel("pitch", abwP(), tolerance(cfg.wheelbase)); }
-  function levelRoll() { return axisLevel("roll", abwR(), tolerance(cfg.track)); }
+  /* Ob eine Achse eben ist, entscheidet das GERÄT ("Pitch eben", "Roll eben")
+   * - einmal, für Anweisung, Hub-Werte, Home Assistant und diese Seite. Die
+   * eigene Rechnung (axisLevel) ist nur noch Rückfall, solange der Wert beim
+   * Laden der Seite noch nicht angekommen ist. Vorher hatte die Seite ein
+   * eigenes Gedächtnis und begann nach dem Öffnen mit "nicht eben", während
+   * das Gerät längst "eben" wusste. */
+  function geraetEben(kennung) {
+    var zustand = findStateOf("binary_sensor", kennung);
+    return zustand === "ON" ? true : zustand === "OFF" ? false : null;
+  }
+  function levelPitch() {
+    var geraet = geraetEben("pitch_eben");
+    var eigene = axisLevel("pitch", abwP(), tolerance(cfg.wheelbase));
+    return geraet === null ? eigene : geraet;
+  }
+  function levelRoll() {
+    var geraet = geraetEben("roll_eben");
+    var eigene = axisLevel("roll", abwR(), tolerance(cfg.track));
+    return geraet === null ? eigene : geraet;
+  }
 
   /* Der Maßstab der Anzeige ist die TOLERANZ, nicht das Grad.
    *

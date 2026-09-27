@@ -12,7 +12,7 @@ import logging
 import math
 from datetime import datetime
 
-from homeassistant.const import STATE_ON, STATE_UNAVAILABLE, STATE_UNKNOWN
+from homeassistant.const import STATE_OFF, STATE_ON, STATE_UNAVAILABLE, STATE_UNKNOWN
 from homeassistant.core import Event, EventStateChangedData, HomeAssistant, callback
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.dispatcher import async_dispatcher_send
@@ -21,6 +21,8 @@ from homeassistant.helpers.event import async_track_state_change_event
 from .const import (
     CONF_LEVEL_HOLD,
     CONF_LEVEL_METHOD,
+    CONF_LEVEL_PITCH_DEVICE,
+    CONF_LEVEL_ROLL_DEVICE,
     CONF_TILT_LIMIT,
     CONF_MOTION_SENSOR,
     CONF_NOTIFY_SERVICE,
@@ -726,13 +728,30 @@ class CamperCoordinator:
 
     @property
     def level_pitch(self) -> bool:
-        """Längsachse innerhalb der Toleranz - gemessen am ZIEL des Profils."""
-        return self._axis_level("pitch", self.deviation_pitch, self.tolerance_pitch)
+        """Längsachse innerhalb der Toleranz - gemessen am ZIEL des Profils.
+
+        Liefert das Gerät seine Entscheidung ("Pitch eben"), gilt die. Die
+        eigene Rechnung läuft trotzdem mit, damit ihr Gedächtnis stimmt, falls
+        das Gerät kurz wegfällt.
+        """
+        eigene = self._axis_level("pitch", self.deviation_pitch, self.tolerance_pitch)
+        geraet = self._device_level(CONF_LEVEL_PITCH_DEVICE)
+        return eigene if geraet is None else geraet
 
     @property
     def level_roll(self) -> bool:
-        """Querachse innerhalb der Toleranz - gemessen am ZIEL des Profils."""
-        return self._axis_level("roll", self.deviation_roll, self.tolerance_roll)
+        """Querachse innerhalb der Toleranz - wie level_pitch."""
+        eigene = self._axis_level("roll", self.deviation_roll, self.tolerance_roll)
+        geraet = self._device_level(CONF_LEVEL_ROLL_DEVICE)
+        return eigene if geraet is None else geraet
+
+    def _device_level(self, key: str) -> bool | None:
+        """Die Entscheidung des Geräts, ob eine Achse eben ist - oder None."""
+        source = self._device_sources.get(key)
+        state = self.hass.states.get(source) if source else None
+        if state is None or state.state not in (STATE_ON, STATE_OFF):
+            return None
+        return state.state == STATE_ON
 
     @property
     def correction_pitch_cm(self) -> float | None:

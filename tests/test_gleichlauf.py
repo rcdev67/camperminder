@@ -121,3 +121,21 @@ def test_karte_meldet_ueber_den_dienst():
     die Karte genau den, und jede Meldung ging still verloren."""
     assert 'callService("system_log", "write"' in KARTE
     assert "system_log/write" not in KARTE.replace('Websocket-Befehl "system_log/write"', "")
+
+
+def test_karte_bietet_dieselben_knoepfe_wie_die_geraeteseite():
+    """Kalibrieren, Kalibrierung zurücksetzen, Werkseinstellungen - auch in HA.
+
+    Ausgelöst wird immer der Knopf DES GERÄTS; die Integration findet ihn über
+    den Namen aus der Firmware. Die beiden, die etwas löschen, fragen nach."""
+    firmware = HARDWARE + (WURZEL / "esphome" / "level" / "camperminder-level.yaml").read_text(
+        encoding="utf-8"
+    )
+    for key in (const.CONF_CALIBRATION_RESET, const.CONF_FACTORY_RESET):
+        domain, name = const.DEVICE_VALUE_ENTITIES[key]
+        assert domain == "button"
+        assert f'name: "{name}"' in firmware, name
+    for attribut in ("calibrate_entity", "calibration_reset_entity", "factory_reset_entity"):
+        assert f"a.{attribut}" in KARTE, attribut
+    assert "TEXTS.resetCalibrationQuestion" in KARTE and "TEXTS.factoryResetQuestion" in KARTE
+    assert "window.confirm(frage)" in KARTE
