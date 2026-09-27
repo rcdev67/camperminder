@@ -5,22 +5,25 @@ blueprint:
 
 
     **Eine Einschränkung, die man kennen muss:** Das Gerät misst die
-    Temperatur **seines eigenen Chips**, nicht die der Raumluft. Der Chip
-    erwärmt sich selbst und sitzt dort, wo das Gehäuse klebt. Für eine
-    Frostwarnung reicht das, sobald der Abgleich unter *Gerät →
-    Temperatur Abgleich* einmal gegen ein Thermometer gesetzt wurde. Für eine
-    Klimaregelung reicht es nicht.
+    Temperatur **seines eigenen Lagesensors**, nicht die der Raumluft. Der
+    Sensor erwärmt sich selbst und sitzt dort, wo das Gehäuse klebt. Für eine
+    Frostwarnung reicht das, sobald der Abgleich (Geräteseite unter *Gerät →
+    Temperatur Abgleich*, in Home Assistant unter *Konfiguration*) einmal
+    gegen ein Thermometer gesetzt wurde. Für eine Klimaregelung reicht es
+    nicht.
 
 
     Der Grenzwert steht im Gerät (*Frostwarnung unter*, Vorgabe 3 °C) und gilt
     auch ohne Home Assistant — diese Automatisierung bringt die Meldung nur
-    dorthin, wo du sie liest.
+    dorthin, wo du sie liest. Das Gerät nimmt die Warnung erst zwei Grad über
+    dem Grenzwert zurück; eine Temperatur, die um den Grenzwert pendelt, löst
+    deshalb nicht die ganze Nacht neue Meldungen aus.
   domain: automation
   source_url: https://github.com/rcdev67/camperminder/blob/main/blueprints/automation/camperminder/frostwarnung.yaml
   input:
     frost:
       name: Frostgefahr
-      description: Der Melder des Geräts (`binary_sensor`, endet auf „Frostgefahr").
+      description: Der Melder des Geräts (`binary_sensor`, endet auf „Frostgefahr“).
       selector:
         entity:
           filter:
@@ -28,8 +31,9 @@ blueprint:
     temperatur:
       name: Innentemperatur
       description: >-
-        Der Temperaturwert des Geräts. Er wird in die Meldung geschrieben.
-      default: {}
+        Der Sensor „Innentemperatur“ des Geräts. Er wird in die Meldung
+        geschrieben.
+      default: ""
       selector:
         entity:
           filter:
@@ -39,7 +43,7 @@ blueprint:
       name: Was soll passieren?
       description: >-
         Frei wählbar — Handymeldung, Heizung einschalten, Licht. Der Text steht
-        in `meldung` bereit.
+        in `{{ meldung }}` bereit.
       selector:
         action: {}
 
@@ -49,8 +53,10 @@ max_exceeded: silent
 variables:
   temperatur_entitaet: !input temperatur
   meldung: >-
-    {% if temperatur_entitaet is string and temperatur_entitaet | length > 0 %}
-      Frostgefahr im Fahrzeug: {{ states(temperatur_entitaet) }} °C.
+    {% if temperatur_entitaet is string and temperatur_entitaet | length > 0
+          and states(temperatur_entitaet) | is_number %}
+      Frostgefahr im Fahrzeug: {{ (states(temperatur_entitaet) | float) | round(1)
+        | string | replace('.', ',') }} °C.
     {% else %}
       Frostgefahr im Fahrzeug - die Temperatur liegt unter dem Grenzwert.
     {% endif %}
@@ -59,6 +65,18 @@ trigger:
   - platform: state
     entity_id: !input frost
     to: "on"
+
+condition:
+  # Nach einem Neustart von Home Assistant oder einem Verbindungsabbruch zum
+  # Gerät springt der Melder von "nicht verfügbar" auf "an". Das ist keine
+  # neue Lage: Wurde sie in den letzten zwölf Stunden schon gemeldet, nicht
+  # noch einmal. Ein echter Wechsel von "aus" auf "an" meldet immer.
+  - condition: template
+    value_template: >-
+      {{ trigger.from_state is none
+         or trigger.from_state.state == 'off'
+         or this.attributes.last_triggered is none
+         or now() - this.attributes.last_triggered > timedelta(hours=12) }}
 
 action:
   - choose: []

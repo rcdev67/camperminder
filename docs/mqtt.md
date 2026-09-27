@@ -159,7 +159,7 @@ folgenlos. Wer eine Benachrichtigung schalten will, nimmt deshalb
 |---|---|
 | `camperminder/level/binary_sensor/kuehlschrank_warnung/state` | `ON` = lange genug schief, dass der Kühlschrank leidet |
 | `camperminder/level/sensor/schraeglage_dauer/state` | Minuten über dem Grenzwert, `0` wenn gerade nicht |
-| `camperminder/level/text_sensor/kuehlschrank/state` | `arbeitet normal`, `3.4° schief seit 42 min - die Kühlleistung fällt ab` |
+| `camperminder/level/text_sensor/kuehlschrank/state` | `arbeitet normal`, `3,4° schief seit 42 min - die Kühlleistung fällt ab` |
 | `camperminder/level/number/kuehlschrank_kritisch_nach/…` | 5 – 240 Minuten |
 
 Drei Stufen, abgeleitet aus einem einzigen Regler: Hinweis ab dem

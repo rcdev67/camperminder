@@ -14,13 +14,13 @@ blueprint:
 
 
     Der Meldetext kommt vom Gerät selbst — zum Beispiel
-    „3.4° schief seit 42 min - die Kühlleistung fällt ab".
+    „3,4° schief seit 42 min - die Kühlleistung fällt ab“.
   domain: automation
   source_url: https://github.com/rcdev67/camperminder/blob/main/blueprints/automation/camperminder/kuehlschrank_warnung.yaml
   input:
     warnung:
       name: Kühlschrank Warnung
-      description: Der Melder des Geräts (`binary_sensor`, endet auf „Kühlschrank Warnung").
+      description: Der Melder des Geräts (`binary_sensor`, endet auf „Kühlschrank Warnung“).
       selector:
         entity:
           filter:
@@ -28,21 +28,20 @@ blueprint:
     text:
       name: Meldetext des Geräts
       description: >-
-        Der Textsensor „Kühlschrank". Er liefert den fertigen Satz mit Winkel
-        und Dauer. Ohne Auswahl wird ein allgemeiner Text gemeldet.
-      default: {}
+        Der Sensor „Kühlschrank“ des Geräts. Er liefert den fertigen Satz mit
+        Winkel und Dauer. Ohne Auswahl wird ein allgemeiner Text gemeldet.
+      default: ""
       selector:
         entity:
           filter:
             - domain: sensor
-            - domain: text_sensor
     benachrichtigung:
       name: Was soll passieren?
       description: >-
         Frei wählbar: Meldung auf das Handy (`notify.mobile_app_…`), eine
         anhaltende Meldung in Home Assistant, ein Lautsprecher, ein Licht —
         was du hier einträgst, wird ausgeführt. Der Text steht in
-        `meldung` bereit.
+        `{{ meldung }}` bereit.
       selector:
         action: {}
 
@@ -51,18 +50,40 @@ max_exceeded: silent
 
 variables:
   text_entitaet: !input text
-  meldung: >-
-    {% if text_entitaet is string and text_entitaet | length > 0 %}
-      {{ states(text_entitaet) }}
-    {% else %}
-      Das Fahrzeug steht zu lange schief - der Absorberkühlschrank kühlt nicht mehr richtig.
-    {% endif %}
 
 trigger:
   - platform: state
     entity_id: !input warnung
     to: "on"
 
+condition:
+  # Nach einem Neustart von Home Assistant oder einem Verbindungsabbruch zum
+  # Gerät springt der Melder von "nicht verfügbar" auf "an". Das ist keine
+  # neue Lage: Wurde sie in den letzten zwölf Stunden schon gemeldet, nicht
+  # noch einmal. Ein echter Wechsel von "aus" auf "an" meldet immer.
+  - condition: template
+    value_template: >-
+      {{ trigger.from_state is none
+         or trigger.from_state.state == 'off'
+         or this.attributes.last_triggered is none
+         or now() - this.attributes.last_triggered > timedelta(hours=12) }}
+
 action:
+  # Der Melder springt sofort, den Satz schreibt das Gerät nur alle fünf
+  # Sekunden neu. Ohne die Pause stünde in der Meldung noch der Satz davor -
+  # "... noch unkritisch".
+  - delay:
+      seconds: 6
+  - condition: state
+    entity_id: !input warnung
+    state: "on"
+  - variables:
+      meldung: >-
+        {% if text_entitaet is string and text_entitaet | length > 0
+              and states(text_entitaet) not in ['unknown', 'unavailable', ''] %}
+          {{ states(text_entitaet) }}
+        {% else %}
+          Das Fahrzeug steht zu lange schief - der Absorberkühlschrank kühlt nicht mehr richtig.
+        {% endif %}
   - choose: []
     default: !input benachrichtigung
