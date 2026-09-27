@@ -91,7 +91,8 @@ Ein fest verbautes Gerät kann sich selbst beobachten, ein Handgerät nicht.
 | Thema | Inhalt |
 |---|---|
 | `camperminder/level/binary_sensor/kalibrierung_pruefen/state` | `ON` = Temperatur oder Sensorbetrag weit weg von der Kalibrierung |
-| `camperminder/level/text_sensor/kalibrierung/state` | `am 22.08.2026 bei 21 °C` — mit Zusatz, wenn zu prüfen |
+| `camperminder/level/text_sensor/kalibrierung/state` | `am 22.08.2026 bei 21 °C` — mit Zusatz, wenn zu prüfen; `ab Werk kalibriert`, solange im Fahrzeug nicht kalibriert wurde |
+| `camperminder/level/text_sensor/werkskalibrierung/state` | `ab Werk kalibriert am 27.09.2026`, `keine` oder `nicht möglich - …` (Speicheraufteilung zu alt) |
 | `camperminder/level/binary_sensor/montage_pruefen/state` | `ON` = der Sensor liefert Unsinn, Gehäuse lose? |
 | `camperminder/level/binary_sensor/frostgefahr/state` | `ON` = unter dem Grenzwert |
 | `camperminder/level/sensor/innentemperatur/state` | °C, Chiptemperatur plus Abgleich |
@@ -195,7 +196,7 @@ dafür gibt es dieselben sechs Auskünfte noch einmal als Werte:
 
 | Thema | Inhalt |
 |---|---|
-| `camperminder/level/text_sensor/statuswerte/state` | `w=scharf:7830;k=2:2760:3.4;c=1758200000:21:27:1;b=vor:1200;m=getrennt;n=offen` |
+| `camperminder/level/text_sensor/statuswerte/state` | `w=scharf:7830;k=2:2760:3.4;c=1758200000:21:27:1;b=vor:1200;m=getrennt;n=offen;a=vl:4.0:1:h;d=;f=ok:1790500000;fw=` |
 
 Schlüssel=Wert, getrennt durch Semikolon. Zeitspannen in Sekunden, Zeitpunkte
 als Unix-Zeit (`0` = es gab keine gültige Uhr).
@@ -227,6 +228,8 @@ Diese Themen nehmen auch Befehle entgegen (`…/command`):
 | `camperminder/level/switch/waechter/…` | `ON` / `OFF` |
 | `camperminder/level/switch/status_led/…` | `ON` / `OFF` — die Leuchte am Gerät |
 | `camperminder/level/switch/alarmton/…` | `ON` / `OFF` — der Summer beim Alarm |
+| `camperminder/level/button/neigung_kalibrieren/command` | `PRESS` — jetzige Lage als eben übernehmen (Kalibrierung im Fahrzeug) |
+| `camperminder/level/button/kalibrierung_zuruecksetzen/command` | `PRESS` — Kalibrierung im Fahrzeug löschen; es gilt wieder die Werkskalibrierung |
 | `camperminder/level/switch/auffahrton/…` | `ON` / `OFF` — die akustische Auffahrhilfe. Kommt nach einem Neustart immer **aus** zurück und schaltet sich selbst ab, sobald das Ziel erreicht ist |
 
 Der Auffahrton taktet umso schneller, je kleiner der größte Hub einer Ecke

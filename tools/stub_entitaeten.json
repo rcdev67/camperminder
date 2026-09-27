@@ -289,6 +289,13 @@
       "wert": null
     },
     {
+      "kennung": "text_sensor/Werkskalibrierung",
+      "name": "Werkskalibrierung",
+      "bereich": "text_sensor",
+      "zustand": "",
+      "wert": null
+    },
+    {
       "kennung": "text_sensor/Kalibrierung",
       "name": "Kalibrierung",
       "bereich": "text_sensor",
@@ -564,6 +571,27 @@
     {
       "kennung": "button/Neigung kalibrieren",
       "name": "Neigung kalibrieren",
+      "bereich": "button",
+      "zustand": "",
+      "wert": null
+    },
+    {
+      "kennung": "button/Kalibrierung zurücksetzen",
+      "name": "Kalibrierung zurücksetzen",
+      "bereich": "button",
+      "zustand": "",
+      "wert": null
+    },
+    {
+      "kennung": "button/Werkskalibrierung Messung 1",
+      "name": "Werkskalibrierung Messung 1",
+      "bereich": "button",
+      "zustand": "",
+      "wert": null
+    },
+    {
+      "kennung": "button/Werkskalibrierung Messung 2",
+      "name": "Werkskalibrierung Messung 2",
       "bereich": "button",
       "zustand": "",
       "wert": null
