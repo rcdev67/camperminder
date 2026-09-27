@@ -61,6 +61,7 @@
       bewegung_vor: "vor {dauer}",
       datei_aufspielen: "Datei aufspielen",
       datei_aufspielen_hinweis: "Oder Firmwaredatei vom Handy aufspielen:",
+      datei_waehlen: "Datei auswählen",
       eben_stop: "✅ EBEN – STOP",
       eingabe_nicht_angenommen: "Das Gerät hat die Eingabe nicht angenommen.",
       erst_datei: "Erst eine Datei auswählen.",
@@ -152,6 +153,7 @@
       keilstufe: "Keilstufe {n}",
       kein_wert: "⚠️ Kein Sensorwert",
       keine_bestaetigung: "Das Gerät bestätigt die Eingabe nicht. Nichts wurde gespeichert.",
+      keine_datei: "Keine Datei ausgewählt.",
       keine_verbindung: "Keine Verbindung zum Gerät.",
       keine_werte_warnung: "Das Nivelliergerät liefert gerade keine Werte – Anzeige nicht verwenden.",
       keine_wlan_felder: "Das Gerät meldet keine WLAN-Eingabefelder. Auf diesem Gerät läuft eine Firmware ohne diese Funktion.",
@@ -283,6 +285,66 @@
       seite_links: "linke Seite",
       seite_rechts: "rechte Seite",
       steht_ruhig: "steht ruhig",
+      tech_abweichung_hinten_links: "Abweichung hinten links",
+      tech_abweichung_hinten_rechts: "Abweichung hinten rechts",
+      tech_abweichung_stuetzrad: "Abweichung Stützrad",
+      tech_abweichung_vorne_links: "Abweichung vorne links",
+      tech_abweichung_vorne_rechts: "Abweichung vorne rechts",
+      tech_accel_x: "Beschleunigung X (roh)",
+      tech_accel_y: "Beschleunigung Y (roh)",
+      tech_accel_z: "Beschleunigung Z (roh)",
+      tech_anweisung: "Anweisung",
+      tech_anweisung_eben: "Steht eben – fertig",
+      tech_camper_steht_gerade: "Camper steht gerade",
+      tech_danach_stuetzrad: "danach Stützrad",
+      tech_diagnose_betrag: "Diagnose Betrag",
+      tech_diagnose_pitch_mittel: "Diagnose Pitch Mittel",
+      tech_diagnose_roll_mittel: "Diagnose Roll Mittel",
+      tech_eigenes_netz: "Eigenes Netz",
+      tech_firmware_version: "Firmware-Version",
+      tech_frostgefahr: "Frostgefahr",
+      tech_gyro_x: "Drehrate X (roh)",
+      tech_gyro_y: "Drehrate Y (roh)",
+      tech_gyro_z: "Drehrate Z (roh)",
+      tech_hub_hinten_links: "Hub hinten links",
+      tech_hub_hinten_rechts: "Hub hinten rechts",
+      tech_hub_vorne_links: "Hub vorne links",
+      tech_hub_vorne_rechts: "Hub vorne rechts",
+      tech_in_bewegung: "In Bewegung",
+      tech_innentemperatur: "Innentemperatur",
+      tech_ip_adresse: "IP-Adresse",
+      tech_ja: "ja",
+      tech_kalibrierung: "Kalibrierung",
+      tech_kalibrierung_pruefen: "Kalibrierung prüfen",
+      tech_kein_messwert: "kein Messwert",
+      tech_kuehlschrank: "Kühlschrank",
+      tech_kuehlschrank_warnung: "Kühlschrank Warnung",
+      tech_lageaenderung: "Lageänderung",
+      tech_laufzeit: "Laufzeit",
+      tech_letzte_bewegung: "Letzte Bewegung",
+      tech_montage_pruefen: "Montage prüfen",
+      tech_mqtt: "MQTT",
+      tech_neigung_pitch: "Neigung Pitch",
+      tech_neigung_roll: "Neigung Roll",
+      tech_nein: "nein",
+      tech_netz_mit_passwort: "mit Passwort",
+      tech_netz_offen: "offen",
+      tech_pitch_eben: "Pitch eben",
+      tech_roll_eben: "Roll eben",
+      tech_schraeglage: "Schräglage",
+      tech_schraeglage_dauer: "Schräglage Dauer",
+      tech_sensortemperatur: "Sensortemperatur",
+      tech_status: "Home Assistant verbunden",
+      tech_statuswerte: "Statuswerte",
+      tech_stuetzrad: "Stützrad",
+      tech_verbundenes_wlan: "Verbundenes WLAN",
+      tech_waechter: "Wächter",
+      tech_waechter_alarm: "Wächter Alarm",
+      tech_werkskalibrierung: "Werkskalibrierung",
+      tech_wlan_mac: "WLAN-MAC",
+      tech_wlan_signal: "WLAN-Signal",
+      tech_ziel_laengs: "Ziel längs",
+      tech_ziel_quer: "Ziel quer",
       uebertrage: "Übertrage …",
       uebertragen_fehler: "Fehlgeschlagen (Status {status}). Notfalls über das ESPHome-Dashboard aufspielen.",
       uebertragen_neustart: "Übertragen. Das Gerät startet neu.",
@@ -347,6 +409,7 @@
       bewegung_vor: "{dauer} ago",
       datei_aufspielen: "Upload file",
       datei_aufspielen_hinweis: "Or upload a firmware file from your phone:",
+      datei_waehlen: "Choose file",
       eben_stop: "✅ LEVEL – STOP",
       eingabe_nicht_angenommen: "The device did not accept the entry.",
       erst_datei: "Pick a file first.",
@@ -438,6 +501,7 @@
       keilstufe: "ramp step {n}",
       kein_wert: "⚠️ No sensor reading",
       keine_bestaetigung: "The device does not confirm the entry. Nothing was saved.",
+      keine_datei: "No file chosen.",
       keine_verbindung: "No connection to the device.",
       keine_werte_warnung: "The levelling device is not delivering readings – do not rely on this display.",
       keine_wlan_felder: "The device reports no Wi-Fi input fields. It is running firmware without this function.",
@@ -569,6 +633,66 @@
       seite_links: "left side",
       seite_rechts: "right side",
       steht_ruhig: "at rest",
+      tech_abweichung_hinten_links: "Deviation rear left",
+      tech_abweichung_hinten_rechts: "Deviation rear right",
+      tech_abweichung_stuetzrad: "Deviation jockey wheel",
+      tech_abweichung_vorne_links: "Deviation front left",
+      tech_abweichung_vorne_rechts: "Deviation front right",
+      tech_accel_x: "Acceleration X (raw)",
+      tech_accel_y: "Acceleration Y (raw)",
+      tech_accel_z: "Acceleration Z (raw)",
+      tech_anweisung: "Instruction",
+      tech_anweisung_eben: "Level – done",
+      tech_camper_steht_gerade: "Camper is level",
+      tech_danach_stuetzrad: "then jockey wheel",
+      tech_diagnose_betrag: "Diagnostics magnitude",
+      tech_diagnose_pitch_mittel: "Diagnostics pitch average",
+      tech_diagnose_roll_mittel: "Diagnostics roll average",
+      tech_eigenes_netz: "Own network",
+      tech_firmware_version: "Firmware version",
+      tech_frostgefahr: "Frost risk",
+      tech_gyro_x: "Rotation rate X (raw)",
+      tech_gyro_y: "Rotation rate Y (raw)",
+      tech_gyro_z: "Rotation rate Z (raw)",
+      tech_hub_hinten_links: "Lift rear left",
+      tech_hub_hinten_rechts: "Lift rear right",
+      tech_hub_vorne_links: "Lift front left",
+      tech_hub_vorne_rechts: "Lift front right",
+      tech_in_bewegung: "In motion",
+      tech_innentemperatur: "Indoor temperature",
+      tech_ip_adresse: "IP address",
+      tech_ja: "yes",
+      tech_kalibrierung: "Calibration",
+      tech_kalibrierung_pruefen: "Check calibration",
+      tech_kein_messwert: "no reading",
+      tech_kuehlschrank: "Fridge",
+      tech_kuehlschrank_warnung: "Fridge warning",
+      tech_lageaenderung: "Position changed",
+      tech_laufzeit: "Uptime",
+      tech_letzte_bewegung: "Last movement",
+      tech_montage_pruefen: "Check mounting",
+      tech_mqtt: "MQTT",
+      tech_neigung_pitch: "Tilt pitch",
+      tech_neigung_roll: "Tilt roll",
+      tech_nein: "no",
+      tech_netz_mit_passwort: "with password",
+      tech_netz_offen: "open",
+      tech_pitch_eben: "Pitch level",
+      tech_roll_eben: "Roll level",
+      tech_schraeglage: "Tilted",
+      tech_schraeglage_dauer: "Tilt duration",
+      tech_sensortemperatur: "Sensor temperature",
+      tech_status: "Home Assistant connected",
+      tech_statuswerte: "Status values",
+      tech_stuetzrad: "Jockey wheel",
+      tech_verbundenes_wlan: "Connected Wi-Fi",
+      tech_waechter: "Guard",
+      tech_waechter_alarm: "Guard alarm",
+      tech_werkskalibrierung: "Factory calibration",
+      tech_wlan_mac: "Wi-Fi MAC",
+      tech_wlan_signal: "Wi-Fi signal",
+      tech_ziel_laengs: "Target lengthwise",
+      tech_ziel_quer: "Target crosswise",
       uebertrage: "Sending …",
       uebertragen_fehler: "Failed (status {status}). If needed, upload it through the ESPHome dashboard.",
       uebertragen_neustart: "Uploaded. The device is restarting.",
@@ -819,24 +943,27 @@
    * nicht ankommt, ist schlimmer als eine, die sichtbar scheitert. */
   var writeError = null;
 
-  function write(domain, needle, query) {
+  /* label ist die Beschriftung, die der Nutzer vor sich hat. Die Kennung
+   * (needle) ist ein Suchstück wie "ablasspunkt" - in einer Fehlermeldung
+   * sagt sie nur dem etwas, der den Code kennt, und Englisch ist sie nie. */
+  function write(domain, needle, query, label) {
     var base = pathFor(domain, needle);
     if (!base) {
-      writeError = t("kennt_wert_nicht", { was: needle });
+      writeError = t("kennt_wert_nicht", { was: label || needle });
       syncSettings();
       return;
     }
     post(base + "/set?" + query, check(base + "/set"));
   }
 
-  function setNumber(key, value) {
+  function setNumber(key, value, label) {
     cfg[key] = value;
-    write("number", IDS[key], "value=" + encodeURIComponent(value));
+    write("number", IDS[key], "value=" + encodeURIComponent(value), label);
   }
 
   function setMethod(option) {
     cfg.method = option === METHOD_LIFT ? "hebesystem" : "keile";
-    write("select", IDS.method, "option=" + encodeURIComponent(option));
+    write("select", IDS.method, "option=" + encodeURIComponent(option), t("label_womit"));
   }
 
   /* Einbaulage kehrt das Vorzeichen von Quer- und Hochachse um. Der gespeicherte
@@ -845,7 +972,7 @@
    * Home Assistant niemand liest. */
   function setMounting(option) {
     cfg.mounting = option === MOUNT_UNDER ? "unten" : "oben";
-    write("select", IDS.mounting, "option=" + encodeURIComponent(option));
+    write("select", IDS.mounting, "option=" + encodeURIComponent(option), t("label_einbaulage"));
   }
 
   /* Schalter gehen nicht über /set, sondern über /turn_on bzw. /turn_off -
@@ -866,7 +993,7 @@
 
   function setVehicle(option) {
     cfg.vehicle = option === VEHICLE_CARAVAN ? "wohnwagen" : "wohnmobil";
-    write("select", IDS.vehicle, "option=" + encodeURIComponent(option));
+    write("select", IDS.vehicle, "option=" + encodeURIComponent(option), t("label_fahrzeugart"));
     // Beschriftungen und Bedienfelder hängen davon ab - hier reicht das
     // Nachziehen der Werte nicht, der feste Bereich muss neu entstehen.
     render();
@@ -876,13 +1003,13 @@
    * die Skizze und der Satz darunter haengen daran. */
   function setSchlafrichtung(option) {
     cfg.sleep_dir = option;
-    write("select", IDS.sleep_dir, "option=" + encodeURIComponent(option));
+    write("select", IDS.sleep_dir, "option=" + encodeURIComponent(option), t("label_schlafrichtung"));
     render();
   }
 
   function setAblasspunkt(option) {
     cfg.drain_point = option;
-    write("select", IDS.drain_point, "option=" + encodeURIComponent(option));
+    write("select", IDS.drain_point, "option=" + encodeURIComponent(option), t("label_ablasspunkt"));
     render();
   }
 
@@ -1319,6 +1446,8 @@
 
   function build() {
     document.title = "CamperMinder";
+    // Sonst liest ein Vorleseprogramm englischen Text mit deutscher Aussprache.
+    document.documentElement.lang = sprache;
     var style = document.createElement("style");
     style.textContent = CSS;
     document.head.appendChild(style);
@@ -1608,7 +1737,8 @@
       /* Stufe und Dauer kommen als Werte, nicht als Satz - siehe
        * statusWerte(). Die Stufe zieht das Gerät, nicht diese Seite: Sonst
        * gäbe es zwei Stellen, die dieselbe Grenze auswerten. */
-      var kuehl = String(statusWerte().k || "ok").split(":");
+      var kuehlWert = statusWerte().k;
+      var kuehl = String(kuehlWert || "ok").split(":");
       var wieLang = kuehl.length > 1 ? " " + spanne(kuehl[1]) : "";
 
       badge(t("kennzeichen_neigung"),
@@ -1617,9 +1747,7 @@
             : schraeg ? t("kurz_schief") + wieLang
               : t("kurz_ok")),
         kuehlWarn ? "alarm" : schraeg ? "achtung" : "ok",
-        kuehl.length > 2
-          ? t("kuehl_stufe_" + kuehl[0], { grad: zahl(kuehl[2], 1), dauer: spanne(kuehl[1]) })
-          : t("kuehl_ok", { grenze: zahl(cfg.tilt_limit, 1) }));
+        kuehlSatz(kuehlWert));
       badge(t("kennzeichen_bewegung"), bewegt ? t("in_bewegung") : t("steht_ruhig"),
         bewegt ? "achtung" : "ok", t("hilfe_bewegung"));
       badge(t("kennzeichen_lage"), verrueckt ? t("lage_veraendert") : t("lage_unveraendert"),
@@ -1692,9 +1820,7 @@
     var f = String(werte.f || "").split(":");
     var fw = String(werte.fw || "");
     var box = el('<div class="plan"></div>');
-    var status = f[0] === "ok"
-      ? (Number(f[1]) > 0 ? t("werkstatt_ok", { wann: zeitpunkt(f[1]) }) : t("werkstatt_ok_ohne_uhr"))
-      : f[0] === "fehlt" ? t("werkstatt_fehlt") : t("werkstatt_keine");
+    var status = werkSatz(werte.f);
     var html = "<h2>" + t("werkstatt_kopf") + "</h2>" +
       '<div class="muted">' + status + "</div><ol>";
     for (var i = 1; i <= 4; i++) html += "<li>" + t("werkstatt_schritt_" + i) + "</li>";
@@ -1792,6 +1918,42 @@
       { broker: broker });
   }
 
+  /* Der Satz zum Kuehlschrank, aus dem Wert "k". */
+  function kuehlSatz(wert) {
+    var teil = String(wert || "ok").split(":");
+    return teil.length > 2
+      ? t("kuehl_stufe_" + teil[0], { grad: zahl(teil[2], 1), dauer: spanne(teil[1]) })
+      : t("kuehl_ok", { grenze: zahl(cfg.tilt_limit, 1) });
+  }
+
+  /* Der Satz zur Werkskalibrierung, aus dem Wert "f". */
+  function werkSatz(wert) {
+    var teil = String(wert || "").split(":");
+    if (teil[0] === "ok") {
+      return Number(teil[1]) > 0 ? t("werkstatt_ok", { wann: zeitpunkt(teil[1]) })
+        : t("werkstatt_ok_ohne_uhr");
+    }
+    return teil[0] === "fehlt" ? t("werkstatt_fehlt") : t("werkstatt_keine");
+  }
+
+  /* Die Anweisung als eine Zeile, aus den Werten "a" und "d" - gebaut wie
+   * der Satz der Firmware (Ecken mit " · ", die Richtung einmal am Ende, die
+   * Keilstufe nur bei einer Ecke), nur in der gewaehlten Sprache. */
+  function anweisungSatz() {
+    if (state.pitch === null || state.roll === null) return t("tech_kein_messwert");
+    var plan = anweisung();
+    if (!plan) return null;
+    var schritte = plan.schritte;
+    if (!schritte.length) return t("tech_anweisung_eben");
+    var satz = schritte.map(function (i) {
+      return radName(i.wheel) + " " + t("zentimeter", { n: zahl(i.cm, 1) });
+    }).join(" · ") + " " + t("richtung_" + schritte[schritte.length - 1].direction);
+    if (schritte.length === 1 && schritte[0].steps) {
+      satz += " – " + t("keilstufe", { n: schritte[0].steps });
+    }
+    return plan.danach ? satz + ", " + t("tech_danach_stuetzrad") : satz;
+  }
+
   /* Der Satz zur Kalibrierung, aus dem Wert "c". */
   function kalibrierSatz(wert) {
     var teil = String(wert || "").split(":");
@@ -1823,7 +1985,7 @@
     profileSelect = auswahl(["Ausrichten", "Schlafen", "Ablassen"], "profil", cfg.profile,
       function (wert) {
         cfg.profile = wert;
-        write("select", IDS.profile, "option=" + encodeURIComponent(wert));
+        write("select", IDS.profile, "option=" + encodeURIComponent(wert), t("kopf_zielprofil"));
         render();
       });
     row.appendChild(profileSelect);
@@ -2012,7 +2174,7 @@
     input.value = cfg[key];
     input.onchange = function () {
       var v = parseFloat(input.value);
-      if (!isNaN(v)) setNumber(key, v);
+      if (!isNaN(v)) setNumber(key, v, label);
     };
     settingInputs[key] = input;
     row.appendChild(input);
@@ -2433,6 +2595,62 @@
     return wort.charAt(0).toUpperCase() + wort.slice(1);
   }
 
+  /* Technik in der gewaehlten Sprache.
+   *
+   * Die Namen der Entitaeten bleiben, wie sie sind: Home Assistant, MQTT und
+   * die Suche dieser Seite haengen daran. Uebersetzt wird nur die Anzeige -
+   * aus "Kühlschrank Warnung" wird der Schluessel "tech_kuehlschrank_warnung".
+   * Kennt das Woerterbuch einen Namen nicht (neue Firmware, alte Seite),
+   * steht er da, wie das Geraet ihn nennt. */
+  function techSchluessel(name) {
+    return "tech_" + kennung(String(name || "").toLowerCase()
+      .replace(/ä/g, "ae").replace(/ö/g, "oe")
+      .replace(/ü/g, "ue").replace(/ß/g, "ss"));
+  }
+
+  function techName(name) {
+    var schluessel = techSchluessel(name);
+    return TEXTE[sprache][schluessel] !== undefined ? t(schluessel) : name;
+  }
+
+  /* Werte ebenso: Zahlen mit dem Komma der Sprache, ON/OFF als ja/nein, und
+   * statt der deutschen Saetze der Firmware dieselben Saetze, die die Seite
+   * auch sonst bildet - aus den Statuswerten. Fehlen die (aeltere Firmware),
+   * bleibt der Satz des Geraets stehen. */
+  function techWert(domain, name, roh) {
+    if (roh === "" || roh === undefined || roh === null) return "–";
+    var text = String(roh);
+    var art = techSchluessel(name);
+    if (domain === "binary_sensor") {
+      return text === "ON" ? t("tech_ja") : text === "OFF" ? t("tech_nein") : text;
+    }
+    if (domain === "sensor") {
+      if (/^(nan|na)\b/i.test(text)) return "–";
+      if (art === "tech_laufzeit") {
+        var sek = parseFloat(text);
+        return isNaN(sek) ? text : spanne(sek);
+      }
+      var teile = /^(-?\d+(?:\.(\d+))?)(.*)$/.exec(text);
+      return teile ? zahl(teile[1], teile[2] ? teile[2].length : 0) + teile[3] : text;
+    }
+    if (domain === "text_sensor") {
+      var werte = statusWerte();
+      var satz = null;
+      if (art === "tech_anweisung" && werte.a !== undefined) satz = anweisungSatz();
+      else if (art === "tech_waechter" && werte.w !== undefined) satz = wacheSatz(werte.w);
+      else if (art === "tech_kuehlschrank" && werte.k !== undefined) satz = kuehlSatz(werte.k);
+      else if (art === "tech_kalibrierung" && werte.c !== undefined) satz = kalibrierSatz(werte.c);
+      else if (art === "tech_werkskalibrierung" && werte.f !== undefined) satz = werkSatz(werte.f);
+      else if (art === "tech_letzte_bewegung" && werte.b !== undefined) satz = bewegungSatz(werte.b);
+      else if (art === "tech_mqtt" && werte.m !== undefined) satz = mqttSatz();
+      else if (art === "tech_eigenes_netz" && werte.n !== undefined) {
+        satz = t(werte.n === "passwort" ? "tech_netz_mit_passwort" : "tech_netz_offen");
+      }
+      if (satz !== null) return satz;
+    }
+    return text;
+  }
+
   function renderTechTable(target) {
     var box = el('<div class="plan"><h2>' + t("kopf_technik") + "</h2></div>");
     var ids = Object.keys(state.seen);
@@ -2448,9 +2666,13 @@
       var parts = splitId(id);
       var domain = parts[0];
       if (TECH_DOMAINS.indexOf(domain) < 0) return;
+      var name = state.seen[id].name || prettify(parts[1]);
+      // Die Statuswerte sind Rohstoff fuer diese Seite - ihr Inhalt steht
+      // schon uebersetzt in den Zeilen daneben.
+      if (techSchluessel(name) === "tech_statuswerte") return;
       (groups[domain] = groups[domain] || []).push({
-        label: state.seen[id].name || prettify(parts[1]),
-        value: state.seen[id].state
+        label: techName(name),
+        value: techWert(domain, name, state.seen[id].state)
       });
     });
 
@@ -2476,9 +2698,7 @@
         .forEach(function (row) {
           var tr = document.createElement("tr");
           tr.appendChild(cell(row.label, null));
-          tr.appendChild(cell(
-            row.value === "" || row.value === undefined || row.value === null
-              ? "–" : row.value, "v"));
+          tr.appendChild(cell(row.value, "v"));
           body.appendChild(tr);
         });
       table.appendChild(body);
@@ -2540,7 +2760,18 @@
      * bleiben, und nennt den Ausweg. Beim ersten echten Build prüfen. */
     var form = el('<div style="margin-top:14px"></div>');
     form.appendChild(el('<div class="muted">' + t("datei_aufspielen_hinweis") + "</div>"));
-    var file = el('<input type="file" accept=".bin" style="margin-top:8px;width:100%">');
+    /* Das Dateifeld des Browsers beschriftet sich selbst - in der Sprache
+     * des Browsers, nicht in der dieser Seite ("Datei auswählen" auch bei
+     * Englisch). Deshalb unsichtbar, und ein eigener Knopf öffnet es. */
+    var file = el('<input type="file" accept=".bin" style="display:none">');
+    var pick = el('<button class="act ghost" style="margin-top:8px"></button>');
+    pick.textContent = t("datei_waehlen");
+    pick.onclick = function () { file.click(); };
+    var picked = el('<div class="muted" style="margin-top:6px"></div>');
+    picked.textContent = t("keine_datei");
+    file.onchange = function () {
+      picked.textContent = file.files && file.files.length ? file.files[0].name : t("keine_datei");
+    };
     var send = el('<button class="act ghost" style="margin-top:8px"></button>');
     send.textContent = t("datei_aufspielen");
     var note = el('<div class="muted" style="margin-top:8px"></div>');
@@ -2565,6 +2796,8 @@
       req.send(body);
     };
     form.appendChild(file);
+    form.appendChild(pick);
+    form.appendChild(picked);
     form.appendChild(send);
     form.appendChild(note);
     up.appendChild(form);
