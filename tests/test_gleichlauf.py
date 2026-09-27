@@ -112,3 +112,12 @@ def test_abweichung_ueberall_und_nicht_intern():
         block = block[:block.index("- platform:")]
         assert "internal: true" not in block, ecke
     assert "abweichung_stuetzrad/state" in (WURZEL / "docs" / "mqtt.md").read_text(encoding="utf-8")
+
+
+def test_karte_meldet_ueber_den_dienst():
+    """Meldungen der Karte gehen über den Dienst system_log.write.
+
+    Einen Websocket-Befehl "system_log/write" gibt es nicht - bis 4.0.5 nutzte
+    die Karte genau den, und jede Meldung ging still verloren."""
+    assert 'callService("system_log", "write"' in KARTE
+    assert "system_log/write" not in KARTE.replace('Websocket-Befehl "system_log/write"', "")
