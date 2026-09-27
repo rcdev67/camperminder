@@ -1168,7 +1168,9 @@ const TAG = "camperminder-card";
 
 /* Meldungen an das Protokoll von Home Assistant - für das, was nur im
    Browser oder in der App geschieht und sonst niemand zu sehen bekommt.
-   Gesendet wird beim nächsten "hass", weil erst dann eine Verbindung da ist. */
+   Gesendet wird beim nächsten "hass", weil erst dann eine Verbindung da ist.
+   Zu finden unter Einstellungen -> System -> Protokolle, Logger
+   "camperminder.karte". */
 const meldungen = [];
 
 function melden(text) {
@@ -1176,11 +1178,18 @@ function melden(text) {
 }
 
 function meldungenSenden(hass) {
-  if (!meldungen.length || !hass || typeof hass.callWS !== "function") return;
+  if (!meldungen.length || !hass || typeof hass.callService !== "function") return;
+  // Der Dienst system_log.write - einen Websocket-Befehl "system_log/write"
+  // gibt es NICHT. Bis 4.0.5 stand hier genau der, und die Meldungen gingen
+  // still verloren (.catch). Den Dienst gegen das HA im Wohnmobil geprüft.
   for (const message of meldungen.splice(0)) {
-    hass
-      .callWS({ type: "system_log/write", message, level: "warning", logger: "camperminder.karte" })
-      .catch(() => undefined);
+    Promise.resolve(
+      hass.callService("system_log", "write", {
+        message,
+        level: "warning",
+        logger: "camperminder.karte",
+      })
+    ).catch(() => undefined);
   }
 }
 
