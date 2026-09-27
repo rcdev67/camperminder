@@ -25,7 +25,7 @@ const STATIC = "/camperminder_static";
  * tools/build_release.ps1 bricht ab und tests/test_gleichlauf.py schlägt an,
  * sobald sie voneinander abweichen - wie bei SEITE_VERSION der Geräteseite.
  */
-const VERSION = "4.0.5";
+const VERSION = "4.1.0";
 
 /* Ist Fassung a älter als Fassung b? "4.0.3" gegen "4.0.10" - zahlweise. */
 function aelterAls(a, b) {
