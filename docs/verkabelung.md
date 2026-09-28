@@ -115,7 +115,7 @@ Mit einem OLED an J4 steht **0x3C** zusätzlich da.
 
 ## Das erste bestückte Muster
 
-Was maschinell prüfbar war, ist am Entwurf geprüft. Sechs Dinge sind es nur
+Was maschinell prüfbar war, ist am Entwurf geprüft. Sieben Dinge sind es nur
 am Aufbau, und sie gehören an das erste Muster jeder Revision:
 
 1. **I²C-Scan zeigt 0x6A**, die rote LED blinkt, das eigene Netz
@@ -141,6 +141,12 @@ am Aufbau, und sie gehören an das erste Muster jeder Revision:
 6. **Suche im Heimnetz** — mit iPhone und Android je einmal das WLAN
    eintragen und die Seite offen lassen. Sie muss das Gerät nach dem
    Netzwechsel finden und „Gefunden: …" zeigen.
+7. **Update-Taste** — mit dem Gerät im Heim-WLAN auf der Geräteseite
+   *Auf Updates prüfen* drücken. Läuft schon die veröffentlichte Fassung,
+   muss „Du hast bereits die neueste Fassung" mit dieser Nummer erscheinen,
+   und das Gerät darf **nicht** neu starten. Das prüft zugleich, dass die
+   Ausgabe auf GitHub zu diesem Gerät passt: Ab Rev B kommt sie aus einer
+   anderen Datei, siehe `tools/release_geraet.txt`.
 
 **Stand am Handmuster, 28.09.2026, Firmware 4.2.2, Samsung (Android):**
 
@@ -150,6 +156,7 @@ am Aufbau, und sie gehören an das erste Muster jeder Revision:
 | Code 2 | öffnet die Wasserwaage |
 | Suche im Heimnetz | nach Werkseinstellungen komplett durchgespielt: „Gefunden" nach rund 20 s, Knopf *Im Heimnetz öffnen* erscheint |
 | Code 3 | `camperminder-level.local` öffnet die Seite |
+| Update-Taste (4.2.3) | 4.2.2 hat 4.2.3 von GitHub geholt, lief nach rund 35 s. Danach über die Geräteseite gedrückt: „Du hast bereits die neueste Fassung (4.2.3)", nichts installiert, kein Neustart |
 
 Offen: dieselben Punkte mit einem iPhone. Bis 4.2.1 scheiterte die Suche
 am Gerät selbst — ESPHome wies die Anfragen der Seite ab, siehe
