@@ -6,18 +6,30 @@ Konto, ohne Koppeln.** Alles, was danach kommt, ist freiwillig.
 
 ## In einer Minute zur Wasserwaage
 
-1. **Strom anschließen.** Schraubklemme **VIN** an Plus, **GND** an Minus der
-   Aufbaubatterie. 12 oder 24 V, alles zwischen 7 und 36 V geht. Zum
-   Ausprobieren am Tisch genügt ein USB-C-Netzteil. Die **grüne** Leuchte
-   zeigt: Strom ist da. Falsch herum angeklemmt passiert nichts, es geht nur
-   nichts.
-2. **Handy verbinden.** In den WLAN-Einstellungen des Handys **CamperMinder**
-   wählen, ohne Passwort. Meldet das Handy, dieses Netz habe kein Internet:
-   **verbunden bleiben.** Das Gerät braucht kein Internet.
-3. **Seite öffnen.** Im Browser **`192.168.4.1`** eingeben. Die Wasserwaage
-   ist sofort da.
+![Aufkleber mit zwei QR-Codes. Code 1: Handy verbinden, Netz CamperMinder, 192.168.4.1. Code 2: Im Heim-WLAN, camperminder-level.local](bilder/aufkleber-qr.svg)
 
-Mehr ist für den Betrieb nicht nötig.
+1. **Strom anschließen**, auf einem von zwei Wegen:
+   - **USB-C**, 5 V: an eine USB-Steckdose im Fahrzeug, ein USB-Netzteil oder
+     eine Powerbank.
+   - **Schraubklemme**, 7 bis 36 V: **VIN** an Plus, **GND** an Minus der
+     Aufbaubatterie, also 12 oder 24 V direkt aus dem Bordnetz. Falsch herum
+     angeklemmt passiert nichts, es geht nur nichts.
+
+   Beide dürfen auch gleichzeitig stecken, dann versorgt die stärkere Quelle.
+   Die **grüne** Leuchte zeigt: Strom ist da.
+2. **Handy verbinden.** In den WLAN-Einstellungen des Handys **CamperMinder**
+   wählen. Das ist das eigene Netz des Geräts, nicht dein WLAN zu Hause; ab
+   Werk hat es kein Passwort. Meldet das Handy, dieses Netz habe kein
+   Internet: **verbunden bleiben.** Das Gerät braucht kein Internet.
+3. **Code 1 scannen** oder im Browser **`192.168.4.1`** eingeben. Die
+   Wasserwaage ist sofort da.
+
+Mehr ist für den Betrieb nicht nötig. **Code 2** brauchst du erst, wenn das
+Gerät in deinem WLAN zu Hause ist, siehe *Ins eigene WLAN*.
+
+Die Codes hier in der Anleitung funktionieren genauso wie die auf dem Gerät.
+Das iPhone liest sie mit der Kamera-App, Android mit der Kamera oder mit
+Google Lens.
 
 > **Ein Symbol wie eine App.** Auf dem iPhone in Safari *Teilen → Zum
 > Home-Bildschirm*, auf Android in Chrome *⋮ → Zum Startbildschirm
@@ -50,7 +62,7 @@ Mehr ist für den Betrieb nicht nötig.
 | Leuchte | Bedeutung |
 |---|---|
 | **grün**, an | Strom ist da |
-| **rot**, lang an, lang aus | Das eigene Netz ist offen: mit **CamperMinder** verbinden, dann `192.168.4.1` |
+| **rot**, lang an, lang aus | Das eigene Netz ist offen: mit **CamperMinder** verbinden, dann Code 1 oder `192.168.4.1` |
 | **rot**, ein kurzes Blinken alle drei Sekunden | Das Gerät ist in deinem WLAN |
 | **rot**, gleichmäßig im Halbsekundentakt | Der Sensor antwortet nicht. Bitte melden. |
 | **rot**, hektisches Doppelblinken, dazu drei Töne | Wächteralarm: Das Fahrzeug hat seine Lage verändert |
@@ -86,6 +98,11 @@ Adresse. Unterwegs, wenn dein WLAN außer Reichweite ist, öffnet das Gerät nac
 etwa 20 Sekunden wieder sein eigenes Netz, und es gilt `192.168.4.1`. Die
 Zugangsdaten bleiben gespeichert.
 
+**Code 2 auf dem Aufkleber** öffnet das Gerät zu Hause über seinen Namen,
+`camperminder-level.local`, ganz gleich, welche Adresse dein Router ihm gibt.
+Auf dem iPhone klappt das, auf Android nicht auf jedem Gerät. Öffnet Code 2
+dort nichts, nimm das Symbol, das du dir in Schritt 3 angelegt hast.
+
 **Kommt das Netz CamperMinder nach einer halben Minute wieder,** hat die
 Anmeldung nicht geklappt, meist wegen eines Tippfehlers im Passwort. Die Seite
 sagt das dann auch. Einfach wieder verbinden, berichtigen, speichern.
@@ -96,8 +113,8 @@ sagt das dann auch. Einfach wieder verbinden, berichtigen, speichern.
   unter seinem Namen, meist **camperminder-level**, bei der Fritzbox unter
   *Heimnetz → Netzwerk*. Die Adresse daneben im Browser aufrufen. Den genauen
   Namen nennt die Seite unter *Technik* als *Name im Netz*.
-- **Den Namen eingeben.** `camperminder-level.local` im Browser. Auf dem
-  iPhone klappt das fast immer, auf Android nicht auf jedem Gerät.
+- **Code 2 scannen** oder `camperminder-level.local` im Browser eingeben. Auf
+  dem iPhone klappt das fast immer, auf Android nicht auf jedem Gerät.
 - **Beim nächsten Mal nachlesen.** Das Gerät merkt sich seine Adresse. Wenn du
   das nächste Mal im Netz CamperMinder bist, steht sie oben unter *Technik →
   WLAN*.

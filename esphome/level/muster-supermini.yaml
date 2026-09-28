@@ -33,15 +33,25 @@
 #      esphome run muster-supermini.yaml --device COMx
 #
 #  Spaeter drahtlos:
-#      esphome run muster-supermini.yaml --device camperminder-muster.local
+#      esphome run muster-supermini.yaml --device camperminder-level.local
 # ============================================================================
 
 substitutions:
-  # Eigener Name, damit Muster und Platine nebeneinander im Netz sein koennen.
-  # Sonst streiten sich zwei Geraete um camperminder-level.local, und welches
-  # man gerade vor sich hat, ist nicht mehr zu erkennen.
-  device_name: camperminder-muster
-  friendly_name: CamperMinder Muster
+  # Derselbe Name wie das Produkt, seit 28.09.2026 - vorher hiess das Muster
+  # camperminder-muster. Der Grund ist der QR-Aufkleber: Code 2 oeffnet
+  # camperminder-level.local, und das soll sich am einzigen vorhandenen Geraet
+  # pruefen lassen, bevor Platinen da sind.
+  #
+  # Folge: Muster und Platine koennen NICHT gleichzeitig im selben Netz sein,
+  # sonst streiten sie sich um camperminder-level.local. Solange es nur das
+  # Muster gibt, ist das gleichgueltig. Kommt Rev B, wird diese Datei ohnehin
+  # geloescht und das Release auf camperminder-level.yaml umgestellt
+  # (tools/release_geraet.txt).
+  #
+  # In Home Assistant bleiben die Entitaeten dieselben - ESPHome kennt sie an
+  # der MAC-Adresse. Es aendert sich nur der angezeigte Geraetename.
+  device_name: camperminder-level
+  friendly_name: CamperMinder Level
 
   # --- Achsen -------------------------------------------------------------
   #

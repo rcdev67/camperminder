@@ -115,8 +115,8 @@ Mit einem OLED an J4 steht **0x3C** zusätzlich da.
 
 ## Das erste bestückte Muster
 
-Was maschinell prüfbar war, ist am Entwurf geprüft. Vier Dinge sind es nur am
-Aufbau, und sie gehören an das erste Muster jeder Revision:
+Was maschinell prüfbar war, ist am Entwurf geprüft. Sechs Dinge sind es nur
+am Aufbau, und sie gehören an das erste Muster jeder Revision:
 
 1. **I²C-Scan zeigt 0x6A**, die rote LED blinkt, das eigene Netz
    `CamperMinder` ist am Handy sichtbar.
@@ -131,6 +131,47 @@ Aufbau, und sie gehören an das erste Muster jeder Revision:
 4. **Sendeleistung** — das eigene Netz muss durch eine Fahrzeugwand hindurch
    auf dem Stellplatz sichtbar sein. Die Firmware lässt das Modul auf seiner
    Voreinstellung.
+5. **QR-Aufkleber** — mit einem iPhone und einem Android-Handy: Code 1 im
+   Netz CamperMinder muss die Wasserwaage öffnen, Code 2 mit dem Gerät im
+   Heim-WLAN die Seite dort. Bei Code 2 das Ergebnis je Handy notieren; auf
+   Android ist `.local` nicht überall verfügbar.
+6. **Suche im Heimnetz** — mit iPhone und Android je einmal das WLAN
+   eintragen und die Seite offen lassen. Sie muss das Gerät nach dem
+   Netzwechsel finden und „Gefunden: …" zeigen. Am Prüfstand ist das
+   belegt; ob die Handys die offene Seite beim Wechsel weiterlaufen lassen,
+   zeigt nur dieser Versuch.
+
+---
+
+## Der QR-Aufkleber
+
+Ein Code je Lage, in der der Kunde das Gerät öffnen will:
+
+| Code | Öffnet | Wann |
+|---|---|---|
+| **1** Handy verbinden | `http://192.168.4.1/` | Handy im Netz CamperMinder: erster Start, unterwegs |
+| **2** Im Heim-WLAN | `http://camperminder-level.local/` | Gerät im WLAN zu Hause, unter welcher Adresse auch immer |
+
+Code 2 geht über den Namen, weil die Adresse im Heim-WLAN in jedem Haushalt
+eine andere ist. Auf dem iPhone trägt das, auf Android nicht auf jedem Gerät;
+dafür nennt die Anleitung die Suche der Geräteseite und den Router.
+
+Jedes Gerät bekommt denselben Aufkleber: Adresse und Name stehen in der
+Firmware und nicht im einzelnen Gerät. Das gilt auch für das Handmuster, es
+heißt seit 28.09.2026 ebenfalls `camperminder-level`.
+
+| | |
+|---|---|
+| Druckvorlage | [`bilder/aufkleber-qr.pdf`](bilder/aufkleber-qr.pdf), 80 × 50 mm, **bei 100 % drucken**, nicht „an Seite anpassen" |
+| Vorlage für Anleitung und Etikettendienst | [`bilder/aufkleber-qr.svg`](bilder/aufkleber-qr.svg) |
+| Material | wetterfeste Etikettenfolie, matt — ein glänzender Aufkleber spiegelt im Licht der Handykamera |
+| Ort | auf den Deckel, gut erreichbar mit dem Handy; nicht dort, wo das Gerät später verbaut unsichtbar ist |
+
+Erzeugt wird er von `tools/qr_aufkleber.py`, nicht von Hand. Das Skript liest
+Netzname, Adresse und Gerätenamen aus `esphome/level/camperminder-level.yaml`,
+bricht ab, wenn dort mDNS abgeschaltet wäre, und prüft die Ruhezone von vier
+Modulen um jeden Code. Ändert sich eines davon in der Firmware, gilt der alte
+Aufkleber nicht mehr — dann neu erzeugen und neu drucken.
 
 ---
 
@@ -145,7 +186,7 @@ nur, was der Handaufbau anders braucht.
 | Punkt | Platine Rev B | Handmuster |
 |---|---|---|
 | Sendeleistung | Voreinstellung 20 dB, das WROOM-02 ist mit seiner Antenne zertifiziert | **8,5 dB** — bei 20 dB erscheint das eigene Netz des SuperMini gar nicht, Keramikantenne und USB-Versorgung tragen die Leistung nicht |
-| Gerätename | `camperminder-level` | `camperminder-muster`, damit beide gleichzeitig im Netz sein können |
+| Gerätename | `camperminder-level` | ebenfalls `camperminder-level`, damit Code 2 des Aufklebers auch am Muster prüfbar ist. Muster und Platine deshalb nie gleichzeitig im selben Netz betreiben |
 | I²C, LED | GPIO5/6, LED an GPIO8 gegen 3V3 | gleich — die blaue LED des SuperMini hängt ebenfalls an GPIO8 und leuchtet bei LOW |
 | Summer | BZ1 über Q1 an GPIO10 | nicht bestückt; der Pin bleibt unbenutzt |
 
