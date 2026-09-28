@@ -12,10 +12,21 @@ Hier geht es um den Selbstbau: Hardware, Firmware, Home Assistant.
 | Was | Wofür |
 |---|---|
 | Platine **CamperMinder Level** Rev B, bestückt | die Hardware — [docs/verkabelung.md](docs/verkabelung.md) |
-| ESPHome | Firmware bauen (Add-on in Home Assistant oder `pip install esphome`) |
+| ESPHome, in der Fassung aus `requirements.txt` | Firmware bauen — `tools\bauen.cmd` richtet es beim ersten Start selbst ein |
 | HACS | Integration und Karte, nur für den Betrieb **mit** Home Assistant |
 
 Ohne Home Assistant brauchst du nur die ersten beiden Zeilen.
+
+> **ESPHome nur in der festgelegten Fassung.** `tools\bauen.cmd` legt beim
+> ersten Start über `tools\einrichten.cmd` eine `.venv` im Repository an und
+> installiert genau die Fassung aus `requirements.txt`. Wer ohne das Skript
+> arbeitet, installiert sie in diese Umgebung mit
+> `.venv\Scripts\python.exe -m pip install -r requirements.txt`.
+> Kein `pip install esphome` ohne Angabe und nicht das ESPHome-Add-on aus
+> Home Assistant: Beide bringen irgendeine Fassung mit, und schon ein Wechsel
+> der ESPHome-Fassung kann die Geräteseite ohne jede Fehlermeldung leer
+> lassen. Warum das so ist und wie ein Wechsel geht, steht in
+> [docs/firmware_update.md](docs/firmware_update.md#die-esphome-fassung-ist-festgenagelt).
 
 ---
 

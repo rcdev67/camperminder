@@ -1,4 +1,5 @@
-# Baut die Firmware bei jeder Änderung an esphome/ einmal durch.
+# Baut die Firmware bei jeder Änderung an esphome/ oder an der festgenagelten
+# ESPHome-Fassung in requirements.txt einmal durch.
 #
 # Warum: Auf dem Entwicklungsrechner steht ESPHome nicht immer bereit, und ein
 # Fehler in der Konfiguration - ein unbekanntes Board-Profil, ein Tippfehler in
@@ -11,10 +12,12 @@ on:
   push:
     paths:
       - "esphome/**"
+      - "requirements.txt"
       - ".github/workflows/firmware.yml"
   pull_request:
     paths:
       - "esphome/**"
+      - "requirements.txt"
       - ".github/workflows/firmware.yml"
   workflow_dispatch:
 
@@ -25,12 +28,12 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      # Ohne "cache: pip": Der Zwischenspeicher verlangt eine requirements.txt
-      # oder pyproject.toml im Repository und bricht sonst ab - ESPHome wird
-      # hier direkt installiert, eine Abhängigkeitsdatei gibt es nicht.
+      # "cache: pip" richtet sich nach requirements.txt: Ändert sich die
+      # festgenagelte ESPHome-Fassung, lädt der nächste Lauf neu.
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+          cache: pip
 
       # Werkzeugketten von PlatformIO und esp-idf sind groß; ohne Zwischenspeicher
       # lädt jeder Lauf sie neu.
@@ -42,8 +45,13 @@ jobs:
           key: platformio-${{ runner.os }}-${{ hashFiles('esphome/level/*.yaml') }}
           restore-keys: platformio-${{ runner.os }}-
 
+      # Nur die Fassung aus requirements.txt - dieselbe, mit der gebaut und
+      # ausgeliefert wird. Ein blankes "pip install esphome" baute hier gegen
+      # die jeweils neueste Fassung; ein grüner Lauf sagte dann nichts über
+      # die Firmware, die tatsächlich ausgeliefert wird. Warum die Fassung
+      # festgenagelt ist: docs/firmware_update.md.
       - name: ESPHome einrichten
-        run: pip install esphome
+        run: pip install -r requirements.txt
 
       # Schlüssel nur für den Probelauf. Die echte secrets.yaml mit dem
       # API-Schlüssel der ausgelieferten Geräte liegt bewusst nicht im
