@@ -76,7 +76,8 @@ esphome run camperminder-level.yaml
   [docs/verkabelung.md](docs/verkabelung.md).
 - ✔ Die grüne LED leuchtet (Strom da), die rote blinkt. Lang an, lang aus
   heißt „eigenes Netz", ein kurzer Herzschlag alle drei Sekunden heißt „im
-  WLAN". Fünfmal gleichmäßig blinken heißt: Der Sensor antwortet nicht.
+  WLAN". Gleichmäßiges Blinken im Halbsekundentakt heißt: Der Sensor
+  antwortet nicht.
 
 Ein Display hat die ausgelieferte Ausführung nicht — die Wasserwaage gehört
 aufs Handy, und dorthin geht es im nächsten Schritt. Für Werkstatt und
