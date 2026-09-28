@@ -48,6 +48,7 @@
 #include "esphome/components/wifi/wifi_component.h"
 #include "esphome/components/web_server_base/web_server_base.h"
 
+#include <esp_netif.h>
 #include <lwip/inet.h>
 #include <lwip/sockets.h>
 
@@ -73,6 +74,40 @@ inline uint32_t eigene_adresse(char *text, size_t laenge) {
   ip4_addr_t a = esphome::wifi::global_wifi_component->wifi_soft_ap_ip();
   if (text != nullptr) ip4addr_ntoa_r(&a, text, laenge);
   return a.addr;
+}
+
+// --- DHCP-Option 114 ---------------------------------------------------------
+//
+// Der direkte Weg (RFC 8910): Das Geraet sagt dem Handy schon beim Verbinden,
+// unter welcher Adresse die Anmeldeseite liegt. Neuere Handys - iOS ab 14,
+// Android ab 11 - oeffnen sie dann sofort, ohne erst selbst zu pruefen. Der
+// Namensdienst und die Umleitung unten bleiben fuer alle anderen.
+//
+// ESPHome setzt die Option nur mit seinem eigenen captive_portal
+// (wifi_component_esp_idf.cpp, USE_CAPTIVE_PORTAL), das wir nicht benutzen -
+// deshalb hier. Der DHCP-Server muss dafuer kurz angehalten werden; das
+// geschieht einmal, gleich nachdem das eigene Netz aufgegangen ist, also
+// bevor sich ein Handy anmeldet.
+inline void dhcp_anmeldeseite_nennen() {
+  esp_netif_t *ap = esp_netif_get_handle_from_ifkey("WIFI_AP_DEF");
+  if (ap == nullptr) {
+    ESP_LOGW(TAG, "DHCP-Option 114: kein Netz-Objekt des eigenen Netzes");
+    return;
+  }
+  // Statisch: dhcps_set_option_info merkt sich nur den Zeiger.
+  static char uri[24];
+  char ip[16];
+  eigene_adresse(ip, sizeof(ip));
+  snprintf(uri, sizeof(uri), "http://%s", ip);
+  esp_netif_dhcps_stop(ap);
+  const esp_err_t err = esp_netif_dhcps_option(ap, ESP_NETIF_OP_SET, ESP_NETIF_CAPTIVEPORTAL_URI,
+                                               uri, strlen(uri));
+  esp_netif_dhcps_start(ap);
+  if (err != ESP_OK) {
+    ESP_LOGW(TAG, "DHCP-Option 114 nicht gesetzt: %s", esp_err_to_name(err));
+  } else {
+    ESP_LOGI(TAG, "DHCP-Option 114: %s", uri);
+  }
 }
 
 // --- Namensdienst ------------------------------------------------------------
@@ -109,6 +144,9 @@ inline void dns_starten() {
   }
   d.fd = fd;
   ESP_LOGI(TAG, "Eigenes Netz offen - Anmeldeseite aktiv");
+  // Jedes Mal, wenn das eigene Netz aufgeht: ESPHome richtet dabei den
+  // DHCP-Server neu ein (wifi_ap_ip_config_).
+  dhcp_anmeldeseite_nennen();
 }
 
 inline void dns_stoppen() {
