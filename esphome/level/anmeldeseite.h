@@ -15,9 +15,10 @@
 // tat es NICHT - das Protokoll zeigte, dass seine Pruefanfrage an
 // connectivitycheck.gstatic.com hier ankam und umgeleitet wurde, aber das
 // Handy oeffnete weder die Seite noch eine Meldung. Das war mit der
-// Weiterleitung (302) bis 4.2.3; seit 4.2.4 antwortet das Geraet wie ESPHomes
-// captive_portal mit einer Seite (siehe Umleitung unten) - ob das Samsung
-// darauf anspringt, zeigt erst der Versuch. Code 2 bleibt auf dem Aufkleber.
+// Weiterleitung (302) bis 4.2.3. Seit 4.2.4 antwortet das Geraet wie ESPHomes
+// captive_portal mit einer Seite (siehe Umleitung unten) - auch darauf
+// sprang das Samsung nicht an (29.09.2026, nach Werkseinstellungen). Die
+// Antwort ist es also nicht; Code 2 bleibt auf dem Aufkleber.
 //
 // Wie es gedacht ist: Jedes Handy fragt nach dem Beitritt zu
 // einem WLAN eine feste Adresse ab, um zu pruefen, ob es Internet gibt -
