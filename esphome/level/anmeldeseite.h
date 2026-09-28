@@ -14,16 +14,19 @@
 // es noch nicht. Das Samsung des Nutzers (Android)
 // tat es NICHT - das Protokoll zeigte, dass seine Pruefanfrage an
 // connectivitycheck.gstatic.com hier ankam und umgeleitet wurde, aber das
-// Handy oeffnete weder die Seite noch eine Meldung. Das liegt beim Handy.
-// Deshalb bleibt Code 2 auf dem Aufkleber.
+// Handy oeffnete weder die Seite noch eine Meldung. Das war mit der
+// Weiterleitung (302) bis 4.2.3; seit 4.2.4 antwortet das Geraet wie ESPHomes
+// captive_portal mit einer Seite (siehe Umleitung unten) - ob das Samsung
+// darauf anspringt, zeigt erst der Versuch. Code 2 bleibt auf dem Aufkleber.
 //
 // Wie es gedacht ist: Jedes Handy fragt nach dem Beitritt zu
 // einem WLAN eine feste Adresse ab, um zu pruefen, ob es Internet gibt -
 // Apple captive.apple.com/hotspot-detect.html, Android
 // connectivitycheck.gstatic.com/generate_204, Windows www.msftconnecttest.com.
-// Bekommt es statt der erwarteten Antwort eine Weiterleitung, haelt es das
-// Netz fuer eines mit Anmeldung, wie im Hotel, und oeffnet die Seite dahinter
-// von selbst. Die Seite dahinter ist hier die Wasserwaage.
+// Bekommt es statt der erwarteten Antwort (Android: leer mit 204, Apple:
+// "Success") eine Seite, haelt es das Netz fuer eines mit Anmeldung, wie im
+// Hotel, und oeffnet die Seite von selbst. Sie schickt sofort weiter zur
+// Wasserwaage.
 //
 // WARUM NICHT ESPHOMES captive_portal
 // ===================================
@@ -38,7 +41,8 @@
 //                  mit der Adresse des Geraets - so landet die Pruefanfrage
 //                  des Handys ueberhaupt hier.
 //   Umleitung      greift NUR, wenn eine Anfrage an einen fremden Namen
-//                  gerichtet ist (Host-Kopf kein Adressliteral, kein .local).
+//                  gerichtet ist (Host-Kopf kein Adressliteral, kein .local),
+//                  mit einer Zwischenseite, die nach 192.168.4.1 weiterschickt.
 //                  Die Geraeteseite spricht das Geraet immer ueber
 //                  192.168.4.1 an und bleibt damit unberuehrt.
 //
@@ -303,12 +307,38 @@ class Umleitung : public esphome::web_server_idf::AsyncWebHandler {
     return host.has_value() && fremder_name(*host);
   }
 
+  // Antwort mit 200 und einer kleinen Seite, nicht mit einer Weiterleitung
+  // (302). Bis 4.2.3 stand hier request->redirect(); das Samsung bekam sie
+  // und oeffnete trotzdem nichts. ESPHomes captive_portal, das auf Android
+  // aufgeht, beantwortet die Pruefanfrage mit 200 und seiner Seite
+  // (handleRequest in captive_portal.cpp) - dem folgt diese Fassung seit
+  // 4.2.4. Nur in diesem einen Punkt; Namensdienst und DHCP-Option 114 waren
+  // schon wie dort.
+  //
+  // Die Wasserwaage selbst liefert die Seite NICHT unter dem fremden Namen
+  // aus: Unter connectivitycheck.gstatic.com wiese das Geraet ihre Befehle
+  // als fremd ab (allowed_origins in camperminder-level.yaml). Deshalb eine
+  // Zwischenseite, die sofort nach 192.168.4.1 weiterschickt. Kein
+  // Zwischenspeichern: Die Antwort gilt nur, solange das eigene Netz offen
+  // ist.
   void handleRequest(esphome::web_server_idf::AsyncWebServerRequest *request) override {
     char ip[16];
     eigene_adresse(ip, sizeof(ip));
     auto host = request->get_header("Host");
-    ESP_LOGD(TAG, "Umleitung: %s -> http://%s/", host.has_value() ? host->c_str() : "?", ip);
-    request->redirect(std::string("http://") + ip + "/");
+    ESP_LOGD(TAG, "Anmeldeseite: %s -> http://%s/", host.has_value() ? host->c_str() : "?", ip);
+    const std::string ziel = std::string("http://") + ip + "/";
+    const std::string seite =
+        "<!DOCTYPE html><html><head><meta charset=\"utf-8\">"
+        "<meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">"
+        "<meta http-equiv=\"refresh\" content=\"0;url=" + ziel + "\">"
+        "<title>CamperMinder Level</title></head>"
+        "<body style=\"font-family:sans-serif;padding:24px\">"
+        "<p><a href=\"" + ziel + "\">CamperMinder Level</a></p>"
+        "<script>location.replace(\"" + ziel + "\");</script>"
+        "</body></html>";
+    auto *antwort = request->beginResponse(200, "text/html", seite);
+    antwort->addHeader("Cache-Control", "no-store");
+    request->send(antwort);
   }
 };
 

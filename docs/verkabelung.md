@@ -178,12 +178,14 @@ Netzbeitritt und Adresse lassen sich nicht in einem Code vereinen: Das
 WLAN-Format kennt kein Feld für eine Adresse. Den zweiten Scan erspart nur
 die Anmeldeseite der Firmware (`esphome/level/anmeldeseite.h`, seit 4.2.0):
 Im eigenen Netz beantwortet das Gerät die Internetprüfung des Handys mit
-einer Weiterleitung auf `192.168.4.1`, dazu nennt es die Seite per
-DHCP-Option 114 (seit 4.2.1). Vom iPhone ist bekannt, dass es sie dann von
-selbst öffnet; am Muster geprüft ist das noch nicht. Das Samsung des Nutzers
-tat es am 28.09.2026 nicht, obwohl das Protokoll die
+einer kleinen Seite, die sofort auf `192.168.4.1` weiterschickt, dazu nennt
+es die Seite per DHCP-Option 114 (seit 4.2.1). Vom iPhone ist bekannt, dass
+es sie dann von selbst öffnet; am Muster geprüft ist das noch nicht. Das
+Samsung des Nutzers tat es am 28.09.2026 nicht, obwohl das Protokoll die
 Umleitung seiner Prüfanfrage zeigte (`connectivitycheck.gstatic.com`) —
-deshalb Code 2.
+deshalb Code 2. Das war mit einer Weiterleitung (302). Seit 4.2.4 antwortet
+das Gerät wie ESPHomes eigene Anmeldeseite mit einer Seite (200); ob das
+Samsung darauf anspringt, zeigt der nächste Versuch.
 
 Code 3 geht über den Namen, weil die Adresse im Heim-WLAN in jedem Haushalt
 eine andere ist. Auf dem iPhone trägt das, auf Android nicht auf jedem Gerät;
