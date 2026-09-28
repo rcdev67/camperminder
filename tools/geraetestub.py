@@ -41,7 +41,9 @@ import math
 import os
 import socketserver
 import sys
+import threading
 import time
+from urllib.parse import parse_qs, unquote, urlsplit
 
 WURZEL = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 WEBUI = os.path.join(WURZEL, "esphome", "level", "webui.js")
@@ -62,6 +64,27 @@ window.addEventListener("unhandledrejection", function (e) {
 <script src="/0.js"></script></body></html>"""
 
 
+# Jede Aenderung eines Werts bekommt eine laufende Nummer. Der Ereignisstrom
+# schickt alles mit einer hoeheren Nummer, als er zuletzt gesehen hat - so
+# kommt ein geschriebener Wert zurueck wie am Geraet.
+_STAND = {"n": 0}
+_SPERRE = threading.Lock()
+
+
+def _wert_setzen(eintrag, wert):
+    eintrag["zustand"] = wert
+    if wert in ("ON", "OFF"):
+        eintrag["wert"] = (wert == "ON")
+    else:
+        try:
+            eintrag["wert"] = float(wert)
+        except ValueError:
+            eintrag["wert"] = None
+    with _SPERRE:
+        _STAND["n"] += 1
+        eintrag["fassung"] = _STAND["n"]
+
+
 def lade_bestand(ueberschreibungen):
     if not os.path.exists(BESTAND):
         sys.exit("Nicht gefunden: %s\n"
@@ -75,14 +98,7 @@ def lade_bestand(ueberschreibungen):
         if not treffer:
             sys.exit("Unbekannte Kennung: %s\nVorhanden sind z. B.:\n  %s"
                      % (kennung, "\n  ".join(e["kennung"] for e in liste[:8])))
-        treffer[0]["zustand"] = wert
-        if wert in ("ON", "OFF"):
-            treffer[0]["wert"] = (wert == "ON")
-        else:
-            try:
-                treffer[0]["wert"] = float(wert)
-            except ValueError:
-                treffer[0]["wert"] = None
+        _wert_setzen(treffer[0], wert)
     return liste
 
 
@@ -123,6 +139,24 @@ class Handler(http.server.BaseHTTPRequestHandler):
             self._strom()
             return
 
+        # REST-Abfrage einer Entitaet, wie ESPHome sie beantwortet:
+        #     GET /text_sensor/WLAN%20MAC  ->  {"id": ..., "value": ..., "state": ...}
+        # MIT Access-Control-Allow-Origin: Davon lebt die Suche der
+        # Geraeteseite im Heimnetz, und das Geraet setzt ihn immer
+        # (web_server_base.h, DefaultHeaders).
+        e = self._entitaet(pfad)
+        if e is not None:
+            wert = e["wert"] if e["wert"] is not None else e["zustand"]
+            leib = json.dumps({"id": e["kennung"], "value": wert, "state": e["zustand"]},
+                              ensure_ascii=False).encode("utf-8")
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Access-Control-Allow-Origin", "*")
+            self.send_header("Content-Length", str(len(leib)))
+            self.end_headers()
+            self.wfile.write(leib)
+            return
+
         self.send_response(404)
         self.send_header("Content-Length", "0")
         self.end_headers()
@@ -155,10 +189,20 @@ class Handler(http.server.BaseHTTPRequestHandler):
             pitch = finde(liste, "Neigung Pitch")
             roll = finde(liste, "Neigung Roll")
             hub = finde(liste, "Hub vorne links")
+            gesehen = _STAND["n"]
             n = 0
             while True:
                 time.sleep(0.2)
                 n += 1
+                # Geschriebene Werte zurueckmelden, wie das Geraet es tut.
+                if _STAND["n"] != gesehen:
+                    for e in liste:
+                        if e.get("fassung", 0) > gesehen:
+                            daten = {"id": e["kennung"], "state": e["zustand"]}
+                            if e["wert"] is not None:
+                                daten["value"] = e["wert"]
+                            self._ereignis(daten)
+                    gesehen = _STAND["n"]
                 werte = [
                     (pitch, round(2.0 * math.sin(n / 12.0), 1), " °"),
                     (roll, round(2.5 * math.cos(n / 17.0), 1), " °"),
@@ -174,7 +218,30 @@ class Handler(http.server.BaseHTTPRequestHandler):
         except Exception:
             return
 
+    def _entitaet(self, pfad):
+        """Die Entitaet zu /<bereich>/<Name>, wie ESPHome sie adressiert."""
+        teile = unquote(pfad).strip("/").split("/")
+        if len(teile) < 2:
+            return None
+        kennung = teile[0] + "/" + teile[1]
+        for e in self.bestand:
+            if e["kennung"] == kennung:
+                return e
+        return None
+
     def do_POST(self):
+        # Schreibzugriffe wirken wie am Geraet: .../set?value= bzw. ?option=
+        # aendert den Wert, und der kommt ueber den Ereignisstrom zurueck.
+        # Ohne das bleibt die WLAN-Einrichtung der Seite beim Warten auf die
+        # Bestaetigung stehen und kommt nie bis zur Suche im Heimnetz.
+        teile = urlsplit(self.path)
+        abschnitte = unquote(teile.path).strip("/").split("/")
+        if len(abschnitte) >= 3 and abschnitte[2] == "set":
+            e = self._entitaet("/" + "/".join(abschnitte[:2]))
+            frage = parse_qs(teile.query, keep_blank_values=True)
+            neu = (frage.get("value") or frage.get("option") or [None])[0]
+            if e is not None and neu is not None:
+                _wert_setzen(e, neu)
         self.send_response(200)
         self.send_header("Content-Length", "0")
         self.end_headers()
@@ -188,6 +255,10 @@ class Server(socketserver.ThreadingMixIn, http.server.HTTPServer):
 def main():
     p = argparse.ArgumentParser(description="Pruefstand fuer die Geraeteseite")
     p.add_argument("--port", type=int, default=8123)
+    # Fuer die Suche im Heimnetz: ein zweiter Pruefstand auf der eigenen
+    # LAN-Adresse, Port 80, spielt das Geraet nach dem Umzug ins WLAN.
+    p.add_argument("--adresse", default="127.0.0.1",
+                   help="Adresse zum Lauschen, z. B. die eigene im LAN")
     p.add_argument("--zustand", action="append", default=[],
                    metavar="kennung=wert",
                    help='z. B. "select/Zielprofil=Ablassen"')
@@ -195,8 +266,8 @@ def main():
 
     Handler.bestand = lade_bestand(args.zustand)
     print("%d Entitaeten geladen" % len(Handler.bestand))
-    print("Pruefstand laeuft auf http://127.0.0.1:%d/" % args.port)
-    with Server(("127.0.0.1", args.port), Handler) as srv:
+    print("Pruefstand laeuft auf http://%s:%d/" % (args.adresse, args.port))
+    with Server((args.adresse, args.port), Handler) as srv:
         srv.serve_forever()
 
 
