@@ -352,6 +352,41 @@
       "wert": null
     },
     {
+      "kennung": "text_sensor/IP Adresse",
+      "name": "IP Adresse",
+      "bereich": "text_sensor",
+      "zustand": "",
+      "wert": null
+    },
+    {
+      "kennung": "text_sensor/Verbundenes WLAN",
+      "name": "Verbundenes WLAN",
+      "bereich": "text_sensor",
+      "zustand": "",
+      "wert": null
+    },
+    {
+      "kennung": "text_sensor/WLAN MAC",
+      "name": "WLAN MAC",
+      "bereich": "text_sensor",
+      "zustand": "",
+      "wert": null
+    },
+    {
+      "kennung": "text_sensor/Heimnetz Adresse",
+      "name": "Heimnetz Adresse",
+      "bereich": "text_sensor",
+      "zustand": "",
+      "wert": null
+    },
+    {
+      "kennung": "text_sensor/Name im Netz",
+      "name": "Name im Netz",
+      "bereich": "text_sensor",
+      "zustand": "",
+      "wert": null
+    },
+    {
       "kennung": "number/Radstand",
       "name": "Radstand",
       "bereich": "number",

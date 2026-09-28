@@ -81,6 +81,8 @@ orange, die Abweichung grau.
 | `camperminder/level/binary_sensor/in_bewegung/state` | `ON` = Erschütterung, also Anwesenheit |
 | `camperminder/level/text_sensor/eigenes_netz/state` | `offen` oder `mit Passwort` |
 | `camperminder/level/text_sensor/firmware_version/state` | z. B. `3.2.0` |
+| `camperminder/level/text_sensor/heimnetz_adresse/state` | zuletzt im Heimnetz vergebene Adresse, z. B. `192.168.178.45`; leer, solange das Gerät nie im Heimnetz war |
+| `camperminder/level/text_sensor/name_im_netz/state` | Name in der Geräteliste des Routers und für `<Name>.local`, z. B. `camperminder-level` |
 
 **`in_bewegung` ist kein Alarm.** Es meldet, dass jemand einsteigt, der Wind
 drückt oder der Nachbar rangiert. Der Alarm ist `lageaenderung` — das Fahrzeug

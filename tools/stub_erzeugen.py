@@ -120,9 +120,23 @@ def entitaeten(baum):
         eintraege = baum.get(bereich)
         if not isinstance(eintraege, list):
             continue
+        # Plattformen wie wifi_info tragen keinen eigenen Namen, sondern
+        # mehrere benannte Unterpunkte (ip_address, ssid, mac_address) - jeder
+        # davon ist eine eigene Entitaet. Bis 4.1.1 fielen sie hier heraus,
+        # und dem Pruefstand fehlten "IP Adresse" und "WLAN MAC". Die Suche
+        # der Geraeteseite im Heimnetz erkennt das Geraet aber genau an der
+        # MAC-Adresse.
+        flach = []
         for eintrag in eintraege:
             if not isinstance(eintrag, dict):
                 continue
+            if eintrag.get("name"):
+                flach.append(eintrag)
+                continue
+            for unter in eintrag.values():
+                if isinstance(unter, dict) and unter.get("name"):
+                    flach.append(unter)
+        for eintrag in flach:
             name = eintrag.get("name")
             if not name:
                 continue  # interne Entitaet ohne Namen - kommt nicht heraus

@@ -366,13 +366,30 @@ davon übernehmen jetzt eine Status-LED und ein Summer:
 | Eigenes Netz oder Heimnetz? | stand da | zwei verschiedene Blinkmuster |
 | Antwortet der Sensor? | „Sensor stumm" | eigenes Blinkmuster |
 | Liegt ein Alarm an? | „ALARM" mit Uhrzeit | Blinkmuster **und Ton** |
-| **Wie lautet die IP im Heimnetz?** | **stand da** | **nicht mehr** |
+| **Wie lautet die IP im Heimnetz?** | **stand da** | **die Geräteseite sucht sie** |
 
-Die letzte Zeile ist ein echter Verlust und wird nicht schöngeredet: Eine LED
-kann keine Adresse buchstabieren. Ersatz ist der Name
-`camperminder-level.local` im Handbuch — das ist schlechter, aber es betrifft
-nur den Fall „im Heimnetz **und** Adresse vergessen **und** kein Zugriff auf
-den Router". Im eigenen Netz gilt weiterhin die feste 192.168.4.1.
+Die letzte Zeile war ein echter Verlust: Eine LED kann keine Adresse
+buchstabieren, und das Gerät erfährt seine Heimnetz-Adresse erst in dem
+Moment, in dem ESPHome das eigene Netz abschaltet. Seit dem 28. September
+2026 fängt die Geräteseite das ab:
+
+- **Sie sucht das Gerät selbst.** Nach dem Speichern des WLANs bleibt sie auf
+  dem Handy offen; sobald das Handy wieder im Heimnetz ist, fragt sie
+  `<Name>.local` und die üblichen Heimnetze ab und erkennt das Gerät an seiner
+  MAC-Adresse. Ergebnis: „Gefunden: … unter 192.168.178.45", mit Knopf zum
+  Öffnen.
+- **Das Gerät merkt sich die Adresse** (Sensor „Heimnetz Adresse") und zeigt
+  sie im eigenen Netz an, also beim nächsten Mal auf dem Stellplatz.
+- **Die Anleitung nennt den Namen im Router** (Sensor „Name im Netz").
+
+Verworfen: die Adresse vor dem Wechsel anzeigen (ESPHome schaltet das eigene
+Netz im Moment der Anmeldung ab, dagegen anzuarbeiten wäre wackelig) und ein
+Suchdienst im Internet (widerspricht „kein eigener Server"). Grenze der
+Lösung: Gäste-WLANs mit abgeschotteten Geräten und ungewöhnliche Heimnetze;
+dort bleibt der Router. Im eigenen Netz gilt weiterhin die feste 192.168.4.1.
+
+Der Maßstab ist ein Bluetooth-Gerät mit App: Die Schwelle zur ersten Anzeige
+und zum Einbinden ins WLAN muss so niedrig liegen wie dort.
 
 Dafür kann der Summer etwas, was das Display nie konnte: Er erreicht jemanden,
 der nicht hinsieht. Beim Wächteralarm tönt er alle zehn Sekunden, und nach

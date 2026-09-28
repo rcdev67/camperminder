@@ -73,6 +73,19 @@
       gegen_vorn: "Heck",
       gegen_vorn_links: "Heck rechts",
       gegen_vorn_rechts: "Heck links",
+      heim_bleiben: "Bleib auf dieser Seite. Sobald dein Handy wieder in deinem WLAN ist, sucht sie das Gerät dort und zeigt dir seine neue Adresse – das dauert meist unter einer Minute.",
+      heim_fehlgeschlagen: "Das Gerät hat sich nicht mit deinem WLAN verbunden und sein eigenes Netz wieder geöffnet. Meist stimmt Name oder Passwort nicht: oben berichtigen und erneut speichern.",
+      heim_gefunden: "Gefunden: Das Gerät ist in deinem WLAN unter {adresse} erreichbar.",
+      heim_nicht_gefunden: "In deinem WLAN nicht gefunden. So kommst du trotzdem hin:",
+      heim_nochmal: "Noch einmal suchen",
+      heim_oeffnen: "Im Heimnetz öffnen",
+      heim_sucht: "Suche in deinem WLAN … ({bereich})",
+      heim_symbol: "Leg dir dort das Symbol neu auf den Home-Bildschirm. Das bisherige führt zu 192.168.4.1 – das gilt weiter, wenn das Gerät unterwegs sein eigenes Netz öffnet.",
+      heim_weg_local: "Im Browser {name}.local eingeben – auf dem iPhone klappt das fast immer, auf Android nicht auf jedem Gerät.",
+      heim_weg_router: "In der Geräteliste deines Routers nach „{name}“ suchen und die Adresse daneben aufrufen.",
+      heim_weg_spaeter: "Das Gerät merkt sich seine Adresse. Wenn du das nächste Mal im Netz CamperMinder bist, steht sie hier oben im Abschnitt WLAN.",
+      heim_zuletzt: "Im Heimnetz zuletzt erreichbar unter {adresse} – Name im Netz: {name}.",
+      heim_zuletzt_kurz: "Im Heimnetz zuletzt erreichbar unter {adresse}.",
       hilfe_ablassen: "Der Tropfen in der Skizze sitzt am Ablass – dorthin soll das Wasser laufen. Das <b>+</b> markiert die Seite, die dafür angehoben wird. Links und rechts gelten <b>in Fahrtrichtung</b>.<br><br>{satz}",
       hilfe_alarmton: "Beim Wächteralarm tönt der Summer alle zehn Sekunden, fünf Minuten lang. Aus, wenn du scharf schaltest, während noch Leute im Fahrzeug sind.",
       hilfe_anzeigeruhe: "Klein: Die Anzeige folgt jeder Regung, zappelt im Stand aber mehr. Groß: Sie steht im Stand still und reagiert dafür etwas später. Die Genauigkeit ändert sich nicht, nur die Geduld.",
@@ -306,6 +319,7 @@
       tech_gyro_x: "Drehrate X (roh)",
       tech_gyro_y: "Drehrate Y (roh)",
       tech_gyro_z: "Drehrate Z (roh)",
+      tech_heimnetz_adresse: "Adresse im Heimnetz",
       tech_hub_hinten_links: "Hub hinten links",
       tech_hub_hinten_rechts: "Hub hinten rechts",
       tech_hub_vorne_links: "Hub vorne links",
@@ -324,6 +338,7 @@
       tech_letzte_bewegung: "Letzte Bewegung",
       tech_montage_pruefen: "Montage prüfen",
       tech_mqtt: "MQTT",
+      tech_name_im_netz: "Name im Netz",
       tech_neigung_pitch: "Neigung Pitch",
       tech_neigung_roll: "Neigung Roll",
       tech_nein: "nein",
@@ -421,6 +436,19 @@
       gegen_vorn: "the rear",
       gegen_vorn_links: "the rear right",
       gegen_vorn_rechts: "the rear left",
+      heim_bleiben: "Stay on this page. As soon as your phone is back on your Wi-Fi, it looks for the device there and shows you its new address – usually in under a minute.",
+      heim_fehlgeschlagen: "The device did not join your Wi-Fi and has reopened its own network. Usually the name or password is wrong: correct it above and save again.",
+      heim_gefunden: "Found: the device is reachable on your Wi-Fi at {adresse}.",
+      heim_nicht_gefunden: "Not found on your Wi-Fi. Here is how to reach it anyway:",
+      heim_nochmal: "Search again",
+      heim_oeffnen: "Open on home network",
+      heim_sucht: "Searching your Wi-Fi … ({bereich})",
+      heim_symbol: "Add the icon to your home screen again from there. The old one leads to 192.168.4.1 – that still applies when the device opens its own network on the road.",
+      heim_weg_local: "Type {name}.local into the browser – this almost always works on an iPhone, but not on every Android phone.",
+      heim_weg_router: "Look for “{name}” in your router's device list and open the address shown next to it.",
+      heim_weg_spaeter: "The device remembers its address. Next time you are on the CamperMinder network, it is shown here at the top of the Wi-Fi section.",
+      heim_zuletzt: "Last reachable on your home network at {adresse} – network name: {name}.",
+      heim_zuletzt_kurz: "Last reachable on your home network at {adresse}.",
       hilfe_ablassen: "The drop in the sketch marks the drain – that is where the water should run. The <b>+</b> marks the side that gets raised for it. Left and right are <b>seen facing forwards</b>.<br><br>{satz}",
       hilfe_alarmton: "On a guard alarm the buzzer sounds every ten seconds for five minutes. Switch it off if you arm the guard while people are still in the vehicle.",
       hilfe_anzeigeruhe: "Low: the display follows every movement, but jitters more when parked. High: it stands still when parked and reacts a little later. Accuracy does not change, only patience.",
@@ -654,6 +682,7 @@
       tech_gyro_x: "Rotation rate X (raw)",
       tech_gyro_y: "Rotation rate Y (raw)",
       tech_gyro_z: "Rotation rate Z (raw)",
+      tech_heimnetz_adresse: "Home network address",
       tech_hub_hinten_links: "Lift rear left",
       tech_hub_hinten_rechts: "Lift rear right",
       tech_hub_vorne_links: "Lift front left",
@@ -672,6 +701,7 @@
       tech_letzte_bewegung: "Last movement",
       tech_montage_pruefen: "Check mounting",
       tech_mqtt: "MQTT",
+      tech_name_im_netz: "Network name",
       tech_neigung_pitch: "Tilt pitch",
       tech_neigung_roll: "Tilt roll",
       tech_nein: "no",
@@ -1408,6 +1438,10 @@
     'padding:12px 14px;font-size:.95rem;line-height:1.45;color:#ffd9d6;font-weight:600}' +
     'button.act{width:100%;padding:14px;border:0;border-radius:12px;background:#2fb6c9;color:#08252a;font-size:1.05rem;font-weight:800}' +
     'button.act.ghost{background:#1c222b;color:#cfd6de}' +
+    /* Ein Verweis, der aussieht wie der Hauptknopf - für "Im Heimnetz
+     * öffnen". Ein echter Link und kein Knopf mit location.href: Den kann
+     * man lange drücken, kopieren und in einem anderen Browser öffnen. */
+    'a.act{display:block;box-sizing:border-box;width:100%;padding:14px;border-radius:12px;background:#2fb6c9;color:#08252a;font-size:1.05rem;font-weight:800;text-align:center;text-decoration:none}' +
     '.set{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.07)}' +
     '.set input,.set select{width:130px;padding:8px;border-radius:8px;border:1px solid #2d3542;background:#141920;color:#e8ecf1;font-size:1rem}' +
     '.plan input{padding:10px;border-radius:8px;border:1px solid #2d3542;background:#141920;color:#e8ecf1;font-size:1rem;box-sizing:border-box}' +
@@ -1520,6 +1554,7 @@
     if (page === "technik") renderTechTable(liveEl);
     else renderMain(liveEl);
     syncSettings();
+    heimZuletztZeigen();
   }
 
   function colorFor(value, tol, level) {
@@ -2804,6 +2839,234 @@
     return up;
   }
 
+  // -- Das Gerät im Heimnetz wiederfinden ------------------------------------
+
+  /* Nach dem Eintragen des WLANs ist das Gerät unter einer neuen Adresse, und
+   * niemand hat sie dem Kunden gesagt.
+   *
+   * Das Gerät kann es nicht: Es erfährt die Adresse erst im Heimnetz, und im
+   * selben Moment schaltet ESPHome das eigene Netz ab ("Disabling AP" in
+   * check_connecting_finished). Diese Seite aber bleibt auf dem Handy offen,
+   * und das Handy kehrt von selbst in sein WLAN zurück, sobald das Netz
+   * CamperMinder verschwindet. Dann sucht sie:
+   *
+   *   1. <Name im Netz>.local - auf dem iPhone fast immer, auf Android nicht
+   *      auf jedem Gerät.
+   *   2. Die üblichen Heimnetze, Adresse für Adresse. Zuerst die, in denen auf
+   *      .1 ein Router antwortet; die Fritzbox-Netze stehen vorn, weil sie in
+   *      Deutschland die Regel sind, die Handy-Hotspots hinten.
+   *
+   * Erkannt wird das Gerät an seiner MAC-Adresse, die diese Seite vor dem
+   * Speichern gelesen hat - nicht an irgendeiner Antwort. Das trägt, weil
+   * ESPHome seine REST-Antworten ausdrücklich für fremde Seiten freigibt
+   * (Access-Control-Allow-Origin: * in web_server_base.h).
+   *
+   * Die Suche findet nichts in ungewöhnlichen Netzen und nicht in
+   * Gäste-WLANs, die ihre Geräte voneinander abschotten. Dann bleiben der
+   * Router und die Adresse, die sich das Gerät merkt (Heimnetz Adresse) - die
+   * steht beim nächsten Besuch im eigenen Netz oben in diesem Abschnitt. */
+  var HEIM_NETZE = ["192.168.178", "192.168.188", "192.168.0", "192.168.1",
+                    "192.168.2", "192.168.8", "10.0.0", "172.20.10", "192.168.43"];
+  var HEIM_PARALLEL = 24;        // gleichzeitige Anfragen
+  var HEIM_WARTEZEIT = 1500;     // ms je Adresse
+  var HEIM_START = 15000;        // ms bis zum ersten Durchgang: Neustart und Anmelden
+  var HEIM_PAUSE = 5000;         // ms zwischen zwei Durchgängen
+  var HEIM_ENDE = 300000;        // ms, danach gilt: nicht gefunden
+  var heimSuche = null;          // Zustand der Suche, siehe heimStarten()
+  var heimSucheEl = null;        // wo sie gerade gezeichnet wird
+  var heimZuletztEl = null;      // "zuletzt erreichbar unter ..."
+  var wlanKnopf = null;          // der Knopf "Speichern und verbinden"
+  var heimNummer = 0;            // trennt eine neue Suche von einer alten
+
+  function heimAdressen(netz) {
+    // Der iPhone-Hotspot vergibt nur .1 bis .14 (/28), alle anderen ein /24.
+    var bis = netz === "172.20.10" ? 14 : 254;
+    var raus = [];
+    for (var i = 2; i <= bis; i++) raus.push(netz + "." + i);
+    return raus;
+  }
+
+  /* Eine Anfrage mit fester Wartezeit. XMLHttpRequest statt fetch, weil es
+   * die Wartezeit selbst kennt und auch auf älteren Handys läuft. */
+  function heimFrage(url, zeit, fertig) {
+    var req = new XMLHttpRequest();
+    var beginn = Date.now();
+    var aus = false;
+    function ende(ok, text) {
+      if (aus) return;
+      aus = true;
+      fertig(ok, text, Date.now() - beginn);
+    }
+    try {
+      req.open("GET", url, true);
+      req.timeout = zeit;
+      req.onload = function () { ende(req.status === 200, req.responseText); };
+      req.onerror = function () { ende(false, ""); };
+      req.ontimeout = function () { ende(false, ""); };
+      req.send();
+    } catch (e) {
+      ende(false, "");
+    }
+  }
+
+  /* Welche Netze auf .1 einen Router haben. Seine Antwort kommt schnell -
+   * auch eine, die der Browser abweist, weil der Router keine fremden Seiten
+   * zulässt. Ein Netz, in dem das Handy gar nicht steckt, läuft dagegen in
+   * die Wartezeit. Nur eine Reihenfolge: Durchsucht wird am Ende jedes Netz. */
+  function heimRouter(fertig) {
+    var offen = HEIM_NETZE.length;
+    var antworten = [];
+    HEIM_NETZE.forEach(function (netz) {
+      heimFrage("http://" + netz + ".1/", 2000, function (ok, text, dauer) {
+        if (ok || dauer < 1800) antworten.push(netz);
+        if (--offen === 0) fertig(antworten);
+      });
+    });
+  }
+
+  function heimIstEs(text) {
+    var d = null;
+    try { d = JSON.parse(text); } catch (e) { return false; }
+    if (!d) return false;
+    var mac = String(d.state !== undefined ? d.state : d.value || "").toUpperCase();
+    return mac !== "" && mac === heimSuche.mac;
+  }
+
+  function heimStarten(daten, verzoegerung) {
+    heimSuche = {
+      nr: ++heimNummer, stand: daten.mac && daten.pfad ? "sucht" : "hinweise",
+      mac: String(daten.mac || "").toUpperCase(), pfad: daten.pfad, name: daten.name,
+      adresse: "", bereich: "", runde: 0, beginn: Date.now()
+    };
+    heimZeichnen();
+    if (heimSuche.stand === "sucht") window.setTimeout(heimDurchgang, verzoegerung);
+  }
+
+  function heimDurchgang() {
+    var suche = heimSuche;
+    if (!suche || suche.stand !== "sucht") return;
+    if (Date.now() - suche.beginn > HEIM_ENDE) {
+      suche.stand = "nicht_gefunden";
+      heimZeichnen();
+      return;
+    }
+    suche.runde++;
+    heimRouter(function (mitRouter) {
+      if (heimSuche !== suche || suche.stand !== "sucht") return;
+      var reihe = [];
+      if (suche.name) reihe.push({ host: suche.name + ".local", bereich: suche.name + ".local" });
+      mitRouter.concat(HEIM_NETZE.filter(function (n) { return mitRouter.indexOf(n) < 0; }))
+        .forEach(function (netz) {
+          heimAdressen(netz).forEach(function (h) { reihe.push({ host: h, bereich: netz + ".x" }); });
+        });
+
+      var naechster = 0, laufend = 0;
+      function weiter() {
+        if (heimSuche !== suche || suche.stand !== "sucht") return;
+        while (laufend < HEIM_PARALLEL && naechster < reihe.length) {
+          frage(reihe[naechster++]);
+        }
+        if (laufend === 0 && naechster >= reihe.length) {
+          window.setTimeout(heimDurchgang, HEIM_PAUSE);
+        }
+      }
+      function frage(ziel) {
+        laufend++;
+        if (ziel.bereich !== suche.bereich) { suche.bereich = ziel.bereich; heimZeichnen(); }
+        heimFrage("http://" + ziel.host + suche.pfad, HEIM_WARTEZEIT, function (ok, text) {
+          laufend--;
+          if (heimSuche !== suche || suche.stand !== "sucht") return;
+          if (ok && heimIstEs(text)) {
+            suche.stand = "gefunden";
+            suche.adresse = ziel.host;
+            heimZeichnen();
+            return;
+          }
+          weiter();
+        });
+      }
+      weiter();
+    });
+  }
+
+  /* Meldet sich das Gerät wieder über 192.168.4.1, hat es sein eigenes Netz
+   * neu geöffnet - die Anmeldung im WLAN ist gescheitert. Weiterzusuchen wäre
+   * sinnlos; der Kunde muss Name oder Passwort berichtigen. Die ersten 20 s
+   * zählen nicht: Bis dahin kann noch der alte Ereignisstrom nachklingen. */
+  function heimZurueckImEigenenNetz() {
+    if (!heimSuche || heimSuche.stand !== "sucht") return;
+    if (location.hostname !== "192.168.4.1") return;
+    if (Date.now() - heimSuche.beginn < 20000) return;
+    heimSuche.stand = "fehlgeschlagen";
+    if (wlanKnopf) wlanKnopf.disabled = false;
+    heimZeichnen();
+  }
+
+  function heimZeichnen() {
+    var ziel = heimSucheEl;
+    var s = heimSuche;
+    if (!ziel) return;
+    ziel.innerHTML = "";
+    if (!s) return;
+
+    function zeile(text, farbe, fett) {
+      var z = el('<div style="margin-top:8px;line-height:1.5"></div>');
+      z.textContent = text;
+      if (farbe) z.style.color = farbe;
+      if (fett) z.style.fontWeight = "700";
+      ziel.appendChild(z);
+      return z;
+    }
+    var name = s.name || "camperminder-level";
+
+    if (s.stand === "sucht") {
+      zeile(t("heim_bleiben"), "#cfd6de", true);
+      if (s.runde > 0) zeile(t("heim_sucht", { bereich: s.bereich || "…" }), "#8b95a1");
+    } else if (s.stand === "gefunden") {
+      zeile(t("heim_gefunden", { adresse: s.adresse }), "#37d67a", true);
+      var link = el('<a class="act" style="margin-top:10px"></a>');
+      link.href = "http://" + s.adresse + "/";
+      link.textContent = t("heim_oeffnen");
+      ziel.appendChild(link);
+      zeile(t("heim_symbol"), "#cfd6de");
+    } else if (s.stand === "fehlgeschlagen") {
+      zeile(t("heim_fehlgeschlagen"), "#ff7a7a", true);
+    } else {
+      // "nicht_gefunden", oder "hinweise": Das Gerät kannte seine MAC-Adresse
+      // nicht (ältere Firmware) - dann gleich die Wege von Hand.
+      if (s.stand === "nicht_gefunden") zeile(t("heim_nicht_gefunden"), "#ffb020", true);
+      zeile("• " + t("heim_weg_router", { name: name }), "#cfd6de");
+      zeile("• " + t("heim_weg_local", { name: name }), "#cfd6de");
+      zeile("• " + t("heim_weg_spaeter"), "#cfd6de");
+      if (s.mac && s.pfad) {
+        var nochmal = el('<button class="act ghost" style="margin-top:10px"></button>');
+        nochmal.textContent = t("heim_nochmal");
+        nochmal.onclick = function () {
+          heimStarten({ mac: s.mac, pfad: s.pfad, name: s.name }, 0);
+        };
+        ziel.appendChild(nochmal);
+      }
+    }
+  }
+
+  /* Die gemerkte Heimnetz-Adresse - nur, wenn man gerade NICHT darüber
+   * verbunden ist. Wer die Seite im Heimnetz geöffnet hat, weiß sie ja. Läuft
+   * im Takt der Messwerte (update), weil die Werte erst nach dem Aufbau des
+   * Abschnitts eintreffen können. */
+  function heimZuletztZeigen() {
+    if (!heimZuletztEl) return;
+    var adresse = findStateOf("text_sensor", "heimnetz_adresse") || "";
+    var name = findStateOf("text_sensor", "name_im_netz") || "";
+    if (!adresse || adresse === location.hostname) {
+      heimZuletztEl.hidden = true;
+      return;
+    }
+    heimZuletztEl.hidden = false;
+    heimZuletztEl.textContent = name
+      ? t("heim_zuletzt", { adresse: adresse, name: name })
+      : t("heim_zuletzt_kurz", { adresse: adresse });
+  }
+
   /* WLAN-Einrichtung. Übernimmt die Aufgabe des Captive Portals, das dafür
    * entfällt: Es hätte im eigenen Netz jede Seitenanfrage abgefangen und
    * die Wasserwaage unerreichbar gemacht.
@@ -2814,12 +3077,17 @@
     var box = el('<div class="plan"><h2>' + t("kopf_wlan") + "</h2></div>");
     box.appendChild(el('<div class="muted">' + t("hilfe_wlan") + "</div>"));
 
+    heimZuletztEl = el('<div style="margin-top:10px;line-height:1.5;color:#37d67a;font-weight:600" hidden></div>');
+    box.appendChild(heimZuletztEl);
+    heimZuletztZeigen();
+
     var ssid = el('<input type="text" style="width:100%;margin-top:10px">');
     ssid.placeholder = t("platzhalter_netzname");
     var pass = el('<input type="password" style="width:100%;margin-top:8px">');
     pass.placeholder = t("platzhalter_passwort");
     var btn = el('<button class="act ghost" style="margin-top:10px"></button>');
     btn.textContent = t("wlan_speichern");
+    wlanKnopf = btn;
     // white-space: pre-line, damit der Absatz im Erfolgstext wirkt.
     var note = el('<div class="muted" style="margin-top:10px;line-height:1.5;white-space:pre-line"></div>');
 
@@ -2872,8 +3140,16 @@
           say(t("warte_bestaetigung"));
           awaitEcho(ssid.value, 5000, function (confirmed) {
             if (!confirmed) return fail(t("keine_bestaetigung"));
+            // VOR dem Neustart festhalten, woran die Suche das Gerät im
+            // Heimnetz erkennt - danach ist diese Verbindung weg.
+            var suchDaten = {
+              mac: findStateOf("text_sensor", "wlan_mac"),
+              pfad: pathFor("text_sensor", "wlan_mac"),
+              name: findStateOf("text_sensor", "name_im_netz")
+            };
             post(pSave + "/press");
             say(t("wlan_gespeichert", { netz: ssid.value }), "good");
+            heimStarten(suchDaten, HEIM_START);
           });
         });
       });
@@ -2888,6 +3164,11 @@
     box.appendChild(pass);
     box.appendChild(btn);
     box.appendChild(note);
+    // Die Suche lebt außerhalb dieses Abschnitts (heimSuche) - ein
+    // Reiterwechsel baut ihn neu, sie läuft weiter und zeichnet sich hier.
+    heimSucheEl = el("<div></div>");
+    box.appendChild(heimSucheEl);
+    heimZeichnen();
 
     /* Eigenes Netz abschließen - freiwillig.
      *
@@ -3252,6 +3533,8 @@
       var data;
       try { data = JSON.parse(ev.data); } catch (e) { return; }
       if (!data || !data.id) return;
+      // Wieder Werte über 192.168.4.1 während der Suche: siehe dort.
+      heimZurueckImEigenenNetz();
       /* ZUSAMMENFÜHREN, NICHT ERSETZEN - und das ist der ganze Punkt.
        *
        * Das Gerät schickt beim Verbinden einen vollständigen Bericht MIT

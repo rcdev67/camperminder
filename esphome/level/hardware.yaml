@@ -560,10 +560,11 @@ motion:
 #                                   (dann gilt 192.168.4.1) von Heimnetz
 #   Ist etwas passiert?          -> Alarmmuster und Summer
 #
-# Die Adresse im Heimnetz kann eine LED nicht buchstabieren. Dafür steht der
-# Name camperminder-level.local im Handbuch - das ist der eine Punkt, an dem
-# die Ausführung ohne Display schlechter ist als die mit, und er wird
-# ausdrücklich nicht schöngeredet.
+# Die Adresse im Heimnetz kann eine LED nicht buchstabieren. Das übernimmt die
+# Geräteseite: Sie sucht das Gerät nach dem Eintragen des WLANs selbst im
+# Heimnetz und zeigt die Adresse an, und das Gerät merkt sich die Adresse
+# (Heimnetz Adresse, siehe text_sensor) für den nächsten Besuch im eigenen
+# Netz.
 output:
   # D10 hängt gegen 3V3 und leuchtet bei LOW - deshalb inverted. Pin und
   # Polung stehen in den Substitutions, weil eine spätere Platinenrevision sie
@@ -729,6 +730,23 @@ globals:
   # Objekts, und bei std::string wäre das ein Zeiger ins Nichts.
   - id: ap_passwort
     type: char[64]
+    restore_value: true
+
+  # Die letzte Adresse, unter der das Gerät im Heimnetz erreichbar war.
+  #
+  # Das Gerät erfährt seine Heimnetz-Adresse erst, wenn es dort angekommen
+  # ist - und im selben Moment schaltet ESPHome das eigene Netz ab
+  # (check_connecting_finished in wifi_component.cpp, "Disabling AP"). Wer
+  # das WLAN auf der Geräteseite einträgt, bekommt die neue Adresse also nie
+  # direkt gesagt. Zwei Auswege, beide auf der Geräteseite: Sie sucht das
+  # Gerät nach dem Speichern selbst im Heimnetz, und sie zeigt diesen Wert an,
+  # sobald man wieder im eigenen Netz ist - etwa auf dem Stellplatz.
+  #
+  # 16 Zeichen fassen jede IPv4-Adresse samt Abschluss. Geschrieben wird nur
+  # bei einer Änderung, also selten; Werkseinstellungen löschen den Wert, und
+  # das ist richtig - dann gibt es auch kein Heimnetz mehr.
+  - id: heim_ip
+    type: char[16]
     restore_value: true
 
   # --- Hubhöhe je Ecke, im Gerät gerechnet ----------------------------------
@@ -3625,6 +3643,16 @@ text_sensor:
       name: "IP Adresse"
       id: ip_adresse
       entity_category: diagnostic
+      # Jede Adresse aus dem Heimnetz merken - siehe globals, heim_ip. Leer
+      # oder 0.0.0.0 heißt: nicht im Heimnetz, das eigene Netz ist offen.
+      # 192.168.4.1 ist die Adresse des eigenen Netzes und gehört nie hierher.
+      on_value:
+        then:
+          - lambda: |-
+              if (x.empty() || x == "0.0.0.0" || x == "192.168.4.1") return;
+              if (strcmp(id(heim_ip), x.c_str()) == 0) return;
+              snprintf(id(heim_ip), 16, "%s", x.c_str());
+              id(heimnetz_adresse).publish_state(x);
     ssid:
       name: "Verbundenes WLAN"
       id: wlan_name
@@ -3632,6 +3660,52 @@ text_sensor:
     mac_address:
       name: "WLAN MAC"
       entity_category: diagnostic
+
+  # --- Wiederfinden im Heimnetz ---------------------------------------------
+  #
+  # Zwei Auskünfte für den Kunden, der das Gerät nach dem Eintragen seines
+  # WLANs nicht mehr findet. Beide sind gewöhnliche Sensoren und damit auch in
+  # Home Assistant und über MQTT zu haben, nicht nur auf der Geräteseite.
+  #
+  # "Heimnetz Adresse" ist die zuletzt im Heimnetz vergebene Adresse. Sie
+  # bleibt stehen, wenn das Gerät unterwegs sein eigenes Netz öffnet - genau
+  # dort braucht man sie.
+  #
+  # "Name im Netz" ist der Name, unter dem das Gerät in der Geräteliste des
+  # Routers steht und unter dem es als <Name>.local erreichbar ist. Die
+  # Geräteseite braucht ihn für ihre Suche, der Kunde für den Blick in den
+  # Router. Er hängt an der Gerätedatei (device_name), nicht an dieser.
+  #
+  # Alle fünf Sekunden gefragt, aber nur bei einer Änderung weitergegeben -
+  # so steht der Wert kurz nach dem Start bereit, ohne Home Assistant und
+  # MQTT im Takt mit derselben Zeichenkette zu beschäftigen.
+  - platform: template
+    name: "Heimnetz Adresse"
+    id: heimnetz_adresse
+    icon: mdi:home-search
+    entity_category: diagnostic
+    update_interval: 5s
+    lambda: 'return {std::string(id(heim_ip))};'
+    filters:
+      - lambda: |-
+          static std::string letzter;
+          if (x == letzter) return {};
+          letzter = x;
+          return x;
+
+  - platform: template
+    name: "Name im Netz"
+    id: name_im_netz
+    icon: mdi:dns
+    entity_category: diagnostic
+    update_interval: 5s
+    lambda: 'return {std::string(App.get_name().c_str())};'
+    filters:
+      - lambda: |-
+          static std::string letzter;
+          if (x == letzter) return {};
+          letzter = x;
+          return x;
 
 text:
   # Eingabefeld für ein selbst vergebenes Passwort des eigenen Netzes.
