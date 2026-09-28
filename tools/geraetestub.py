@@ -39,6 +39,7 @@ import io
 import json
 import math
 import os
+import re
 import socketserver
 import sys
 import threading
@@ -62,6 +63,21 @@ window.addEventListener("unhandledrejection", function (e) {
 });
 </script>
 <script src="/0.js"></script></body></html>"""
+
+
+def _erlaubte_ursprunge():
+    """web_server: allowed_origins aus der Geraetedatei - dieselbe Liste,
+    nach der das Geraet entscheidet."""
+    text = io.open(os.path.join(WURZEL, "esphome", "level", "camperminder-level.yaml"),
+                   encoding="utf-8").read()
+    block = re.search(r"^  allowed_origins:\s*\n((?:\s+- .*\n)+)", text, re.MULTILINE)
+    if not block:
+        return set()
+    return {z.strip().lstrip("-").strip().strip('"').lower()
+            for z in block.group(1).splitlines() if z.strip()}
+
+
+ERLAUBTE_URSPRUENGE = _erlaubte_ursprunge()
 
 
 # Jede Aenderung eines Werts bekommt eine laufende Nummer. Der Ereignisstrom
@@ -144,7 +160,19 @@ class Handler(http.server.BaseHTTPRequestHandler):
         # MIT Access-Control-Allow-Origin: Davon lebt die Suche der
         # Geraeteseite im Heimnetz, und das Geraet setzt ihn immer
         # (web_server_base.h, DefaultHeaders).
+        #
+        # UND mit der Herkunftspruefung des Geraets: Eine Browser-Anfrage von
+        # einer fremden Seite (Origin-Kopf, der nicht zum Host passt) weist
+        # ESPHome mit 500 ab, ausser der Ursprung steht unter
+        # web_server: allowed_origins. Bis 4.2.1 liess der Pruefstand das
+        # durch - die Suche fand hier das "umgezogene Geraet", am echten
+        # Geraet fand sie nichts.
         e = self._entitaet(pfad)
+        if e is not None and not self._herkunft_erlaubt():
+            self.send_response(500)
+            self.send_header("Content-Length", "0")
+            self.end_headers()
+            return
         if e is not None:
             wert = e["wert"] if e["wert"] is not None else e["zustand"]
             leib = json.dumps({"id": e["kennung"], "value": wert, "state": e["zustand"]},
@@ -217,6 +245,16 @@ class Handler(http.server.BaseHTTPRequestHandler):
                 self.wfile.flush()
         except Exception:
             return
+
+    def _herkunft_erlaubt(self):
+        """Wie is_request_origin_allowed_ in ESPHomes web_server.cpp."""
+        herkunft = self.headers.get("Origin", "")
+        if not herkunft:
+            return True  # kein Browser mit fremder Seite, etwa curl
+        host = self.headers.get("Host", "")
+        if "://" in herkunft and herkunft.split("://", 1)[1] == host:
+            return True  # gleiche Herkunft
+        return herkunft.lower() in ERLAUBTE_URSPRUENGE or "*" in ERLAUBTE_URSPRUENGE
 
     def _entitaet(self, pfad):
         """Die Entitaet zu /<bereich>/<Name>, wie ESPHome sie adressiert."""

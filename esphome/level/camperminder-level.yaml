@@ -359,3 +359,25 @@ web_server:
   css_url: ""
   js_url: ""
   js_include: "./webui.js"
+  # EIN fremder Ursprung ist erlaubt, und zwar genau die Geraeteseite im
+  # eigenen Netz. Nach dem Eintragen des WLANs sucht sie das Geraet im
+  # Heimnetz (webui.js, heimSuche) und fragt es dafuer unter seiner neuen
+  # Adresse ab - fuer den Browser eine Anfrage von http://192.168.4.1 an eine
+  # fremde Adresse.
+  #
+  # ESPHome weist solche Anfragen seit 2026 ab, sobald ein Origin-Kopf
+  # mitkommt (is_request_origin_allowed_ in web_server.cpp), mit Status 500
+  # und leerem Rumpf. Das ist ein Schutz: Sonst koennte jede Webseite, die
+  # der Kunde im Heimnetz besucht, das Geraet fernsteuern. Am 28.09.2026 fand
+  # die Suche deshalb nichts, obwohl das Geraet unter seiner Adresse
+  # antwortete - curl schickt keinen Origin-Kopf, jeder Browser schon.
+  #
+  # Nicht "*": Das oeffnete das Geraet jeder Seite im Internet. Die Adresse
+  # des eigenen Netzes kann eine Seite von draussen nicht fuer sich
+  # beanspruchen.
+  allowed_origins:
+    - "http://192.168.4.1"
+  # Die Vorabfrage, die Chrome bei Zugriffen ins lokale Netz schicken kann,
+  # ohne diese Zeile brach das Geraet sie wortlos ab ("Empty reply"). Beantwortet
+  # wird sie nur fuer den erlaubten Ursprung oben.
+  enable_private_network_access: true
