@@ -391,6 +391,18 @@ dort bleibt der Router. Im eigenen Netz gilt weiterhin die feste 192.168.4.1.
 Der Maßstab ist ein Bluetooth-Gerät mit App: Die Schwelle zur ersten Anzeige
 und zum Einbinden ins WLAN muss so niedrig liegen wie dort.
 
+**Ein Scan bis zur Wasserwaage — entschieden am 28. September 2026, gebaut in
+4.2.0.** Der QR-Aufkleber trägt als Code 1 den Beitritt zum Netz
+CamperMinder, als Code 2 `camperminder-level.local` für das Heim-WLAN. Dass
+sich nach Code 1 die Wasserwaage von selbst öffnet, leistet eine schmale
+Anmeldeseite in der Firmware (`anmeldeseite.h`): Im eigenen Netz beantwortet
+ein Namensdienst jede Anfrage mit `192.168.4.1`, und nur Anfragen an fremde
+Namen — die Internetprüfung des Handys — werden auf die Wasserwaage
+umgeleitet. ESPHomes eigenes Captive Portal bleibt draußen, weil es jede
+Seitenanfrage übernimmt. Preis: Auf dem iPhone erscheint die Seite zuerst in
+einem Anmeldefenster; für das Home-Symbol und die WLAN-Einrichtung gehört sie
+in Safari.
+
 Dafür kann der Summer etwas, was das Display nie konnte: Er erreicht jemanden,
 der nicht hinsieht. Beim Wächteralarm tönt er alle zehn Sekunden, und nach
 fünf Minuten ist Ruhe — wer ihn hört, ist entweder da, oder das Gerät

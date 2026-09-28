@@ -307,6 +307,12 @@ wifi:
 #
 # Die WLAN-Einrichtung liegt deshalb auf unserer eigenen Seite (Felder und
 # Knopf weiter oben). Ergebnis: eine Adresse für alles.
+#
+# Was das Captive Portal GUT konnte - die Seite öffnet sich von selbst, sobald
+# ein Handy dem Netz beitritt -, übernimmt seit 4.2.0 eine schmale eigene
+# Fassung: anmeldeseite.h, eingebunden in hardware.yaml. Sie leitet nur
+# Anfragen an fremde Namen um (die Internetprüfung des Handys) und lässt die
+# Geräteseite unter 192.168.4.1 unberührt.
 
 # Sensorik, OLED, Kalibrierung und Geräte-Webseite - die einzige Quelle
 # dafür. Nichts davon hier duplizieren.

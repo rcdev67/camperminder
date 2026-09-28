@@ -4,19 +4,23 @@
 WARUM ES IHN GIBT
 =================
 Der Massstab ist ein Bluetooth-Geraet mit App: auspacken, koppeln, fertig.
-Unsere WLAN-Loesung verlangt, eine Adresse zu tippen - und nach dem Einbinden
-ins Heim-WLAN eine andere. Der Aufkleber nimmt beides ab, je Lage ein Code:
+Der Aufkleber bringt uns dorthin, ein Code je Lage:
 
-    Code 1   http://192.168.4.1/              Handy im Netz CamperMinder:
-                                              erster Start, unterwegs
+    Code 1   WIFI:T:nopass;S:CamperMinder;;   Handy tritt dem Netz bei, und
+                                              die Wasserwaage oeffnet sich
+                                              von selbst (anmeldeseite.h)
     Code 2   http://camperminder-level.local/ Geraet im Heim-WLAN
 
-Nach Lage und nicht nach Handgriff, entschieden am 28.09.2026. Ein erster
-Entwurf hatte als Code 1 den Beitritt zum Netz (WIFI:...) und als Code 2
-192.168.4.1 - das bildete den Weg in zwei Codes ab, die man immer
-hintereinander braucht, und liess den Kunden im Heim-WLAN ohne Hilfe. Das
-Handy verbindet sich jetzt von Hand mit dem Netz CamperMinder, wie mit jedem
-WLAN.
+GESCHICHTE, damit niemand denselben Weg zweimal geht (28.09.2026):
+
+  1. Code 1 Netzbeitritt, Code 2 192.168.4.1 - zwei Codes, die man immer
+     hintereinander braucht, und fuer das Heim-WLAN nichts.
+  2. Code 1 192.168.4.1, Code 2 .local - nach Lage, aber das Handy musste
+     erst von Hand ins Netz, sonst oeffnete Code 1 nichts.
+  3. Jetzt: Code 1 wieder der Netzbeitritt. Seit 4.2.0 beantwortet das
+     Geraet die Internetpruefung des Handys mit einer Weiterleitung auf die
+     Wasserwaage, das Handy oeffnet sie von selbst. Ein Scan genuegt; die
+     Nachteile von 1 und 2 fallen weg.
 
 Code 2 geht ueber mDNS (<Name>.local), weil die Adresse im Heim-WLAN in
 jedem Haushalt eine andere ist - der Name ist der einzige feste Weg. Auf
@@ -57,6 +61,7 @@ import tempfile
 
 try:
     import segno
+    from segno import helpers
 except ImportError:
     sys.exit("segno fehlt:  py -3 -m pip install segno")
 
@@ -93,6 +98,17 @@ def aus_geraetedatei():
     # Ohne mDNS gibt es kein <Name>.local, und Code 2 liefe ins Leere.
     if re.search(r"^mdns:\s*\n\s+disabled:\s*true", text, re.MULTILINE):
         sys.exit("mDNS ist in der Geraetedatei abgeschaltet - Code 2 wuerde nicht tragen.")
+    # Code 1 tritt einem Netz OHNE Passwort bei. Stuende in der Geraetedatei
+    # eines, passte er nicht. (Ein Passwort, das der Nutzer spaeter selbst
+    # vergibt, kann der Aufkleber nicht kennen - das sagt die Anleitung.)
+    kopf = ap[:ap.index("manual_ip")]
+    if re.search(r"^\s+password:", kopf, re.MULTILINE):
+        sys.exit("Das eigene Netz hat in der Geraetedatei ein Passwort - Code 1 passt nicht.")
+    # Ohne Anmeldeseite oeffnete Code 1 nur das Netz, nicht die Wasserwaage.
+    hardware = io.open(os.path.join(os.path.dirname(GERAET), "hardware.yaml"),
+                       encoding="utf-8").read()
+    if "anmeldeseite::schritt" not in hardware:
+        sys.exit("Die Anmeldeseite ist nicht eingebunden - Code 1 oeffnete die Seite nicht.")
     return netz.group(1), ip.group(1), name.group(1)
 
 
@@ -140,7 +156,7 @@ def ziffer(x, y, n):
 
 
 def aufkleber(netz, ip, name):
-    unterwegs = "http://%s/" % ip
+    unterwegs = helpers.make_wifi_data(ssid=netz, password=None, security="nopass")
     zuhause = "http://%s.local/" % name
 
     oben = 11.5
@@ -170,8 +186,8 @@ def aufkleber(netz, ip, name):
         ziffer(ZIFFER1_X, oben + QR_GROESSE / 2, 1),
         ziffer(45.5, oben + QR_GROESSE / 2, 2),
         # Kein "ohne Passwort": Das las sich wie das Einbinden ins
-        # Heim-WLAN, und dort gibt man sehr wohl eines ein. Ein Passwort des
-        # eigenen Netzes ist ohnehin freiwillig und kann gesetzt sein.
+        # Heim-WLAN, und dort gibt man sehr wohl eines ein. Die Adresse steht
+        # als Ausweg da, falls sich die Seite einmal nicht von selbst oeffnet.
         text(mitte1, unten + 5.3, "Handy verbinden", 3.1, DUNKEL, 700),
         text(mitte1, unten + 8.7, "Connect your phone", 2.5, GRAU),
         text(mitte1, unten + 12.5, "Netz %s · %s" % (netz, ip), 2.3, DUNKEL),

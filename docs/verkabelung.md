@@ -131,10 +131,13 @@ am Aufbau, und sie gehören an das erste Muster jeder Revision:
 4. **Sendeleistung** — das eigene Netz muss durch eine Fahrzeugwand hindurch
    auf dem Stellplatz sichtbar sein. Die Firmware lässt das Modul auf seiner
    Voreinstellung.
-5. **QR-Aufkleber** — mit einem iPhone und einem Android-Handy: Code 1 im
-   Netz CamperMinder muss die Wasserwaage öffnen, Code 2 mit dem Gerät im
-   Heim-WLAN die Seite dort. Bei Code 2 das Ergebnis je Handy notieren; auf
-   Android ist `.local` nicht überall verfügbar.
+5. **QR-Aufkleber und Anmeldeseite** — mit einem iPhone und einem
+   Android-Handy: Code 1 scannen, das Handy tritt dem Netz CamperMinder bei,
+   und die Wasserwaage muss sich **von selbst** öffnen (iPhone im Fenster
+   *Anmelden*, Android über *Im Netzwerk anmelden*). Danach im Browser
+   `192.168.4.1` öffnen: Die Seite muss normal laufen, nicht umgeleitet
+   werden. Code 2 mit dem Gerät im Heim-WLAN: Das Ergebnis je Handy
+   notieren, auf Android ist `.local` nicht überall verfügbar.
 6. **Suche im Heimnetz** — mit iPhone und Android je einmal das WLAN
    eintragen und die Seite offen lassen. Sie muss das Gerät nach dem
    Netzwechsel finden und „Gefunden: …" zeigen. Am Prüfstand ist das
@@ -149,8 +152,13 @@ Ein Code je Lage, in der der Kunde das Gerät öffnen will:
 
 | Code | Öffnet | Wann |
 |---|---|---|
-| **1** Handy verbinden | `http://192.168.4.1/` | Handy im Netz CamperMinder: erster Start, unterwegs |
+| **1** Handy verbinden | `WIFI:T:nopass;S:CamperMinder;;` — das Handy tritt dem Netz bei, die Wasserwaage öffnet sich von selbst | erster Start, unterwegs |
 | **2** Im Heim-WLAN | `http://camperminder-level.local/` | Gerät im WLAN zu Hause, unter welcher Adresse auch immer |
+
+Dass sich die Seite nach Code 1 von selbst öffnet, macht die Anmeldeseite der
+Firmware (`esphome/level/anmeldeseite.h`, seit 4.2.0): Im eigenen Netz
+beantwortet das Gerät die Internetprüfung des Handys mit einer Weiterleitung
+auf `192.168.4.1`, und das Handy zeigt die Seite wie im Hotel-WLAN an.
 
 Code 2 geht über den Namen, weil die Adresse im Heim-WLAN in jedem Haushalt
 eine andere ist. Auf dem iPhone trägt das, auf Android nicht auf jedem Gerät;
