@@ -353,6 +353,7 @@
       tech_status: "Home Assistant verbunden",
       tech_statuswerte: "Statuswerte",
       tech_stuetzrad: "Stützrad",
+      tech_update_stand: "Update-Stand",
       tech_verbundenes_wlan: "Verbundenes WLAN",
       tech_waechter: "Wächter",
       tech_waechter_alarm: "Wächter Alarm",
@@ -367,10 +368,13 @@
       uebertragen_neustart: "Übertragen. Das Gerät startet neu. Lass es danach mindestens eine Minute am Strom – sonst kehrt es beim nächsten Einschalten zur alten Fassung zurück.",
       unbekannt: "unbekannt",
       unscharf_schalten: "Unscharf schalten",
-      update_frage: "Neue Firmware von GitHub laden und installieren?\n\nDas Gerät startet dabei neu. Nicht während der Fahrt.",
-      update_laeuft: "Lade und installiere …",
-      update_neustart: "Läuft – das Gerät startet gleich neu.",
-      update_pruefen: "Auf Updates prüfen und installieren",
+      update_aktuell: "Du hast bereits die neueste Fassung ({v}).",
+      update_fehlgeschlagen: "GitHub war nicht zu erreichen. Später noch einmal versuchen – oder die Datei vom Handy aufspielen, weiter unten.",
+      update_frage: "Bei GitHub nach einer neuen Fassung sehen?\n\nIst eine da, wird sie gleich installiert, und das Gerät startet neu. Nicht während der Fahrt.",
+      update_kein_internet: "Das Gerät hat gerade kein Internet. Das geht nur in einem WLAN mit Internet – sonst die Datei vom Handy aufspielen, weiter unten.",
+      update_neu: "Neue Fassung {v} wird installiert. Das Gerät startet danach neu – lass es anschließend eine Minute am Strom.",
+      update_pruefen: "Auf Updates prüfen",
+      update_prueft: "Frage bei GitHub nach …",
       vorne: "VORNE",
       vorne_kurz: "VORN",
       wache_alarm_um: "ALARM – Lage verändert am {zeit}",
@@ -718,6 +722,7 @@
       tech_status: "Home Assistant connected",
       tech_statuswerte: "Status values",
       tech_stuetzrad: "Jockey wheel",
+      tech_update_stand: "Update status",
       tech_verbundenes_wlan: "Connected Wi-Fi",
       tech_waechter: "Guard",
       tech_waechter_alarm: "Guard alarm",
@@ -732,10 +737,13 @@
       uebertragen_neustart: "Uploaded. The device is restarting. Keep it powered for at least a minute afterwards – otherwise it returns to the old version the next time it is switched on.",
       unbekannt: "unknown",
       unscharf_schalten: "Disarm",
-      update_frage: "Download and install new firmware from GitHub?\n\nThe device will restart. Not while driving.",
-      update_laeuft: "Downloading and installing …",
-      update_neustart: "Running – the device will restart in a moment.",
-      update_pruefen: "Check for updates and install",
+      update_aktuell: "You already have the latest version ({v}).",
+      update_fehlgeschlagen: "GitHub could not be reached. Try again later – or upload the file from your phone, below.",
+      update_frage: "Look for a new version on GitHub?\n\nIf there is one, it is installed right away and the device restarts. Not while driving.",
+      update_kein_internet: "The device has no internet right now. This only works on a Wi-Fi with internet – otherwise upload the file from your phone, below.",
+      update_neu: "New version {v} is being installed. The device restarts afterwards – keep it powered for a minute.",
+      update_pruefen: "Check for updates",
+      update_prueft: "Asking GitHub …",
       vorne: "FRONT",
       vorne_kurz: "FRONT",
       wache_alarm_um: "ALARM – position changed on {zeit}",
@@ -2682,6 +2690,7 @@
       else if (art === "tech_werkskalibrierung" && werte.f !== undefined) satz = werkSatz(werte.f);
       else if (art === "tech_letzte_bewegung" && werte.b !== undefined) satz = bewegungSatz(werte.b);
       else if (art === "tech_mqtt" && werte.m !== undefined) satz = mqttSatz();
+      else if (art === "tech_update_stand") satz = updateSatz(text);
       else if (art === "tech_eigenes_netz" && werte.n !== undefined) {
         satz = t(werte.n === "passwort" ? "tech_netz_mit_passwort" : "tech_netz_offen");
       }
@@ -2771,6 +2780,19 @@
    * Assistant. Ausgelöst wird die Taste im Gerät, die ihrerseits die neue
    * Firmware von GitHub holt. Für Update-Entitäten gibt es keinen
    * dokumentierten REST-Endpunkt, für Tasten schon. */
+  /* Der Satz der Firmware im Sensor "Update Stand", in der Sprache der Seite.
+   * Erkannt am Anfang - die Saetze stehen in camperminder-level.yaml, und
+   * tests/test_update_knopf.py prueft, dass beide Seiten zusammenpassen. */
+  function updateSatz(roh) {
+    var m;
+    if ((m = /^aktuell \((.*)\)/.exec(roh))) return t("update_aktuell", { v: m[1] });
+    if ((m = /^neue Fassung (\S+)/.exec(roh))) return t("update_neu", { v: m[1] });
+    if (/^kein Internet/.test(roh)) return t("update_kein_internet");
+    if (/^Prüfung fehlgeschlagen/.test(roh)) return t("update_fehlgeschlagen");
+    if (/^prüft/.test(roh)) return t("update_prueft");
+    return roh;
+  }
+
   function softwareBox() {
     var up = el('<div class="plan"><h2>' + t("kopf_software") + "</h2></div>");
     versionNote = el('<div class="muted"></div>');
@@ -2778,15 +2800,44 @@
 
     var btn = el('<button class="act ghost" style="margin-top:10px"></button>');
     btn.textContent = t("update_pruefen");
+    var updateNote = el('<div style="margin-top:8px;line-height:1.5;font-weight:600"></div>');
+    /* Seit 4.2.3 prueft das Geraet erst und spielt nur eine NEUERE Fassung
+     * auf (Taste "Firmware aktualisieren" in camperminder-level.yaml). Das
+     * Ergebnis kommt ueber den Sensor "Update Stand": erst "prüft", dann der
+     * Befund. Der Befund kann derselbe Satz sein wie beim letzten Mal
+     * ("aktuell (4.2.2)") - erst der Umweg ueber "prüft" zeigt, dass er neu
+     * ist. "kein Internet" kommt ohne diesen Umweg, gleich beim Druck. */
     btn.onclick = function () {
       if (!window.confirm(t("update_frage"))) return;
       btn.disabled = true;
-      btn.textContent = t("update_laeuft");
+      btn.textContent = t("update_prueft");
+      updateNote.textContent = "";
+      var vorher = String(findStateOf("text_sensor", "update_stand") || "");
+      var sahPruefung = false;
+      var bis = Date.now() + 60000;
       press("firmware_aktualisieren", function () {
-        btn.textContent = t("update_neustart");
+        var takt = window.setInterval(function () {
+          var roh = String(findStateOf("text_sensor", "update_stand") || "");
+          if (/^prüft/.test(roh)) { sahPruefung = true; return; }
+          if (roh && (sahPruefung || roh !== vorher)) {
+            window.clearInterval(takt);
+            btn.textContent = t("update_pruefen");
+            // Waehrend eine neue Fassung aufgespielt wird, nicht noch einmal.
+            btn.disabled = /^neue Fassung/.test(roh);
+            updateNote.textContent = updateSatz(roh);
+            return;
+          }
+          if (Date.now() > bis) {
+            window.clearInterval(takt);
+            btn.textContent = t("update_pruefen");
+            btn.disabled = false;
+            updateNote.textContent = t("update_fehlgeschlagen");
+          }
+        }, 500);
       });
     };
     up.appendChild(btn);
+    up.appendChild(updateNote);
     up.appendChild(el('<div class="muted" style="margin-top:8px">' +
       t("hilfe_update") + "</div>"));
 

@@ -82,6 +82,7 @@ orange, die Abweichung grau.
 | `camperminder/level/text_sensor/eigenes_netz/state` | `offen` oder `mit Passwort` |
 | `camperminder/level/text_sensor/firmware_version/state` | z. B. `3.2.0` |
 | `camperminder/level/text_sensor/heimnetz_adresse/state` | zuletzt im Heimnetz vergebene Adresse, z. B. `192.168.178.45`; leer, solange das Gerät nie im Heimnetz war |
+| `camperminder/level/text_sensor/update_stand/state` | Ergebnis der Taste *Firmware aktualisieren*: `prüft`, `aktuell (4.2.3)`, `neue Fassung 4.2.4 wird installiert`, `kein Internet` oder `Prüfung fehlgeschlagen` |
 | `camperminder/level/text_sensor/name_im_netz/state` | Name in der Geräteliste des Routers und für `<Name>.local`, z. B. `camperminder-level` |
 
 **`in_bewegung` ist kein Alarm.** Es meldet, dass jemand einsteigt, der Wind
