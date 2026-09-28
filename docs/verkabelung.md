@@ -152,7 +152,7 @@ am Aufbau, und sie gehören an das erste Muster jeder Revision:
 
 | Punkt | Ergebnis |
 |---|---|
-| Code 1 | tritt dem Netz bei; die Seite öffnet sich **nicht** von selbst, obwohl die Umleitung der Prüfanfrage im Protokoll steht |
+| Code 1 | tritt dem Netz bei; die Seite öffnet sich **nicht** von selbst, obwohl die Umleitung der Prüfanfrage im Protokoll steht. Mit 4.2.4 (Seite statt Weiterleitung) am 29.09. nach Werkseinstellungen wiederholt: ebenso nicht |
 | Code 2 | öffnet die Wasserwaage |
 | Suche im Heimnetz | nach Werkseinstellungen komplett durchgespielt: „Gefunden" nach rund 20 s, Knopf *Im Heimnetz öffnen* erscheint |
 | Code 3 | `camperminder-level.local` öffnet die Seite |
@@ -184,8 +184,10 @@ es sie dann von selbst öffnet; am Muster geprüft ist das noch nicht. Das
 Samsung des Nutzers tat es am 28.09.2026 nicht, obwohl das Protokoll die
 Umleitung seiner Prüfanfrage zeigte (`connectivitycheck.gstatic.com`) —
 deshalb Code 2. Das war mit einer Weiterleitung (302). Seit 4.2.4 antwortet
-das Gerät wie ESPHomes eigene Anmeldeseite mit einer Seite (200); ob das
-Samsung darauf anspringt, zeigt der nächste Versuch.
+das Gerät wie ESPHomes eigene Anmeldeseite mit einer Seite (200). Am
+29.09.2026 nach Werkseinstellungen erneut geprüft: Das Samsung öffnete auch
+dann nichts. An der Antwort des Geräts liegt es also nicht; Code 2 bleibt
+der Weg auf Android.
 
 Code 3 geht über den Namen, weil die Adresse im Heim-WLAN in jedem Haushalt
 eine andere ist. Auf dem iPhone trägt das, auf Android nicht auf jedem Gerät;
