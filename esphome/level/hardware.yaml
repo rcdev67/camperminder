@@ -303,7 +303,16 @@ esp32:
 esphome:
   includes:
     - werkskalibrierung.h
+    # Die Wasserwaage öffnet sich von selbst, sobald ein Handy dem eigenen
+    # Netz beitritt - Begründung und Aufbau in der Datei.
+    - anmeldeseite.h
   on_boot:
+    # Die Umleitung der Anmeldeseite VOR dem Webserver der Geräteseite
+    # anmelden (der folgt mit Priorität 249): Der erste passende Handler
+    # gewinnt, siehe einrichten() in anmeldeseite.h.
+    - priority: 600
+      then:
+        - lambda: 'anmeldeseite::einrichten();'
     # Die Werkskalibrierung zuerst - bevor der Lagesensor den ersten Wert
     # liefert. Sonst stünde für einen Augenblick der unkorrigierte Nullpunkt
     # in der Anzeige und in der Ruhelage der Diebstahlwarnung.
@@ -2283,6 +2292,16 @@ sensor:
 #  später ist immer noch schneller, als er den Keil zurechtlegen kann.
 # ============================================================================
 interval:
+  # --- Anmeldeseite: Namensdienst im eigenen Netz ------------------------------
+  #
+  # Alle 50 ms nachsehen, ob Anfragen da sind. Schneller muss es nicht sein -
+  # das Handy wartet auf die Antwort ohnehin einige Sekunden -, langsamer
+  # sollte es nicht, sonst erscheint die Seite nach dem Beitritt spürbar
+  # später. Schaltet den Namensdienst mit dem eigenen Netz ein und aus.
+  - interval: 50ms
+    then:
+      - lambda: 'anmeldeseite::schritt();'
+
   # --- Werkskalibrierung: die Messung ------------------------------------------
   #
   # Zweimal je fünf Sekunden (50 Werte). Dazwischen wird das Gerät an derselben
