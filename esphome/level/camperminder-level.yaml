@@ -189,45 +189,8 @@ button:
     entity_category: config
     on_press:
       - lambda: |-
-          // Einmal den Rückruf anmelden - er läuft bei jedem neuen Zustand
-          // der Update-Entität, entscheidet aber nur nach einem Knopfdruck.
-          static bool angemeldet = false;
-          if (!angemeldet) {
-            angemeldet = true;
-            id(firmware_neu).add_on_state_callback([]() {
-              if (id(update_pruefung) != 1) return;
-              id(update_pruefung) = 0;
-              // "Verfügbar" heißt bei ESPHome nur "andere Nummer"
-              // (latest_version != current_version in
-              // http_request_update.cpp), nicht "neuere". Auf einem Gerät
-              // mit einer noch nicht veröffentlichten Fassung spielte die
-              // Taste sonst die ÄLTERE veröffentlichte auf. Deshalb hier ein
-              // echter Vergleich: nur aufspielen, was höher ist. Eine
-              // Auslieferung zählt als neuer als ihre Vorabfassung
-              // (4.2.3 vor 4.2.3-rc1).
-              const std::string &neu = id(firmware_neu).update_info.latest_version;
-              const std::string &ist = id(firmware_neu).update_info.current_version;
-              int a[3] = {0, 0, 0}, b[3] = {0, 0, 0};
-              sscanf(neu.c_str(), "%d.%d.%d", &a[0], &a[1], &a[2]);
-              sscanf(ist.c_str(), "%d.%d.%d", &b[0], &b[1], &b[2]);
-              int vergleich = 0;
-              for (int i = 0; i < 3 && vergleich == 0; i++) vergleich = (a[i] > b[i]) - (a[i] < b[i]);
-              if (vergleich == 0 && ist.find('-') != std::string::npos &&
-                  neu.find('-') == std::string::npos) {
-                vergleich = 1;
-              }
-              if (id(firmware_neu).state == update::UPDATE_STATE_AVAILABLE && vergleich > 0) {
-                id(update_stand).publish_state("neue Fassung " +
-                    id(firmware_neu).update_info.latest_version + " wird installiert");
-                // Nicht hier aufspielen: perform() meldet selbst einen neuen
-                // Zustand und landete damit wieder in diesem Rückruf.
-                id(update_installieren) = true;
-              } else {
-                id(update_stand).publish_state("aktuell (" +
-                    id(firmware_neu).update_info.current_version + ")");
-              }
-            });
-          }
+          // Den Befund wertet der Rückruf aus, den das Intervall unten
+          // gleich nach dem Start anmeldet.
           if (!network::is_connected()) {
             id(update_stand).publish_state("kein Internet");
             return;
@@ -457,9 +420,10 @@ globals:
     initial_value: "false"
 
 text_sensor:
-  # Das Ergebnis der Taste, für die Geräteseite, Home Assistant und MQTT
-  # gleichermaßen. Die Geräteseite übersetzt die Sätze; sie erkennt sie am
-  # Anfang ("aktuell", "neue Fassung", "kein Internet", "prüft",
+  # Das Ergebnis der Taste und der Prüfung im Hintergrund, für die
+  # Geräteseite, Home Assistant und MQTT gleichermaßen. Die Geräteseite
+  # übersetzt die Sätze; sie erkennt sie am Anfang ("aktuell",
+  # "neue Fassung", "Update verfügbar", "kein Internet", "prüft",
   # "Prüfung fehlgeschlagen") - wer sie ändert, ändert updateSatz() in
   # webui.js mit (tests/test_update_knopf.py wacht darüber).
   - platform: template
@@ -473,6 +437,58 @@ interval:
   - interval: 1s
     then:
       - lambda: |-
+          // Einmal den Rückruf anmelden. Er läuft bei jedem neuen Zustand
+          // der Update-Entität: nach einem Knopfdruck (update_pruefung = 1)
+          // UND nach ihrer eigenen Prüfung - die läuft nach jedem Start,
+          // sobald das Gerät Internet hat, und dann alle 12 Stunden. Deren
+          // Befund landet als "Update verfügbar: ..." im Sensor, und die
+          // Geräteseite zeigt ihn als Hinweis, ohne dass jemand drückt.
+          static bool angemeldet = false;
+          if (!angemeldet) {
+            angemeldet = true;
+            id(firmware_neu).add_on_state_callback([]() {
+              // Während des Aufspielens und vor der ersten Antwort gibt es
+              // nichts zu melden - sonst stünde mitten in der Installation
+              // "aktuell" da.
+              const auto zustand = id(firmware_neu).state;
+              if (zustand != update::UPDATE_STATE_AVAILABLE &&
+                  zustand != update::UPDATE_STATE_NO_UPDATE) return;
+              const bool knopf = id(update_pruefung) == 1;
+              id(update_pruefung) = 0;
+              // "Verfügbar" heißt bei ESPHome nur "andere Nummer"
+              // (latest_version != current_version in
+              // http_request_update.cpp), nicht "neuere". Auf einem Gerät
+              // mit einer noch nicht veröffentlichten Fassung spielte die
+              // Taste sonst die ÄLTERE veröffentlichte auf. Deshalb hier ein
+              // echter Vergleich: nur, was höher ist. Eine Auslieferung zählt
+              // als neuer als ihre Vorabfassung (4.2.3 vor 4.2.3-rc1).
+              const std::string &neu = id(firmware_neu).update_info.latest_version;
+              const std::string &ist = id(firmware_neu).update_info.current_version;
+              int a[3] = {0, 0, 0}, b[3] = {0, 0, 0};
+              sscanf(neu.c_str(), "%d.%d.%d", &a[0], &a[1], &a[2]);
+              sscanf(ist.c_str(), "%d.%d.%d", &b[0], &b[1], &b[2]);
+              int vergleich = 0;
+              for (int i = 0; i < 3 && vergleich == 0; i++) vergleich = (a[i] > b[i]) - (a[i] < b[i]);
+              if (vergleich == 0 && ist.find('-') != std::string::npos &&
+                  neu.find('-') == std::string::npos) {
+                vergleich = 1;
+              }
+              if (zustand == update::UPDATE_STATE_AVAILABLE && vergleich > 0) {
+                if (knopf) {
+                  id(update_stand).publish_state("neue Fassung " + neu + " wird installiert");
+                  // Nicht hier aufspielen: perform() meldet selbst einen
+                  // neuen Zustand und landete damit wieder in diesem Rückruf.
+                  id(update_installieren) = true;
+                } else {
+                  // Nur melden. Aufgespielt wird erst, wenn jemand es will -
+                  // nicht mitten in der Nacht, nicht während der Fahrt.
+                  id(update_stand).publish_state("Update verfügbar: " + neu);
+                }
+              } else {
+                id(update_stand).publish_state("aktuell (" + ist + ")");
+              }
+            });
+          }
           if (id(update_installieren)) {
             id(update_installieren) = false;
             id(firmware_neu).perform(false);

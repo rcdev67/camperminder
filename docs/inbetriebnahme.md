@@ -328,6 +328,13 @@ hat:
 
 Aufgespielt wird nur eine **höhere** Fassung, nie eine ältere.
 
+Drücken musst du dafür nicht: Hat das Gerät Internet, sieht es nach jedem
+Einschalten und danach alle 12 Stunden selbst nach. Gibt es eine neue
+Fassung, steht oben auf der Seite, auf jedem Reiter, ein blauer Hinweis
+**„Neue Fassung … verfügbar. Zum Installieren hier tippen."** Installiert
+wird erst, wenn du tippst und bestätigst — nie von allein, also auch nicht
+während der Fahrt.
+
 **Firmware vom Handy aufspielen:**
 
 1. Aus dem Release auf GitHub die Datei **`level-firmware.ota.bin`** aufs

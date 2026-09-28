@@ -371,10 +371,12 @@
       update_aktuell: "Du hast bereits die neueste Fassung ({v}).",
       update_fehlgeschlagen: "GitHub war nicht zu erreichen. Später noch einmal versuchen – oder die Datei vom Handy aufspielen, weiter unten.",
       update_frage: "Bei GitHub nach einer neuen Fassung sehen?\n\nIst eine da, wird sie gleich installiert, und das Gerät startet neu. Nicht während der Fahrt.",
+      update_frage_jetzt: "Fassung {v} jetzt installieren?\n\nDas Gerät startet danach neu und ist eine halbe Minute nicht erreichbar. Nicht während der Fahrt.",
       update_kein_internet: "Das Gerät hat gerade kein Internet. Das geht nur in einem WLAN mit Internet – sonst die Datei vom Handy aufspielen, weiter unten.",
       update_neu: "Neue Fassung {v} wird installiert. Das Gerät startet danach neu – lass es anschließend eine Minute am Strom.",
       update_pruefen: "Auf Updates prüfen",
       update_prueft: "Frage bei GitHub nach …",
+      update_verfuegbar: "Neue Fassung {v} verfügbar. Zum Installieren hier tippen.",
       vorne: "VORNE",
       vorne_kurz: "VORN",
       wache_alarm_um: "ALARM – Lage verändert am {zeit}",
@@ -740,10 +742,12 @@
       update_aktuell: "You already have the latest version ({v}).",
       update_fehlgeschlagen: "GitHub could not be reached. Try again later – or upload the file from your phone, below.",
       update_frage: "Look for a new version on GitHub?\n\nIf there is one, it is installed right away and the device restarts. Not while driving.",
+      update_frage_jetzt: "Install version {v} now?\n\nThe device restarts afterwards and is unreachable for half a minute. Not while driving.",
       update_kein_internet: "The device has no internet right now. This only works on a Wi-Fi with internet – otherwise upload the file from your phone, below.",
       update_neu: "New version {v} is being installed. The device restarts afterwards – keep it powered for a minute.",
       update_pruefen: "Check for updates",
       update_prueft: "Asking GitHub …",
+      update_verfuegbar: "New version {v} available. Tap here to install.",
       vorne: "FRONT",
       vorne_kurz: "FRONT",
       wache_alarm_um: "ALARM – position changed on {zeit}",
@@ -1562,6 +1566,7 @@
     // einem Reiterwechsel sieht, ist ein halber Alarm.
     waechterAlarm(liveEl);
     seiteVeraltet(liveEl);
+    updateHinweis(liveEl);
     geraetWarnung(liveEl);
     if (page === "technik") renderTechTable(liveEl);
     else renderMain(liveEl);
@@ -2181,6 +2186,73 @@
     target.appendChild(w);
   }
 
+  /* Neue Fassung auf GitHub - ohne dass jemand "Auf Updates prüfen" drückt.
+   * Das Geraet fragt nach jedem Start (sobald es Internet hat) und alle 12
+   * Stunden selbst nach und schreibt "Update verfügbar: 4.3.0" in den Sensor
+   * "Update Stand" (Rueckruf im Intervall von camperminder-level.yaml).
+   * Aufgespielt wird nur auf Fingertipp: Der Hinweis drueckt dieselbe Taste
+   * wie der Knopf unter Technik - sie prueft noch einmal und installiert.
+   *
+   * update() baut diesen Bereich bei jedem Messwert neu. Was nach dem
+   * Antippen geschieht, merken sich deshalb die beiden Variablen, nicht der
+   * Hinweis selbst. */
+  var updateGeklickt = false;
+  var updateBefundSeit = 0;
+
+  function updateHinweis(target) {
+    var roh = String(findStateOf("text_sensor", "update_stand") || "");
+    var text = "";
+    var antippen = false;
+    if (updateGeklickt) {
+      if (/^Update verfügbar: /.test(roh) || /^prüft/.test(roh)) {
+        text = t("update_prueft");
+      } else if (/^neue Fassung /.test(roh)) {
+        text = updateSatz(roh);
+      } else {
+        // Der Befund ("aktuell", "fehlgeschlagen" ...) bleibt 20 s stehen.
+        if (!updateBefundSeit) updateBefundSeit = Date.now();
+        if (Date.now() - updateBefundSeit < 20000) {
+          text = updateSatz(roh);
+        } else {
+          updateGeklickt = false;
+          updateBefundSeit = 0;
+        }
+      }
+    }
+    if (!text && /^Update verfügbar: /.test(roh)) {
+      text = "⬆️ " + updateSatz(roh);
+      antippen = true;
+    } else if (!text && /^neue Fassung /.test(roh)) {
+      // Angestossen unter Technik oder aus Home Assistant: Auch dann soll
+      // man auf jedem Reiter sehen, dass das Geraet gleich neu startet.
+      text = updateSatz(roh);
+    }
+    if (!text) return;
+
+    var w = el('<button style="display:block;width:100%;text-align:left;' +
+      'background:#10304a;border:1px solid #3aa0ff;' +
+      'border-radius:12px;padding:10px 12px;margin-bottom:12px;' +
+      'font:inherit;font-size:.9rem;line-height:1.45;color:#bfe0ff;' +
+      'font-weight:600"></button>');
+    w.textContent = text;
+    if (antippen) {
+      w.style.cursor = "pointer";
+      w.onclick = function () {
+        var v = roh.replace(/^Update verfügbar: /, "");
+        if (!window.confirm(t("update_frage_jetzt", { v: v }))) return;
+        updateGeklickt = true;
+        updateBefundSeit = 0;
+        w.textContent = t("update_prueft");
+        press("firmware_aktualisieren", function (status) {
+          if (status !== 200) { updateGeklickt = false; update(); }
+        });
+      };
+    } else {
+      w.disabled = true;
+    }
+    target.appendChild(w);
+  }
+
   /* Der Alarm gehört an den Anfang der Seite, nicht ans Ende.
    *
    * Wer morgens aufs Telefon schaut, soll ihn sehen, bevor er irgendetwas
@@ -2787,6 +2859,7 @@
     var m;
     if ((m = /^aktuell \((.*)\)/.exec(roh))) return t("update_aktuell", { v: m[1] });
     if ((m = /^neue Fassung (\S+)/.exec(roh))) return t("update_neu", { v: m[1] });
+    if ((m = /^Update verfügbar: (\S+)/.exec(roh))) return t("update_verfuegbar", { v: m[1] });
     if (/^kein Internet/.test(roh)) return t("update_kein_internet");
     if (/^Prüfung fehlgeschlagen/.test(roh)) return t("update_fehlgeschlagen");
     if (/^prüft/.test(roh)) return t("update_prueft");
@@ -2801,6 +2874,9 @@
     var btn = el('<button class="act ghost" style="margin-top:10px"></button>');
     btn.textContent = t("update_pruefen");
     var updateNote = el('<div style="margin-top:8px;line-height:1.5;font-weight:600"></div>');
+    // Hat die Pruefung im Hintergrund schon etwas gefunden, steht es gleich da.
+    var bisher = String(findStateOf("text_sensor", "update_stand") || "");
+    if (/^Update verfügbar: /.test(bisher)) updateNote.textContent = updateSatz(bisher);
     /* Seit 4.2.3 prueft das Geraet erst und spielt nur eine NEUERE Fassung
      * auf (Taste "Firmware aktualisieren" in camperminder-level.yaml). Das
      * Ergebnis kommt ueber den Sensor "Update Stand": erst "prüft", dann der
