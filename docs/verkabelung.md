@@ -140,9 +140,20 @@ am Aufbau, und sie gehören an das erste Muster jeder Revision:
    nicht überall verfügbar.
 6. **Suche im Heimnetz** — mit iPhone und Android je einmal das WLAN
    eintragen und die Seite offen lassen. Sie muss das Gerät nach dem
-   Netzwechsel finden und „Gefunden: …" zeigen. Am Prüfstand ist das
-   belegt; ob die Handys die offene Seite beim Wechsel weiterlaufen lassen,
-   zeigt nur dieser Versuch.
+   Netzwechsel finden und „Gefunden: …" zeigen.
+
+**Stand am Handmuster, 28.09.2026, Firmware 4.2.2, Samsung (Android):**
+
+| Punkt | Ergebnis |
+|---|---|
+| Code 1 | tritt dem Netz bei; die Seite öffnet sich **nicht** von selbst, obwohl die Umleitung der Prüfanfrage im Protokoll steht |
+| Code 2 | öffnet die Wasserwaage |
+| Suche im Heimnetz | nach Werkseinstellungen komplett durchgespielt: „Gefunden" nach rund 20 s, Knopf *Im Heimnetz öffnen* erscheint |
+| Code 3 | `camperminder-level.local` öffnet die Seite |
+
+Offen: dieselben Punkte mit einem iPhone. Bis 4.2.1 scheiterte die Suche
+am Gerät selbst — ESPHome wies die Anfragen der Seite ab, siehe
+`allowed_origins` in `camperminder-level.yaml`.
 
 ---
 
