@@ -5,8 +5,19 @@
 // =================
 // Der Massstab ist ein Bluetooth-Geraet mit App: Ein Handgriff, und die
 // Anzeige ist da. Bei uns waren es drei - Netz CamperMinder waehlen, Browser
-// oeffnen, 192.168.4.1 tippen. Mit dem QR-Aufkleber (Code 1 tritt dem Netz
-// bei) und dieser Datei ist es einer: Jedes Handy fragt nach dem Beitritt zu
+// oeffnen, 192.168.4.1 tippen. Der QR-Aufkleber nimmt das Tippen ab (Code 1
+// Netz, Code 2 Seite), und diese Datei spart, wo das Handy mitspielt, auch
+// noch den zweiten Scan.
+//
+// BEFUND 28.09.2026, damit niemand mehr davon verspricht: Vom iPhone ist
+// bekannt, dass es solche Seiten von selbst oeffnet - am Muster geprueft ist
+// es noch nicht. Das Samsung des Nutzers (Android)
+// tat es NICHT - das Protokoll zeigte, dass seine Pruefanfrage an
+// connectivitycheck.gstatic.com hier ankam und umgeleitet wurde, aber das
+// Handy oeffnete weder die Seite noch eine Meldung. Das liegt beim Handy.
+// Deshalb bleibt Code 2 auf dem Aufkleber.
+//
+// Wie es gedacht ist: Jedes Handy fragt nach dem Beitritt zu
 // einem WLAN eine feste Adresse ab, um zu pruefen, ob es Internet gibt -
 // Apple captive.apple.com/hotspot-detect.html, Android
 // connectivitycheck.gstatic.com/generate_204, Windows www.msftconnecttest.com.
@@ -198,6 +209,34 @@ inline void dns_beantworten() {
     const uint16_t klasse = (p[ende_frage - 2] << 8) | p[ende_frage - 1];
     const bool a_eintrag = typ == 0x0001 && klasse == 0x0001;
 
+    // Welchen Namen das Handy fragt - daran sieht man im Protokoll, ob seine
+    // Internetpruefung ueberhaupt hier ankommt. Auf VERBOSE, nicht DEBUG: Ein
+    // Handy fragt nach dem Beitritt Dutzende Namen ab, darunter die seiner
+    // Mail- und Heimserver - das gehoert nicht in ein Protokoll, das Home
+    // Assistant und jeder im eigenen Netz mitlesen kann. Die Umleitung weiter
+    // unten bleibt auf DEBUG; sie nennt nur den Pruefnamen.
+    //
+    // Zum Mitlesen: in der Geraetedatei logger: level: VERBOSE setzen - die
+    // Stufe steht zur Bauzeit fest.
+    {
+      char name[64];
+      size_t j = 0;
+      // i laeuft immer ueber den ganzen Namen - frage_laenge() hat ihn schon
+      // geprueft -, nur das Schreiben endet am Puffer. So kann ein langer
+      // Name nie hinter die Frage lesen.
+      for (size_t i = 12; i < ende_frage - 5;) {
+        const uint8_t teil = p[i++];
+        if (j > 0 && j + 1 < sizeof(name)) name[j++] = '.';
+        for (uint8_t k = 0; k < teil && i < ende_frage - 5; k++, i++) {
+          if (j + 1 < sizeof(name)) name[j++] = (char) p[i];
+        }
+      }
+      name[j] = '\0';
+      char von_text[16];
+      inet_ntoa_r(von.sin_addr, von_text, sizeof(von_text));
+      ESP_LOGV(TAG, "DNS %s (Typ %u) von %s", name, (unsigned) typ, von_text);
+    }
+
     // Kopf: Antwort, massgeblich, Rekursion gewuenscht wie angefragt und
     // verfuegbar, kein Fehler. Eine Antwort bei A, sonst leer.
     p[2] = 0x84 | (p[2] & 0x01);
@@ -267,6 +306,8 @@ class Umleitung : public esphome::web_server_idf::AsyncWebHandler {
   void handleRequest(esphome::web_server_idf::AsyncWebServerRequest *request) override {
     char ip[16];
     eigene_adresse(ip, sizeof(ip));
+    auto host = request->get_header("Host");
+    ESP_LOGD(TAG, "Umleitung: %s -> http://%s/", host.has_value() ? host->c_str() : "?", ip);
     request->redirect(std::string("http://") + ip + "/");
   }
 };

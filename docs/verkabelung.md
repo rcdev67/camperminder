@@ -132,12 +132,12 @@ am Aufbau, und sie gehören an das erste Muster jeder Revision:
    auf dem Stellplatz sichtbar sein. Die Firmware lässt das Modul auf seiner
    Voreinstellung.
 5. **QR-Aufkleber und Anmeldeseite** — mit einem iPhone und einem
-   Android-Handy: Code 1 scannen, das Handy tritt dem Netz CamperMinder bei,
-   und die Wasserwaage muss sich **von selbst** öffnen (iPhone im Fenster
-   *Anmelden*, Android über *Im Netzwerk anmelden*). Danach im Browser
-   `192.168.4.1` öffnen: Die Seite muss normal laufen, nicht umgeleitet
-   werden. Code 2 mit dem Gerät im Heim-WLAN: Das Ergebnis je Handy
-   notieren, auf Android ist `.local` nicht überall verfügbar.
+   Android-Handy: Code 1 scannen, das Handy muss dem Netz CamperMinder
+   beitreten. Notieren, ob sich die Wasserwaage danach **von selbst** öffnet
+   (iPhone: Fenster *Anmelden*). Dann Code 2: Die Seite muss im Browser
+   normal laufen, nicht umgeleitet werden. Code 3 mit dem Gerät im
+   Heim-WLAN: das Ergebnis je Handy notieren, auf Android ist `.local`
+   nicht überall verfügbar.
 6. **Suche im Heimnetz** — mit iPhone und Android je einmal das WLAN
    eintragen und die Seite offen lassen. Sie muss das Gerät nach dem
    Netzwechsel finden und „Gefunden: …" zeigen. Am Prüfstand ist das
@@ -148,19 +148,26 @@ am Aufbau, und sie gehören an das erste Muster jeder Revision:
 
 ## Der QR-Aufkleber
 
-Ein Code je Lage, in der der Kunde das Gerät öffnen will:
+Drei Codes, damit niemand etwas tippen muss:
 
-| Code | Öffnet | Wann |
+| Code | Inhalt | Wann |
 |---|---|---|
-| **1** Handy verbinden | `WIFI:T:nopass;S:CamperMinder;;` — das Handy tritt dem Netz bei, die Wasserwaage öffnet sich von selbst | erster Start, unterwegs |
-| **2** Im Heim-WLAN | `http://camperminder-level.local/` | Gerät im WLAN zu Hause, unter welcher Adresse auch immer |
+| **1** Handy verbinden | `WIFI:T:nopass;S:CamperMinder;;` — das Handy tritt dem Netz bei | erster Start, unterwegs; immer zuerst |
+| **2** Wasserwaage öffnen | `http://192.168.4.1/` | direkt nach Code 1 |
+| **3** Im Heim-WLAN | `http://camperminder-level.local/` | Gerät im WLAN zu Hause, unter welcher Adresse auch immer |
 
-Dass sich die Seite nach Code 1 von selbst öffnet, macht die Anmeldeseite der
-Firmware (`esphome/level/anmeldeseite.h`, seit 4.2.0): Im eigenen Netz
-beantwortet das Gerät die Internetprüfung des Handys mit einer Weiterleitung
-auf `192.168.4.1`, und das Handy zeigt die Seite wie im Hotel-WLAN an.
+Netzbeitritt und Adresse lassen sich nicht in einem Code vereinen: Das
+WLAN-Format kennt kein Feld für eine Adresse. Den zweiten Scan erspart nur
+die Anmeldeseite der Firmware (`esphome/level/anmeldeseite.h`, seit 4.2.0):
+Im eigenen Netz beantwortet das Gerät die Internetprüfung des Handys mit
+einer Weiterleitung auf `192.168.4.1`, dazu nennt es die Seite per
+DHCP-Option 114 (seit 4.2.1). Vom iPhone ist bekannt, dass es sie dann von
+selbst öffnet; am Muster geprüft ist das noch nicht. Das Samsung des Nutzers
+tat es am 28.09.2026 nicht, obwohl das Protokoll die
+Umleitung seiner Prüfanfrage zeigte (`connectivitycheck.gstatic.com`) —
+deshalb Code 2.
 
-Code 2 geht über den Namen, weil die Adresse im Heim-WLAN in jedem Haushalt
+Code 3 geht über den Namen, weil die Adresse im Heim-WLAN in jedem Haushalt
 eine andere ist. Auf dem iPhone trägt das, auf Android nicht auf jedem Gerät;
 dafür nennt die Anleitung die Suche der Geräteseite und den Router.
 
@@ -170,7 +177,7 @@ heißt seit 28.09.2026 ebenfalls `camperminder-level`.
 
 | | |
 |---|---|
-| Druckvorlage | [`bilder/aufkleber-qr.pdf`](bilder/aufkleber-qr.pdf), 80 × 50 mm, **bei 100 % drucken**, nicht „an Seite anpassen" |
+| Druckvorlage | [`bilder/aufkleber-qr.pdf`](bilder/aufkleber-qr.pdf), 90 × 52 mm, **bei 100 % drucken**, nicht „an Seite anpassen" |
 | Vorlage für Anleitung und Etikettendienst | [`bilder/aufkleber-qr.svg`](bilder/aufkleber-qr.svg) |
 | Material | wetterfeste Etikettenfolie, matt — ein glänzender Aufkleber spiegelt im Licht der Handykamera |
 | Ort | auf den Deckel, gut erreichbar mit dem Handy; nicht dort, wo das Gerät später verbaut unsichtbar ist |
@@ -194,7 +201,7 @@ nur, was der Handaufbau anders braucht.
 | Punkt | Platine Rev B | Handmuster |
 |---|---|---|
 | Sendeleistung | Voreinstellung 20 dB, das WROOM-02 ist mit seiner Antenne zertifiziert | **8,5 dB** — bei 20 dB erscheint das eigene Netz des SuperMini gar nicht, Keramikantenne und USB-Versorgung tragen die Leistung nicht |
-| Gerätename | `camperminder-level` | ebenfalls `camperminder-level`, damit Code 2 des Aufklebers auch am Muster prüfbar ist. Muster und Platine deshalb nie gleichzeitig im selben Netz betreiben |
+| Gerätename | `camperminder-level` | ebenfalls `camperminder-level`, damit Code 3 des Aufklebers auch am Muster prüfbar ist. Muster und Platine deshalb nie gleichzeitig im selben Netz betreiben |
 | I²C, LED | GPIO5/6, LED an GPIO8 gegen 3V3 | gleich — die blaue LED des SuperMini hängt ebenfalls an GPIO8 und leuchtet bei LOW |
 | Summer | BZ1 über Q1 an GPIO10 | nicht bestückt; der Pin bleibt unbenutzt |
 

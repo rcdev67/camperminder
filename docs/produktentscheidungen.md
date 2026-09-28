@@ -391,17 +391,22 @@ dort bleibt der Router. Im eigenen Netz gilt weiterhin die feste 192.168.4.1.
 Der Maßstab ist ein Bluetooth-Gerät mit App: Die Schwelle zur ersten Anzeige
 und zum Einbinden ins WLAN muss so niedrig liegen wie dort.
 
-**Ein Scan bis zur Wasserwaage — entschieden am 28. September 2026, gebaut in
-4.2.0.** Der QR-Aufkleber trägt als Code 1 den Beitritt zum Netz
-CamperMinder, als Code 2 `camperminder-level.local` für das Heim-WLAN. Dass
-sich nach Code 1 die Wasserwaage von selbst öffnet, leistet eine schmale
-Anmeldeseite in der Firmware (`anmeldeseite.h`): Im eigenen Netz beantwortet
-ein Namensdienst jede Anfrage mit `192.168.4.1`, und nur Anfragen an fremde
-Namen — die Internetprüfung des Handys — werden auf die Wasserwaage
-umgeleitet. ESPHomes eigenes Captive Portal bleibt draußen, weil es jede
-Seitenanfrage übernimmt. Preis: Auf dem iPhone erscheint die Seite zuerst in
-einem Anmeldefenster; für das Home-Symbol und die WLAN-Einrichtung gehört sie
-in Safari.
+**Zur Wasserwaage, ohne etwas zu tippen — entschieden am 28. September
+2026, gebaut in 4.2.0 und 4.2.1.** Der QR-Aufkleber trägt drei Codes: 1 den
+Beitritt zum Netz CamperMinder, 2 `192.168.4.1`, 3
+`camperminder-level.local` für das Heim-WLAN. Beim ersten Start also Code 1,
+dann Code 2.
+
+Versucht war zuerst **ein** Scan: Code 1 und eine schmale Anmeldeseite in der
+Firmware (`anmeldeseite.h`), die die Internetprüfung des Handys auf die
+Wasserwaage umleitet, damit das Handy sie von selbst öffnet — wie im
+Hotel-WLAN. Das Gerät tut das nachweislich; das Protokoll zeigte die
+Umleitung der Prüfanfrage. Das Samsung des Nutzers öffnete trotzdem weder
+die Seite noch eine Meldung. Das Verhalten liegt beim Handy, nicht beim
+Gerät, und ein Code, der Netz und Adresse vereint, gibt das WLAN-Format
+nicht her. Daher Code 2. Die Anmeldeseite bleibt: Wo das Handy mitspielt, vor
+allem beim iPhone, spart sie den zweiten Scan. ESPHomes eigenes Captive
+Portal bleibt draußen, weil es jede Seitenanfrage übernimmt.
 
 Dafür kann der Summer etwas, was das Display nie konnte: Er erreicht jemanden,
 der nicht hinsieht. Beim Wächteralarm tönt er alle zehn Sekunden, und nach
