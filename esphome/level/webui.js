@@ -905,7 +905,7 @@
    * nach einem Update laeuft neue Firmware mit alter Oberflaeche - stumm.
    * Die Seite vergleicht deshalb ihre eigene Fassung mit der, die das Geraet
    * meldet, und sagt es, wenn sie auseinanderlaufen. */
-  var SEITE_VERSION = "4.2.3";
+  var SEITE_VERSION = "4.2.4";
 
   var IDS = {
     wheelbase: "radstand",
