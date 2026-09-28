@@ -267,6 +267,19 @@ bis er quittiert wird — wiederholt verschickt wird er nicht.
 
 Die laufende Fassung steht im selben Reiter.
 
+**Firmware vom Handy aufspielen:**
+
+1. Aus dem Release auf GitHub die Datei **`level-firmware.ota.bin`** aufs
+   Handy laden. **Nicht die `factory.bin`**: Die ist für ein leeres Board,
+   als Update weist das Gerät sie ab.
+2. *Technik → Software → Datei auswählen*, dann **Datei aufspielen**. Die
+   Seite meldet „Übertragen. Das Gerät startet neu."
+3. **Mindestens eine Minute am Strom lassen.** Erst dann gilt die neue Fassung
+   als gut. Fällt der Strom vorher weg, kehrt das Gerät beim nächsten
+   Einschalten zur alten Fassung zurück — mit Absicht, damit ein kaputtes
+   Update es nicht lahmlegt.
+4. Die Seite neu laden: Unter *Technik → Software* steht die neue Nummer.
+
 > **Für die Werkstatt:** Aktualisierungen nur über OTA einspielen. Ein
 > serielles Aufspielen mit Löschen des Flash nimmt dem Kunden sein
 > eingerichtetes WLAN wieder weg — die gespeicherten Zugangsdaten liegen dort.

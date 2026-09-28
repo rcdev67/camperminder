@@ -60,7 +60,8 @@
       bewegung_nie: "seit dem Einschalten nichts",
       bewegung_vor: "vor {dauer}",
       datei_aufspielen: "Datei aufspielen",
-      datei_aufspielen_hinweis: "Oder Firmwaredatei vom Handy aufspielen:",
+      datei_aufspielen_hinweis: "Oder die Firmware vom Handy aufspielen – die Datei level-firmware.ota.bin aus dem Release, nicht die factory.bin:",
+      datei_factory: "Das ist die Datei für ein leeres Board (factory.bin). Als Update weist das Gerät sie ab – bitte level-firmware.ota.bin wählen.",
       datei_waehlen: "Datei auswählen",
       eben_stop: "✅ EBEN – STOP",
       eingabe_nicht_angenommen: "Das Gerät hat die Eingabe nicht angenommen.",
@@ -361,8 +362,9 @@
       tech_ziel_laengs: "Ziel längs",
       tech_ziel_quer: "Ziel quer",
       uebertrage: "Übertrage …",
+      uebertragen_abgewiesen: "Das Gerät hat die Datei abgewiesen und läuft unverändert weiter. Meist war es die falsche Datei: level-firmware.ota.bin nehmen, nicht die factory.bin.",
       uebertragen_fehler: "Fehlgeschlagen (Status {status}). Notfalls über das ESPHome-Dashboard aufspielen.",
-      uebertragen_neustart: "Übertragen. Das Gerät startet neu.",
+      uebertragen_neustart: "Übertragen. Das Gerät startet neu. Lass es danach mindestens eine Minute am Strom – sonst kehrt es beim nächsten Einschalten zur alten Fassung zurück.",
       unbekannt: "unbekannt",
       unscharf_schalten: "Unscharf schalten",
       update_frage: "Neue Firmware von GitHub laden und installieren?\n\nDas Gerät startet dabei neu. Nicht während der Fahrt.",
@@ -423,7 +425,8 @@
       bewegung_nie: "nothing since power-on",
       bewegung_vor: "{dauer} ago",
       datei_aufspielen: "Upload file",
-      datei_aufspielen_hinweis: "Or upload a firmware file from your phone:",
+      datei_aufspielen_hinweis: "Or upload the firmware from your phone – the file level-firmware.ota.bin from the release, not the factory.bin:",
+      datei_factory: "This is the file for a blank board (factory.bin). The device rejects it as an update – please choose level-firmware.ota.bin.",
       datei_waehlen: "Choose file",
       eben_stop: "✅ LEVEL – STOP",
       eingabe_nicht_angenommen: "The device did not accept the entry.",
@@ -724,8 +727,9 @@
       tech_ziel_laengs: "Target lengthwise",
       tech_ziel_quer: "Target crosswise",
       uebertrage: "Sending …",
+      uebertragen_abgewiesen: "The device rejected the file and keeps running unchanged. Usually it was the wrong file: take level-firmware.ota.bin, not the factory.bin.",
       uebertragen_fehler: "Failed (status {status}). If needed, upload it through the ESPHome dashboard.",
-      uebertragen_neustart: "Uploaded. The device is restarting.",
+      uebertragen_neustart: "Uploaded. The device is restarting. Keep it powered for at least a minute afterwards – otherwise it returns to the old version the next time it is switched on.",
       unbekannt: "unknown",
       unscharf_schalten: "Disarm",
       update_frage: "Download and install new firmware from GitHub?\n\nThe device will restart. Not while driving.",
@@ -2804,23 +2808,37 @@
     pick.onclick = function () { file.click(); };
     var picked = el('<div class="muted" style="margin-top:6px"></div>');
     picked.textContent = t("keine_datei");
+    /* Das Release traegt zwei .bin. Die factory.bin enthaelt zusaetzlich
+     * Bootloader und Speicheraufteilung fuer ein leeres Board; als Update
+     * weist das Geraet sie ab. Am 28.09.2026 ist genau das beim ersten
+     * echten Versuch passiert - also vorher sagen, nicht erst danach. */
+    function istFactory(datei) { return /factory/i.test(datei.name || ""); }
+    var note = el('<div class="muted" style="margin-top:8px"></div>');
     file.onchange = function () {
-      picked.textContent = file.files && file.files.length ? file.files[0].name : t("keine_datei");
+      var datei = file.files && file.files.length ? file.files[0] : null;
+      picked.textContent = datei ? datei.name : t("keine_datei");
+      note.textContent = datei && istFactory(datei) ? t("datei_factory") : "";
     };
     var send = el('<button class="act ghost" style="margin-top:8px"></button>');
     send.textContent = t("datei_aufspielen");
-    var note = el('<div class="muted" style="margin-top:8px"></div>');
     send.onclick = function () {
       if (!file.files || !file.files.length) { note.textContent = t("erst_datei"); return; }
+      if (istFactory(file.files[0])) { note.textContent = t("datei_factory"); return; }
       send.disabled = true;
       note.textContent = t("uebertrage");
       var body = new FormData();
       body.append("file", file.files[0]);
       var req = new XMLHttpRequest();
       req.open("POST", "/update", true);
+      /* NICHT am Status allein entscheiden: ESPHome antwortet auch auf ein
+       * abgewiesenes Update mit 200 und schreibt nur "Update Failed!" in den
+       * Rumpf (handleRequest in ota_web_server.cpp). Bis 4.1.2 meldete die
+       * Seite deshalb "Uebertragen", obwohl nichts aufgespielt war. */
       req.onload = function () {
-        note.textContent = req.status >= 200 && req.status < 300
-          ? t("uebertragen_neustart")
+        var ok = req.status >= 200 && req.status < 300;
+        var gut = ok && /successful/i.test(req.responseText || "");
+        note.textContent = gut ? t("uebertragen_neustart")
+          : ok ? t("uebertragen_abgewiesen")
           : t("uebertragen_fehler", { status: req.status });
         send.disabled = false;
       };
