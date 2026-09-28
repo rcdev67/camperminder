@@ -387,6 +387,13 @@
       "wert": null
     },
     {
+      "kennung": "text_sensor/Update Stand",
+      "name": "Update Stand",
+      "bereich": "text_sensor",
+      "zustand": "",
+      "wert": null
+    },
+    {
       "kennung": "number/Radstand",
       "name": "Radstand",
       "bereich": "number",

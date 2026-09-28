@@ -308,10 +308,25 @@ bis er quittiert wird — wiederholt verschickt wird er nicht.
 
 | Lage | Weg |
 |---|---|
-| Gerät hat Internet | Reiter *Technik* → **Auf Updates prüfen und installieren** |
+| Gerät hat Internet | Reiter *Technik* → **Auf Updates prüfen** |
 | Gerät im eigenen Netz | Reiter *Technik* → Firmwaredatei vom Handy aufspielen |
 
 Die laufende Fassung steht im selben Reiter.
+
+**Auf Updates prüfen** fragt bei GitHub nach und sagt dir, was es gefunden
+hat:
+
+- **„Du hast bereits die neueste Fassung (…)"** — nichts zu tun, das Gerät
+  läuft einfach weiter.
+- **„Neue Fassung … wird installiert"** — das Gerät lädt sie, spielt sie auf
+  und startet neu. Danach **mindestens eine Minute am Strom lassen**, dann
+  gilt die neue Fassung.
+- **„Das Gerät hat gerade kein Internet"** — das Gerät ist nicht in einem WLAN
+  mit Internet, etwa auf dem Stellplatz. Dann die Datei vom Handy aufspielen,
+  siehe unten.
+- **„GitHub war nicht zu erreichen"** — später noch einmal versuchen.
+
+Aufgespielt wird nur eine **höhere** Fassung, nie eine ältere.
 
 **Firmware vom Handy aufspielen:**
 
