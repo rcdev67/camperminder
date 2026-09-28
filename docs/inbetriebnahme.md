@@ -6,7 +6,17 @@ Konto, ohne Koppeln.** Alles, was danach kommt, ist freiwillig.
 
 ## In einer Minute zur Wasserwaage
 
-![Aufkleber mit zwei QR-Codes. Code 1: Handy verbinden, Netz CamperMinder. Code 2: Im Heim-WLAN, camperminder-level.local](bilder/aufkleber-qr.svg)
+![Aufkleber mit drei QR-Codes. 1: Handy verbinden, Netz CamperMinder. 2: Wasserwaage öffnen, 192.168.4.1. 3: Im Heim-WLAN, camperminder-level.local](bilder/aufkleber-qr.svg)
+
+Auf dem Gerät klebt dieser Aufkleber mit drei Codes. Du brauchst nichts zu
+tippen: Für den ersten Start scannst du **Code 1 und dann Code 2**, Code 3
+kommt erst später dazu, wenn das Gerät in deinem WLAN zu Hause ist. Die
+Codes hier in der Anleitung funktionieren genauso wie die auf dem Gerät.
+
+**Womit scannen:** Mit der Kamera-App des Handys — die Kamera auf den Code
+halten, bis ein Hinweis erscheint, und den antippen. Auf Android geht auch
+Google Lens. Liest die Kamera nichts, ist in ihren Einstellungen das Scannen
+von QR-Codes vielleicht abgeschaltet.
 
 1. **Strom anschließen**, auf einem von zwei Wegen:
    - **USB-C**, 5 V: an eine USB-Steckdose im Fahrzeug, ein USB-Netzteil oder
@@ -16,38 +26,50 @@ Konto, ohne Koppeln.** Alles, was danach kommt, ist freiwillig.
      angeklemmt passiert nichts, es geht nur nichts.
 
    Beide dürfen auch gleichzeitig stecken, dann versorgt die stärkere Quelle.
-   Die **grüne** Leuchte zeigt: Strom ist da.
-2. **Code 1 scannen.** Die Handykamera auf den linken Code halten. Das Handy
-   bietet an, dem Netz **CamperMinder** beizutreten: bestätigen. Das ist das
-   eigene Netz des Geräts, nicht dein WLAN zu Hause. **Die Wasserwaage öffnet
-   sich danach von selbst.**
-   - **iPhone:** Sie erscheint in einem Fenster namens *Anmelden*. Wenn du es
-     schließt, fragt das iPhone nach: **Ohne Internet verwenden.**
-   - **Android:** Es erscheint *Im Netzwerk anmelden*. Öffnet sich die Seite
-     nicht gleich, die Meldung antippen. Fragt das Handy, ob es ohne Internet
-     verbunden bleiben soll: **Ja.**
+   Die **grüne** Leuchte zeigt: Strom ist da. Nach wenigen Sekunden ist das
+   Netz **CamperMinder** bereit.
 
-Mehr ist für den Betrieb nicht nötig. Das Gerät braucht kein Internet.
-**Code 2** brauchst du erst, wenn das Gerät in deinem WLAN zu Hause ist,
-siehe *Ins eigene WLAN*.
+2. **Code 1 scannen: Handy verbinden.** Das Handy fragt, ob es dem Netz
+   **CamperMinder** beitreten soll: **Verbinden** bzw. **Beitreten**
+   bestätigen. Das ist das eigene Netz des Geräts, nicht dein WLAN zu Hause —
+   ein Passwort braucht es ab Werk nicht.
 
-Die Codes hier in der Anleitung funktionieren genauso wie die auf dem Gerät.
-Das iPhone liest sie mit der Kamera-App, Android mit der Kamera oder mit
-Google Lens.
+   Weil dieses Netz kein Internet hat, reagiert jedes Handy etwas anders:
+   - **iPhone:** Oft öffnet sich die Wasserwaage jetzt **von selbst**, in
+     einem Fenster namens *Anmelden*. Dann bist du fertig und brauchst Code 2
+     nicht. Wenn du das Fenster schließt, fragt das iPhone, wie es weitergehen
+     soll: **Ohne Internet verwenden.** Öffnet sich nichts, weiter mit Code 2.
+   - **Android:** Die Wasserwaage öffnet sich meist **nicht** von selbst. Das
+     Handy zeigt eventuell an, das Netz habe kein Internet, und fragt, ob es
+     verbunden bleiben soll: **Ja** bzw. **Verbindung beibehalten.** Dann
+     weiter mit Code 2.
 
-### Ohne Aufkleber, oder wenn sich nichts öffnet
+3. **Code 2 scannen: Wasserwaage öffnen.** Die Seite `192.168.4.1` öffnet
+   sich im Browser, die Wasserwaage ist da.
 
-- In den WLAN-Einstellungen des Handys **CamperMinder** wählen. Ab Werk hat
-  dieses Netz kein Passwort; hast du unter *Technik → Eigenes Netz* eines
-  vergeben, gilt deines, und Code 1 passt dann nicht mehr.
-- Im Browser **`192.168.4.1`** eingeben.
+Mehr ist für den Betrieb nicht nötig. Das Gerät braucht kein Internet, und
+du kannst die Seite jederzeit wieder so öffnen: im Netz CamperMinder Code 2
+scannen.
 
-> **Ein Symbol wie eine App.** Dafür die Seite im richtigen Browser öffnen,
-> nicht im Anmeldefenster: auf dem iPhone in Safari `192.168.4.1` aufrufen,
-> dann *Teilen → Zum Home-Bildschirm*; auf Android in Chrome, dann *⋮ → Zum
-> Startbildschirm hinzufügen*. Das Symbol öffnet die Seite im Vollbild. Wo
-> ein Bluetooth-Gerät eine App braucht, steckt hier die Seite im Gerät
-> selbst, und jedes Update bringt sie mit.
+### Ohne Aufkleber, oder wenn ein Code nicht geht
+
+- **Statt Code 1:** In den WLAN-Einstellungen des Handys **CamperMinder**
+  wählen. Ab Werk hat dieses Netz kein Passwort. Hast du unter *Technik →
+  Eigenes Netz* ein eigenes vergeben, gilt deines — dann passt Code 1 nicht
+  mehr, das Netz musst du von Hand wählen.
+- **Statt Code 2:** Im Browser **`192.168.4.1`** eingeben. Manche Browser
+  machen daraus eine Suche; dann vollständig `http://192.168.4.1` eingeben.
+- **Abkürzung auf Samsung-Handys:** *Einstellungen → Verbindungen → WLAN*,
+  beim verbundenen Netz **CamperMinder** auf das Zahnrad tippen, dann
+  **Router verwalten**. Das öffnet ebenfalls `192.168.4.1`.
+
+> **Ein Symbol wie eine App.** Die Seite dafür im richtigen Browser öffnen,
+> nicht im Fenster *Anmelden* des iPhone: auf dem iPhone in Safari
+> `192.168.4.1` aufrufen, dann *Teilen → Zum Home-Bildschirm*; auf Android in
+> Chrome, dann *⋮ → Zum Startbildschirm hinzufügen*. Code 2 öffnet die Seite
+> bereits im richtigen Browser. Das Symbol öffnet sie im Vollbild — wo ein
+> Bluetooth-Gerät eine App braucht, steckt hier die Seite im Gerät selbst,
+> und jedes Update bringt sie mit.
 
 ## Einbauen
 
@@ -74,7 +96,7 @@ Google Lens.
 | Leuchte | Bedeutung |
 |---|---|
 | **grün**, an | Strom ist da |
-| **rot**, lang an, lang aus | Das eigene Netz ist offen: mit **CamperMinder** verbinden, dann Code 1 oder `192.168.4.1` |
+| **rot**, lang an, lang aus | Das eigene Netz ist offen: Code 1, dann Code 2 — oder von Hand mit **CamperMinder** verbinden und `192.168.4.1` öffnen |
 | **rot**, ein kurzes Blinken alle drei Sekunden | Das Gerät ist in deinem WLAN |
 | **rot**, gleichmäßig im Halbsekundentakt | Der Sensor antwortet nicht. Bitte melden. |
 | **rot**, hektisches Doppelblinken, dazu drei Töne | Wächteralarm: Das Fahrzeug hat seine Lage verändert |
@@ -95,12 +117,12 @@ damit Home Assistant und MQTT bei einem Sprachwechsel weiter zusammenpassen.
 Nur nötig für automatische Updates und Home Assistant. Ohne diesen Schritt
 funktioniert alles andere unverändert, unterwegs sowieso.
 
-1. Zu Hause, mit dem Handy im Netz **CamperMinder**, im Browser
-   `192.168.4.1` öffnen, auf dem iPhone in Safari, auf Android in Chrome.
-   **Nicht im Anmeldefenster**: Das schließt sich, sobald das Handy das Netz
-   wechselt, und dann kann die Seite das Gerät nicht mehr suchen. Dort
-   *Technik → WLAN*, Name und Passwort deines WLANs eintragen, **Speichern
-   und verbinden**.
+1. Zu Hause das Handy mit dem Netz **CamperMinder** verbinden (Code 1) und
+   die Seite mit **Code 2** öffnen — Code 2 öffnet sie im richtigen Browser.
+   **Nicht im Fenster *Anmelden*** des iPhone arbeiten: Das schließt sich,
+   sobald das Handy das Netz wechselt, und dann kann die Seite das Gerät nicht
+   mehr suchen. Dort *Technik → WLAN*, Name und Passwort deines WLANs
+   eintragen, **Speichern und verbinden**.
 2. **Auf der Seite bleiben.** Das Gerät startet neu und meldet sich in deinem
    WLAN an. Das Netz CamperMinder verschwindet, und dein Handy kehrt von
    selbst in dein WLAN zurück. Die Seite sucht das Gerät dann dort und zeigt
@@ -114,10 +136,18 @@ Adresse. Unterwegs, wenn dein WLAN außer Reichweite ist, öffnet das Gerät nac
 etwa 20 Sekunden wieder sein eigenes Netz, und es gilt `192.168.4.1`. Die
 Zugangsdaten bleiben gespeichert.
 
-**Code 2 auf dem Aufkleber** öffnet das Gerät zu Hause über seinen Namen,
+**Code 3 auf dem Aufkleber** öffnet das Gerät zu Hause über seinen Namen,
 `camperminder-level.local`, ganz gleich, welche Adresse dein Router ihm gibt.
-Auf dem iPhone klappt das, auf Android nicht auf jedem Gerät. Öffnet Code 2
-dort nichts, nimm das Symbol, das du dir in Schritt 3 angelegt hast.
+Dein Handy muss dafür in deinem WLAN sein, nicht im Netz CamperMinder. Auf
+dem iPhone klappt das, auf Android nicht auf jedem Gerät. Öffnet Code 3 dort
+nichts, nimm das Symbol, das du dir in Schritt 3 angelegt hast.
+
+Welcher Code wann:
+
+| Du bist … | Code |
+|---|---|
+| unterwegs oder beim ersten Start, das Gerät hat sein eigenes Netz offen | **1**, dann **2** |
+| zu Hause, das Gerät ist in deinem WLAN | **3** |
 
 **Kommt das Netz CamperMinder nach einer halben Minute wieder,** hat die
 Anmeldung nicht geklappt, meist wegen eines Tippfehlers im Passwort. Die Seite
@@ -129,7 +159,7 @@ sagt das dann auch. Einfach wieder verbinden, berichtigen, speichern.
   unter seinem Namen, meist **camperminder-level**, bei der Fritzbox unter
   *Heimnetz → Netzwerk*. Die Adresse daneben im Browser aufrufen. Den genauen
   Namen nennt die Seite unter *Technik* als *Name im Netz*.
-- **Code 2 scannen** oder `camperminder-level.local` im Browser eingeben. Auf
+- **Code 3 scannen** oder `camperminder-level.local` im Browser eingeben. Auf
   dem iPhone klappt das fast immer, auf Android nicht auf jedem Gerät.
 - **Beim nächsten Mal nachlesen.** Das Gerät merkt sich seine Adresse. Wenn du
   das nächste Mal im Netz CamperMinder bist, steht sie oben unter *Technik →
@@ -314,7 +344,12 @@ jederzeit umsteigen — ohne neue Software, ohne neues Gerät.
 | Was | Was hilft |
 |---|---|
 | Kein Netz **CamperMinder** in der Liste | Leuchtet die grüne Leuchte? Sonst fehlt Strom. Blinkt die rote kurz alle drei Sekunden, ist das Gerät in deinem WLAN, und das eigene Netz ist deshalb aus: siehe *Ins eigene WLAN*. Nach dem Einschalten bis zu 20 Sekunden warten. |
-| Das Handy springt aus dem Netz CamperMinder zurück | Es sucht Internet. *Verbunden bleiben* bestätigen; hilft das nicht, kurz die mobilen Daten ausschalten. |
+| Die Kamera reagiert nicht auf die Codes | In den Einstellungen der Kamera das Scannen von QR-Codes einschalten, oder Google Lens nehmen. Sonst die Wege unter *Ohne Aufkleber*. |
+| Code 1 wird gelesen, aber das Handy tritt dem Netz nicht bei | Hat das eigene Netz ein Passwort bekommen (*Technik → Eigenes Netz*), passt Code 1 nicht mehr: Netz von Hand wählen und dein Passwort eingeben. |
+| Nach Code 1 öffnet sich nichts | Auf Android normal: Code 2 scannen. Auf Samsung geht auch *WLAN → Zahnrad bei CamperMinder → Router verwalten*. |
+| Code 2 öffnet nichts oder „Seite nicht erreichbar" | Das Handy ist nicht (mehr) im Netz CamperMinder. Erst Code 1, dann noch einmal Code 2. |
+| Code 3 öffnet nichts | Code 3 gilt nur, wenn das Gerät in deinem WLAN ist und das Handy auch. Auf manchen Android-Handys geht `.local` gar nicht: dann das Symbol aus *Ins eigene WLAN*, Schritt 3, oder die Adresse aus dem Router. |
+| Das Handy springt aus dem Netz CamperMinder zurück | Es sucht Internet und nimmt lieber dein WLAN zu Hause. *Verbunden bleiben* bestätigen; hilft das nicht, beim Heim-WLAN *Automatisch verbinden* kurz ausschalten oder die mobilen Daten. |
 | `192.168.4.1` lädt nicht | Vollständig eingeben: `http://192.168.4.1`. Manche Browser machen sonst eine Suche daraus. Das Handy muss im Netz CamperMinder sein. |
 | Längs und quer sind vertauscht | Das Gehäuse ist verdreht eingebaut. Der Pfeil muss nach vorn zeigen. |
 | Die Blase springt bei der kleinsten Bewegung von Rand zu Rand | Kopfüber eingebaut, aber die *Einbaulage* steht auf *Deckel oben*. |
@@ -330,6 +365,10 @@ lief, und zwar so genau, wie du es noch weißt:
   Android 15".
 - **Die erste Minute**: Wie lange hat es vom Anschließen bis zur ersten
   Anzeige gedauert, und wo hast du gestockt?
+- **Die Codes**: Hat sich nach Code 1 die Wasserwaage **von selbst**
+  geöffnet, oder brauchtest du Code 2? Hat das Handy etwas gemeldet, etwa
+  „kein Internet" oder „anmelden"? Das unterscheidet sich von Handy zu Handy,
+  und genau das wollen wir wissen.
 - **Das eigene WLAN**: Hat die Seite das Gerät nach dem Eintragen gefunden?
   Welcher Router war es, etwa Fritzbox, Speedport oder ein Handy-Hotspot?
 - **Jeder Satz auf der Seite, den du zweimal lesen musstest.**

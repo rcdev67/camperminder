@@ -38,7 +38,7 @@
 
 substitutions:
   # Derselbe Name wie das Produkt, seit 28.09.2026 - vorher hiess das Muster
-  # camperminder-muster. Der Grund ist der QR-Aufkleber: Code 2 oeffnet
+  # camperminder-muster. Der Grund ist der QR-Aufkleber: Code 3 oeffnet
   # camperminder-level.local, und das soll sich am einzigen vorhandenen Geraet
   # pruefen lassen, bevor Platinen da sind.
   #

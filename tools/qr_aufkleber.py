@@ -4,30 +4,36 @@
 WARUM ES IHN GIBT
 =================
 Der Massstab ist ein Bluetooth-Geraet mit App: auspacken, koppeln, fertig.
-Der Aufkleber bringt uns dorthin, ein Code je Lage:
+Der Aufkleber kommt dem so nahe, wie es mit WLAN geht - niemand muss etwas
+tippen:
 
-    Code 1   WIFI:T:nopass;S:CamperMinder;;   Handy tritt dem Netz bei, und
-                                              die Wasserwaage oeffnet sich
-                                              von selbst (anmeldeseite.h)
-    Code 2   http://camperminder-level.local/ Geraet im Heim-WLAN
+    Code 1   WIFI:T:nopass;S:CamperMinder;;   Handy tritt dem Netz bei
+    Code 2   http://192.168.4.1/              die Wasserwaage oeffnet sich
+    Code 3   http://camperminder-level.local/ Geraet im Heim-WLAN
 
 GESCHICHTE, damit niemand denselben Weg zweimal geht (28.09.2026):
 
-  1. Code 1 Netzbeitritt, Code 2 192.168.4.1 - zwei Codes, die man immer
-     hintereinander braucht, und fuer das Heim-WLAN nichts.
+  1. Code 1 Netzbeitritt, Code 2 192.168.4.1 - aber fuer das Heim-WLAN
+     nichts.
   2. Code 1 192.168.4.1, Code 2 .local - nach Lage, aber das Handy musste
      erst von Hand ins Netz, sonst oeffnete Code 1 nichts.
-  3. Jetzt: Code 1 wieder der Netzbeitritt. Seit 4.2.0 beantwortet das
-     Geraet die Internetpruefung des Handys mit einer Weiterleitung auf die
-     Wasserwaage, das Handy oeffnet sie von selbst. Ein Scan genuegt; die
-     Nachteile von 1 und 2 fallen weg.
+  3. Code 1 Netzbeitritt, Code 2 .local, dazu die Anmeldeseite (4.2.0):
+     Das Geraet leitet die Internetpruefung des Handys auf die Wasserwaage
+     um, und das Handy sollte sie von selbst oeffnen. Das iPhone tut das;
+     am Samsung (Android) nachweislich nicht - die Umleitung kam an, das
+     Protokoll zeigte sie, aber das Handy oeffnete weder die Seite noch eine
+     Meldung. Ein Scan fuer alle Handys gibt es damit nicht.
+  4. Jetzt: drei Codes. 1 und 2 sind der erste Start, nacheinander; auf dem
+     iPhone ist die Seite nach Code 1 meist schon offen. 3 ist das
+     Heim-WLAN. In einem Code laesst sich Netzbeitritt und Adresse nicht
+     vereinen - das WIFI-Format kennt kein Feld fuer eine Adresse.
 
-Code 2 geht ueber mDNS (<Name>.local), weil die Adresse im Heim-WLAN in
+Code 3 geht ueber mDNS (<Name>.local), weil die Adresse im Heim-WLAN in
 jedem Haushalt eine andere ist - der Name ist der einzige feste Weg. Auf
 dem iPhone traegt er, auf Android nicht auf jedem Geraet; fuer diesen Fall
 nennt die Anleitung die Suche der Geraeteseite und den Router.
 
-Beide Codes sind fuer JEDES Geraet gleich: Adresse und Name haengen an der
+Alle drei Codes sind fuer JEDES Geraet gleich: Adresse und Name haengen an der
 Firmware, nicht am einzelnen Geraet. Ein Aufkleber, eine Druckvorlage -
 auch fuer das Handmuster, das seit 28.09.2026 ebenfalls camperminder-level
 heisst.
@@ -47,7 +53,7 @@ ERGEBNIS
 ========
     docs/bilder/aufkleber-qr.svg    Vorlage fuer Anleitung und Druck
     docs/bilder/aufkleber-qr.pdf    dieselbe Seite in Originalgroesse,
-                                    80 x 50 mm - zum Drucken bei 100 %
+                                    90 x 52 mm - zum Drucken bei 100 %
 
 Das PDF entsteht ueber Microsoft Edge ohne Fenster. Fehlt Edge, bleibt es
 beim SVG, und der Lauf sagt das.
@@ -71,9 +77,12 @@ MARKE = os.path.join(WURZEL, "brand", "camperminder-mark.svg")
 ZIEL_SVG = os.path.join(WURZEL, "docs", "bilder", "aufkleber-qr.svg")
 ZIEL_PDF = os.path.join(WURZEL, "docs", "bilder", "aufkleber-qr.pdf")
 
-BREITE, HOEHE = 80.0, 50.0      # mm
-QR_GROESSE = 22.0               # mm - bei 3 m Leseabstand der Kamera reichlich
-ZIFFER1_X = 5.2                 # mm - Mitte der Ziffer 1, vor der Ruhezone von Code 1
+BREITE, HOEHE = 90.0, 52.0      # mm
+QR_GROESSE = 20.0               # mm - Module um 0,7 mm, fuer eine Handykamera
+                                # aus 10 bis 30 cm reichlich
+SPALTEN = (15.0, 45.0, 75.0)    # mm - Mitte je Code
+ZIFFER_Y = 12.0                 # mm - Mitte der Ziffern ueber den Codes
+QR_OBEN = 17.2                  # mm - Oberkante der Codes
 TUERKIS = "#2fb6c9"
 DUNKEL = "#1b2430"
 GRAU = "#6b7787"
@@ -95,16 +104,18 @@ def aus_geraetedatei():
     ip = re.search(r"^\s+static_ip:\s*([0-9.]+)", ap, re.MULTILINE)
     if not name or not netz or not ip:
         sys.exit("device_name, ssid oder static_ip nicht gefunden: %s" % GERAET)
-    # Ohne mDNS gibt es kein <Name>.local, und Code 2 liefe ins Leere.
+    # Ohne mDNS gibt es kein <Name>.local, und Code 3 liefe ins Leere.
     if re.search(r"^mdns:\s*\n\s+disabled:\s*true", text, re.MULTILINE):
-        sys.exit("mDNS ist in der Geraetedatei abgeschaltet - Code 2 wuerde nicht tragen.")
+        sys.exit("mDNS ist in der Geraetedatei abgeschaltet - Code 3 wuerde nicht tragen.")
     # Code 1 tritt einem Netz OHNE Passwort bei. Stuende in der Geraetedatei
     # eines, passte er nicht. (Ein Passwort, das der Nutzer spaeter selbst
     # vergibt, kann der Aufkleber nicht kennen - das sagt die Anleitung.)
     kopf = ap[:ap.index("manual_ip")]
     if re.search(r"^\s+password:", kopf, re.MULTILINE):
         sys.exit("Das eigene Netz hat in der Geraetedatei ein Passwort - Code 1 passt nicht.")
-    # Ohne Anmeldeseite oeffnete Code 1 nur das Netz, nicht die Wasserwaage.
+    # Ohne Anmeldeseite oeffnete Code 1 auch auf dem iPhone nur das Netz -
+    # dann stimmte die Anleitung nicht mehr, die dort Code 2 fuer entbehrlich
+    # erklaert.
     hardware = io.open(os.path.join(os.path.dirname(GERAET), "hardware.yaml"),
                        encoding="utf-8").read()
     if "anmeldeseite::schritt" not in hardware:
@@ -156,61 +167,72 @@ def ziffer(x, y, n):
 
 
 def aufkleber(netz, ip, name):
-    unterwegs = helpers.make_wifi_data(ssid=netz, password=None, security="nopass")
-    zuhause = "http://%s.local/" % name
-
-    oben = 11.5
-    links, rechts = 11.0, 51.0
-    qr1, v1, n1, m1 = qr_pfad(unterwegs, links, oben, QR_GROESSE)
-    qr2, v2, n2, m2 = qr_pfad(zuhause, rechts, oben, QR_GROESSE)
-    mitte1, mitte2 = links + QR_GROESSE / 2, rechts + QR_GROESSE / 2
-    unten = oben + QR_GROESSE
+    # Drei Codes, in der Reihenfolge, in der man sie braucht. Code 1 und 2
+    # sind der erste Start: erst ins Netz, dann die Seite. Auf dem iPhone
+    # oeffnet die Anmeldeseite die Wasserwaage schon nach Code 1 von selbst;
+    # Android (Samsung) tut das nicht verlaesslich, dafuer Code 2. Code 3 ist
+    # das Heim-WLAN.
+    #
+    # Kein "ohne Passwort" in den Beschriftungen: Das las sich wie das
+    # Einbinden ins Heim-WLAN, und dort gibt man sehr wohl eines ein.
+    codes = [
+        (helpers.make_wifi_data(ssid=netz, password=None, security="nopass"),
+         "Handy verbinden", "Connect your phone", "Netz %s" % netz),
+        ("http://%s/" % ip,
+         "Wasserwaage öffnen", "Open the level", ip),
+        ("http://%s.local/" % name,
+         "Im Heim-WLAN", "On your home Wi-Fi", "%s.local" % name),
+    ]
+    unten = QR_OBEN + QR_GROESSE
 
     teile = [
         '<svg xmlns="http://www.w3.org/2000/svg" width="%gmm" height="%gmm" '
         'viewBox="0 0 %g %g">' % (BREITE, HOEHE, BREITE, HOEHE),
         "<!-- Erzeugt von tools/qr_aufkleber.py - NICHT von Hand aendern.",
-        "     Code 1: %s" % unterwegs,
-        "     Code 2: %s -->" % zuhause,
+    ]
+    teile += ["     Code %d: %s" % (i + 1, c[0]) for i, c in enumerate(codes)]
+    teile[-1] += " -->"
+    teile += [
         # Schnittkante, hell: Sie zeigt, wo der Aufkleber endet, und stoert
         # auf dem Etikett nicht, falls der Drucker sie mitdruckt.
         '<rect x="0.25" y="0.25" width="%g" height="%g" rx="3" fill="#fff" '
         'stroke="#c9d1da" stroke-width="0.3"/>' % (BREITE - 0.5, HOEHE - 0.5),
-        '<g transform="translate(4 1.2) scale(0.09)"><path fill="%s" '
+        '<g transform="translate(4 0.4) scale(0.08)"><path fill="%s" '
         'fill-rule="evenodd" d="%s"/></g>' % (TUERKIS, marke_pfad()),
-        '<text x="14.5" y="7.4" font-family="%s" font-size="4" font-weight="600" '
+        '<text x="13.5" y="6.3" font-family="%s" font-size="3.6" font-weight="600" '
         'letter-spacing="0.2" fill="%s">CAMPER<tspan fill="%s">MINDER</tspan>'
         '<tspan fill="%s" font-weight="400"> LEVEL</tspan></text>'
         % (SCHRIFT, DUNKEL, TUERKIS, GRAU),
-        qr1, qr2,
-        ziffer(ZIFFER1_X, oben + QR_GROESSE / 2, 1),
-        ziffer(45.5, oben + QR_GROESSE / 2, 2),
-        # Kein "ohne Passwort": Das las sich wie das Einbinden ins
-        # Heim-WLAN, und dort gibt man sehr wohl eines ein. Die Adresse steht
-        # als Ausweg da, falls sich die Seite einmal nicht von selbst oeffnet.
-        text(mitte1, unten + 5.3, "Handy verbinden", 3.1, DUNKEL, 700),
-        text(mitte1, unten + 8.7, "Connect your phone", 2.5, GRAU),
-        text(mitte1, unten + 12.5, "Netz %s · %s" % (netz, ip), 2.3, DUNKEL),
-        text(mitte2, unten + 5.3, "Im Heim-WLAN", 3.1, DUNKEL, 700),
-        text(mitte2, unten + 8.7, "On your home Wi-Fi", 2.5, GRAU),
-        text(mitte2, unten + 12.5, "%s.local" % name, 2.3, DUNKEL),
-        "</svg>",
     ]
-    ruhe = min(m1, m2) * 4
+    module = []
+    for i, (inhalt, fett, englisch, detail) in enumerate(codes):
+        mitte = SPALTEN[i]
+        pfad, version, n, m = qr_pfad(inhalt, mitte - QR_GROESSE / 2, QR_OBEN, QR_GROESSE)
+        module.append(m)
+        teile += [
+            ziffer(mitte, ZIFFER_Y, i + 1),
+            pfad,
+            text(mitte, unten + 5.1, fett, 2.7, DUNKEL, 700),
+            text(mitte, unten + 8.3, englisch, 2.3, GRAU),
+            text(mitte, unten + 11.6, detail, 2.1, DUNKEL),
+        ]
+        print("Code %d  %-36s Version %d, %d Module, %.2f mm je Modul"
+              % (i + 1, inhalt, version, n, m))
+    teile.append("</svg>")
+
     # Ruhezone pruefen statt hoffen: vier Module frei um jeden Code.
+    ruhe = min(module) * 4
+    links = SPALTEN[0] - QR_GROESSE / 2
     abstaende = {
-        "Code 1 oben": oben - 8.2,          # Unterkante der Bildmarke
-        "Code 1 links": links - (ZIFFER1_X + 2.3),
-        "zwischen den Codes": rechts - (links + QR_GROESSE),
-        "Code 2 links": rechts - (45.5 + 2.3),
-        "Code 2 rechts": BREITE - (rechts + QR_GROESSE),
-        "unter den Codes": (unten + 5.3 - 3.1 * 0.72) - unten,
+        "links": links,
+        "rechts": BREITE - (SPALTEN[-1] + QR_GROESSE / 2),
+        "zwischen den Codes": min(SPALTEN[i + 1] - SPALTEN[i] for i in range(2)) - QR_GROESSE,
+        "ueber den Codes": QR_OBEN - (ZIFFER_Y + 2.3),
+        "unter den Codes": (unten + 5.1 - 2.7 * 0.72) - unten,
     }
     zu_eng = [k for k, v in abstaende.items() if v < ruhe]
     if zu_eng:
         sys.exit("Ruhezone (%.1f mm) zu knapp: %s" % (ruhe, ", ".join(zu_eng)))
-    print("Code 1  %-36s Version %d, %d Module, %.2f mm je Modul" % (unterwegs, v1, n1, m1))
-    print("Code 2  %-36s Version %d, %d Module, %.2f mm je Modul" % (zuhause, v2, n2, m2))
     return "\n".join(teile) + "\n"
 
 
