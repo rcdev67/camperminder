@@ -1,16 +1,16 @@
 # CamperMinder Level — Anleitung
 
 Diese Anleitung gehört zu jedem Gerät, auch zu den ersten Prototypen. Sie
-bringt dich in einer Minute zur Wasserwaage auf dem Handy: **ohne App, ohne
-Konto, ohne Koppeln.** Alles, was danach kommt, ist freiwillig.
+bringt dich in einer Minute zum Nivellierungssystem auf dem Handy: **ohne App, ohne
+Konto, ohne Koppeln.** Alles, was danach kommt, ist eine Erweiterung.
 
-## In einer Minute zur Wasserwaage
+## In einer Minute zum Nivellierungssystem
 
-![Aufkleber mit drei QR-Codes. 1: Handy verbinden, Netz CamperMinder. 2: Wasserwaage öffnen, 192.168.4.1. 3: Im Heim-WLAN, camperminder-level.local](bilder/aufkleber-qr.svg)
+![Aufkleber mit drei QR-Codes. 1: Handy verbinden, Netz CamperMinder. 2: Nivellierungssystem, 192.168.4.1. 3: Im eigenen WLAN, camperminder-level.local](bilder/aufkleber-qr.svg)
 
 Auf dem Gerät klebt dieser Aufkleber mit drei Codes. Du brauchst nichts zu
 tippen: Für den ersten Start scannst du **Code 1 und dann Code 2**, Code 3
-kommt erst später dazu, wenn das Gerät in deinem WLAN zu Hause ist. Die
+kommt erst später dazu, wenn das Gerät in deinem WLAN ist. Die
 Codes hier in der Anleitung funktionieren genauso wie die auf dem Gerät.
 
 **Womit scannen:** Mit der Kamera-App des Handys — die Kamera auf den Code
@@ -31,21 +31,21 @@ von QR-Codes vielleicht abgeschaltet.
 
 2. **Code 1 scannen: Handy verbinden.** Das Handy fragt, ob es dem Netz
    **CamperMinder** beitreten soll: **Verbinden** bzw. **Beitreten**
-   bestätigen. Das ist das eigene Netz des Geräts, nicht dein WLAN zu Hause —
+   bestätigen. Das ist das eigene Netz des Geräts, nicht dein eigenes WLAN, etwa der Router im Fahrzeug —
    ein Passwort braucht es ab Werk nicht.
 
    Weil dieses Netz kein Internet hat, reagiert jedes Handy etwas anders:
-   - **iPhone:** Oft öffnet sich die Wasserwaage jetzt **von selbst**, in
+   - **iPhone:** Oft öffnet sich die Bedienseite jetzt **von selbst**, in
      einem Fenster namens *Anmelden*. Dann bist du fertig und brauchst Code 2
      nicht. Wenn du das Fenster schließt, fragt das iPhone, wie es weitergehen
      soll: **Ohne Internet verwenden.** Öffnet sich nichts, weiter mit Code 2.
-   - **Android:** Die Wasserwaage öffnet sich meist **nicht** von selbst. Das
+   - **Android:** Die Bedienseite öffnet sich meist **nicht** von selbst. Das
      Handy zeigt eventuell an, das Netz habe kein Internet, und fragt, ob es
      verbunden bleiben soll: **Ja** bzw. **Verbindung beibehalten.** Dann
      weiter mit Code 2.
 
-3. **Code 2 scannen: Wasserwaage öffnen.** Die Seite `192.168.4.1` öffnet
-   sich im Browser, die Wasserwaage ist da.
+3. **Code 2 scannen: Bedienseite öffnen.** Die Seite `192.168.4.1` öffnet
+   sich im Browser, dein Nivellierungssystem ist bereit.
 
 Mehr ist für den Betrieb nicht nötig. Das Gerät braucht kein Internet, und
 du kannst die Seite jederzeit wieder so öffnen: im Netz CamperMinder Code 2
@@ -112,12 +112,12 @@ Die Wahl gilt **je Handy**, nicht je Gerät — zwei Leute in einem Fahrzeug
 lesen so jeder in seiner Sprache. Die Namen der Messwerte bleiben deutsch,
 damit Home Assistant und MQTT bei einem Sprachwechsel weiter zusammenpassen.
 
-## Ins eigene WLAN (freiwillig)
+## Ins eigene WLAN (Erweiterung)
 
 Nur nötig für automatische Updates und Home Assistant. Ohne diesen Schritt
 funktioniert alles andere unverändert, unterwegs sowieso.
 
-1. Zu Hause das Handy mit dem Netz **CamperMinder** verbinden (Code 1) und
+1. Das Handy mit dem Netz **CamperMinder** verbinden (Code 1) und
    die Seite mit **Code 2** öffnen — Code 2 öffnet sie im richtigen Browser.
    **Nicht im Fenster *Anmelden*** des iPhone arbeiten: Das schließt sich,
    sobald das Handy das Netz wechselt, und dann kann die Seite das Gerät nicht
@@ -131,12 +131,12 @@ funktioniert alles andere unverändert, unterwegs sowieso.
 3. **Im Heimnetz öffnen** tippen und dort das Symbol neu auf den
    Home-Bildschirm legen.
 
-Damit hast du zwei Symbole, und beide bleiben richtig. Zu Hause gilt die neue
-Adresse. Unterwegs, wenn dein WLAN außer Reichweite ist, öffnet das Gerät nach
+Damit hast du zwei Symbole, und beide bleiben richtig. Ist das Gerät in deinem
+WLAN, gilt die neue Adresse. Ist dein WLAN nicht in Reichweite, öffnet das Gerät nach
 etwa 20 Sekunden wieder sein eigenes Netz, und es gilt `192.168.4.1`. Die
 Zugangsdaten bleiben gespeichert.
 
-**Code 3 auf dem Aufkleber** öffnet das Gerät zu Hause über seinen Namen,
+**Code 3 auf dem Aufkleber** öffnet das Gerät in deinem WLAN über seinen Namen,
 `camperminder-level.local`, ganz gleich, welche Adresse dein Router ihm gibt.
 Dein Handy muss dafür in deinem WLAN sein, nicht im Netz CamperMinder. Auf
 dem iPhone klappt das, auf Android nicht auf jedem Gerät. Öffnet Code 3 dort
@@ -146,8 +146,8 @@ Welcher Code wann:
 
 | Du bist … | Code |
 |---|---|
-| unterwegs oder beim ersten Start, das Gerät hat sein eigenes Netz offen | **1**, dann **2** |
-| zu Hause, das Gerät ist in deinem WLAN | **3** |
+| beim ersten Start, oder dein WLAN ist nicht in Reichweite: das Gerät hat sein eigenes Netz offen | **1**, dann **2** |
+| das Gerät ist in deinem WLAN | **3** |
 
 **Kommt das Netz CamperMinder nach einer halben Minute wieder,** hat die
 Anmeldung nicht geklappt, meist wegen eines Tippfehlers im Passwort. Die Seite
@@ -166,10 +166,10 @@ sagt das dann auch. Einfach wieder verbinden, berichtigen, speichern.
   WLAN*.
 
 Die Suche findet nichts in Gäste-WLANs, die ihre Geräte voneinander
-abschotten, und in ungewöhnlich eingerichteten Heimnetzen. Dann bleibt der
+abschotten, und in ungewöhnlich eingerichteten Netzen. Dann bleibt der
 Blick in den Router.
 
-## Fernalarm einrichten (freiwillig)
+## Fernalarm einrichten (Erweiterung)
 
 Der Wächter meldet eine Lageänderung an alle, die das Gerät erreichen — im
 eigenen Netz. Wer am Strand steht, während das Fahrzeug aufgebockt wird,
@@ -181,7 +181,7 @@ betreibst oder benutzt.
 ist der Preis dafür, dass es nichts kostet und niemand mitliest.
 
 Reiter **Technik** → Abschnitt **Fernalarm**: Adresse eintragen, speichern,
-**Testmeldung senden**. Der letzte Schritt ist nicht freiwillig — ein
+**Testmeldung senden**. Der letzte Schritt gehört unbedingt dazu — ein
 Alarmweg, den niemand ausprobiert hat, ist keiner.
 
 ### Was in das Feld gehört
@@ -354,9 +354,26 @@ während der Fahrt.
 
 ## Mit Home Assistant
 
-Sobald das Gerät im heimischen WLAN hängt, findet Home Assistant es über
+Sobald das Gerät in deinem WLAN ist, findet Home Assistant es über
 ESPHome von selbst. Die Integration **CamperMinder** kommt über HACS und bringt
 die Bedienkarte mit; Firmware-Updates meldet Home Assistant dann automatisch.
+
+### Meldungen aufs Handy: die Blueprints
+
+Drei fertige Automatisierungen bringen die Meldungen des Geräts dorthin, wo du
+sie liest. In Home Assistant: *Einstellungen → Automatisierungen & Szenen →
+Blueprints → Blueprint importieren*, dann die Adresse einfügen:
+
+- Kühlschrankwarnung:
+  `https://github.com/rcdev67/camperminder/blob/main/blueprints/automation/camperminder/kuehlschrank_warnung.yaml`
+- Wächteralarm:
+  `https://github.com/rcdev67/camperminder/blob/main/blueprints/automation/camperminder/waechter_alarm.yaml`
+- Frostwarnung:
+  `https://github.com/rcdev67/camperminder/blob/main/blueprints/automation/camperminder/frostwarnung.yaml`
+
+Danach *Automatisierung erstellen → Aus einem Blueprint*, das Gerät auswählen
+und unter „Was soll passieren?" eintragen, wie du benachrichtigt werden willst.
+Einzelheiten: [blueprints/README.md](../blueprints/README.md).
 
 Beide Betriebsarten laufen auf derselben Firmware. Wer klein anfängt, kann
 jederzeit umsteigen — ohne neue Software, ohne neues Gerät.
@@ -371,7 +388,7 @@ jederzeit umsteigen — ohne neue Software, ohne neues Gerät.
 | Nach Code 1 öffnet sich nichts | Auf Android normal: Code 2 scannen. Auf Samsung geht auch *WLAN → Zahnrad bei CamperMinder → Router verwalten*. |
 | Code 2 öffnet nichts oder „Seite nicht erreichbar" | Das Handy ist nicht (mehr) im Netz CamperMinder. Erst Code 1, dann noch einmal Code 2. |
 | Code 3 öffnet nichts | Code 3 gilt nur, wenn das Gerät in deinem WLAN ist und das Handy auch. Auf manchen Android-Handys geht `.local` gar nicht: dann das Symbol aus *Ins eigene WLAN*, Schritt 3, oder die Adresse aus dem Router. |
-| Das Handy springt aus dem Netz CamperMinder zurück | Es sucht Internet und nimmt lieber dein WLAN zu Hause. *Verbunden bleiben* bestätigen; hilft das nicht, beim Heim-WLAN *Automatisch verbinden* kurz ausschalten oder die mobilen Daten. |
+| Das Handy springt aus dem Netz CamperMinder zurück | Es sucht Internet und nimmt lieber dein WLAN. *Verbunden bleiben* bestätigen; hilft das nicht, bei deinem WLAN *Automatisch verbinden* kurz ausschalten oder die mobilen Daten. |
 | `192.168.4.1` lädt nicht | Vollständig eingeben: `http://192.168.4.1`. Manche Browser machen sonst eine Suche daraus. Das Handy muss im Netz CamperMinder sein. |
 | Längs und quer sind vertauscht | Das Gehäuse ist verdreht eingebaut. Der Pfeil muss nach vorn zeigen. |
 | Die Blase springt bei der kleinsten Bewegung von Rand zu Rand | Kopfüber eingebaut, aber die *Einbaulage* steht auf *Deckel oben*. |
@@ -387,7 +404,7 @@ lief, und zwar so genau, wie du es noch weißt:
   Android 15".
 - **Die erste Minute**: Wie lange hat es vom Anschließen bis zur ersten
   Anzeige gedauert, und wo hast du gestockt?
-- **Die Codes**: Hat sich nach Code 1 die Wasserwaage **von selbst**
+- **Die Codes**: Hat sich nach Code 1 die Bedienseite **von selbst**
   geöffnet, oder brauchtest du Code 2? Hat das Handy etwas gemeldet, etwa
   „kein Internet" oder „anmelden"? Das unterscheidet sich von Handy zu Handy,
   und genau das wollen wir wissen.

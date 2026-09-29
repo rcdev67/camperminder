@@ -1,0 +1,699 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>CamperMinder Level – Anleitung</title>
+<!-- Quelle der Kunden-PDF. Erzeugen: tools\anleitung_pdf.py (Edge, headless).
+     Die PDF nicht von Hand aendern. -->
+<style>
+  @page { size: A4; margin: 18mm 17mm 20mm 17mm;
+    @bottom-center { content: "CamperMinder Level  ·  Seite " counter(page); font: 8.5pt "Segoe UI", Arial, sans-serif; color: #6b7787; } }
+  @page :first { margin: 0; @bottom-center { content: none; } }
+  :root { --teal:#2fb6c9; --teald:#1c8797; --ink:#1b2430; --mut:#6b7787; --line:#d5dce3; --soft:#f3f7f9; --warn:#fff6e0; --warnb:#e2a72e; }
+  * { box-sizing: border-box; }
+  html { font: 10.3pt/1.5 "Segoe UI", Arial, sans-serif; color: var(--ink); }
+  body { margin: 0; }
+  h1 { font-size: 30pt; margin: 0 0 4mm; line-height: 1.1; }
+  h2 { font-size: 16pt; margin: 9mm 0 3mm; padding-bottom: 1.5mm; border-bottom: 2px solid var(--teal); break-after: avoid; }
+  h3 { font-size: 11.5pt; margin: 6mm 0 1.5mm; color: var(--teald); break-after: avoid; }
+  p { margin: 0 0 2.6mm; }
+  ul, ol { margin: 0 0 3mm; padding-left: 6mm; }
+  li { margin-bottom: 1.4mm; }
+  code { font: 9pt Consolas, "Courier New", monospace; background: #eef2f5; padding: 0 1.2mm; border-radius: 1mm; word-break: break-all; }
+  pre { font: 8.6pt/1.4 Consolas, "Courier New", monospace; background: #eef2f5; padding: 2.5mm 3mm; border-radius: 2mm; white-space: pre-wrap; word-break: break-all; margin: 0 0 3mm; }
+  table { border-collapse: collapse; width: 100%; margin: 0 0 4mm; font-size: 9.5pt; }
+  th, td { border: 1px solid var(--line); padding: 1.6mm 2.4mm; vertical-align: top; text-align: left; }
+  th { background: var(--soft); }
+  tr { break-inside: avoid; }
+  figure { margin: 3mm 0 5mm; text-align: center; break-inside: avoid; }
+  figure svg, figure img { max-width: 100%; height: auto; }
+  figcaption { font-size: 8.8pt; color: var(--mut); margin-top: 1.5mm; }
+  .tip, .warn { padding: 2.5mm 3.5mm; border-radius: 2mm; margin: 0 0 4mm; break-inside: avoid; }
+  .tip { background: #e8f6f9; border-left: 1.4mm solid var(--teal); }
+  .warn { background: var(--warn); border-left: 1.4mm solid var(--warnb); }
+  .tip p:last-child, .warn p:last-child { margin: 0; }
+  .cover { height: 297mm; padding: 26mm 22mm; background: linear-gradient(180deg,#fff 0,#fff 62%,#e8f6f9 100%); position: relative; break-after: page; }
+  .cover .logo { width: 105mm; margin-bottom: 30mm; }
+  .cover .sub { font-size: 14pt; color: var(--mut); margin-bottom: 14mm; }
+  .cover ol { font-size: 11pt; line-height: 1.7; padding-left: 7mm; }
+  .cover .foot { position: absolute; left: 22mm; bottom: 20mm; color: var(--mut); font-size: 9.5pt; }
+  .led { display: inline-block; width: 3.4mm; height: 3.4mm; border-radius: 50%; vertical-align: -0.4mm; margin-right: 1.5mm; }
+  .g { background:#2bb24c; } .r { background:#e0362c; } .o { background:#fff; border:1.5px solid #e0362c; }
+  .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 6mm; }
+  .grid3 { display: grid; grid-template-columns: 1fr 1.5fr 1fr; gap: 4mm; align-items: center; margin-bottom: 3mm; }
+  .grid3 figure { margin: 0; }
+  .keep { break-inside: avoid; }
+  a { color: var(--teald); text-decoration: none; }
+</style>
+</head>
+<body>
+
+<!-- ============================ TITEL ============================ -->
+<section class="cover">
+  <img class="logo" src="../../brand/camperminder-wordmark-light.svg" alt="CamperMinder">
+  <h1>CamperMinder Level</h1>
+  <div class="sub">Anleitung – vom Auspacken bis zum Nivellierungssystem auf dem Handy</div>
+  <p style="max-width:120mm"><strong>Ohne App, ohne Konto, ohne Koppeln.</strong> Alles, was über die erste Minute
+    hinausgeht, ist eine Erweiterung, die du bei Bedarf dazunimmst.</p>
+  <ol style="margin-top:14mm">
+    <li>In einer Minute zum Nivellierungssystem</li>
+    <li>Einbauen</li>
+    <li>Einmal einrichten</li>
+    <li>Die Anzeige verstehen</li>
+    <li>Was die Leuchten sagen</li>
+    <li>Sprache</li>
+    <li>Ins eigene WLAN (Erweiterung)</li>
+    <li>Fernalarm einrichten (Erweiterung)</li>
+    <li>Software-Updates</li>
+    <li>Mit Home Assistant (Erweiterung)</li>
+    <li>MQTT – Anbindung an andere Systeme (Erweiterung)</li>
+    <li>Wenn etwas nicht klappt</li>
+  </ol>
+  <div class="foot">Stand: September 2026</div>
+</section>
+
+<!-- ======================== 1 EINE MINUTE ======================== -->
+<h2 style="margin-top:0">1 · In einer Minute zum Nivellierungssystem</h2>
+
+<figure>
+  <img src="../bilder/aufkleber-qr.svg" style="width:120mm" alt="Aufkleber mit drei QR-Codes">
+  <figcaption>Der Aufkleber auf dem Gerät. Die Codes in dieser Anleitung funktionieren genauso wie die auf dem Gerät.</figcaption>
+</figure>
+
+<p>Auf dem Gerät klebt dieser Aufkleber mit drei Codes. Du brauchst nichts zu tippen: Für den ersten Start
+scannst du <strong>Code 1 und dann Code 2</strong>. Code 3 kommt erst später dazu, wenn das Gerät in deinem
+WLAN ist.</p>
+
+<p><strong>Womit scannen:</strong> Mit der Kamera-App des Handys – die Kamera auf den Code halten, bis ein Hinweis
+erscheint, und den antippen. Auf Android geht auch Google Lens. Liest die Kamera nichts, ist in ihren Einstellungen
+das Scannen von QR-Codes vielleicht abgeschaltet.</p>
+
+<figure>
+<svg viewBox="0 0 700 175" width="700" font-family="Segoe UI, Arial, sans-serif">
+  <defs><marker id="ar" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0 L8 4 L0 8 Z" fill="#1c8797"/></marker></defs>
+  <g fill="#fff" stroke="#c9d1da" stroke-width="1.5">
+    <rect x="4" y="20" width="150" height="130" rx="10"/><rect x="184" y="20" width="150" height="130" rx="10"/>
+    <rect x="364" y="20" width="150" height="130" rx="10"/><rect x="544" y="20" width="150" height="130" rx="10"/>
+  </g>
+  <g fill="#2fb6c9"><circle cx="79" cy="20" r="14"/><circle cx="259" cy="20" r="14"/><circle cx="439" cy="20" r="14"/><circle cx="619" cy="20" r="14"/></g>
+  <g fill="#fff" font-size="15" font-weight="700" text-anchor="middle"><text x="79" y="25">1</text><text x="259" y="25">2</text><text x="439" y="25">3</text><text x="619" y="25">4</text></g>
+  <g fill="#1b2430" font-size="13" text-anchor="middle" font-weight="600">
+    <text x="79" y="98">Strom</text><text x="79" y="116">anschließen</text>
+    <text x="259" y="98">Code 1 scannen</text><text x="259" y="116">Netz beitreten</text>
+    <text x="439" y="98">Code 2 scannen</text><text x="439" y="116">Seite öffnet sich</text>
+    <text x="619" y="98">Bedienseite</text><text x="619" y="116">ist da</text>
+  </g>
+  <!-- Symbole -->
+  <g stroke="#1b2430" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M86 44 L70 68 H80 L74 82 L92 58 H82 Z" fill="#2fb6c9" stroke="#1c8797"/>
+    <path d="M238 46 a24 24 0 0 1 42 0 M245 56 a14 14 0 0 1 28 0"/><circle cx="259" cy="66" r="2.5" fill="#1b2430"/>
+    <rect x="422" y="40" width="34" height="34" rx="4"/><rect x="428" y="46" width="9" height="9"/><rect x="441" y="46" width="9" height="9"/><rect x="428" y="59" width="9" height="9"/><path d="M443 62 h7 M443 68 h7"/>
+    <rect x="598" y="42" width="42" height="30" rx="4"/><path d="M606 66 L614 56 L620 62 L626 52 L634 66"/>
+  </g>
+  <g stroke="#1c8797" stroke-width="2.4" fill="none" marker-end="url(#ar)"><path d="M156 85 H180"/><path d="M336 85 H360"/><path d="M516 85 H540"/></g>
+</svg>
+<figcaption>Der ganze erste Start.</figcaption>
+</figure>
+
+<ol>
+<li><strong>Strom anschließen</strong>, auf einem von zwei Wegen:
+  <ul>
+   <li><strong>USB-C</strong>, 5 V: an eine USB-Steckdose im Fahrzeug, ein USB-Netzteil oder eine Powerbank.</li>
+   <li><strong>Schraubklemme</strong>, 7 bis 36 V: <strong>VIN</strong> an Plus, <strong>GND</strong> an Minus der
+     Aufbaubatterie, also 12 oder 24 V direkt aus dem Bordnetz. Falsch herum angeklemmt passiert nichts, es geht nur nichts.</li>
+  </ul>
+  Beide dürfen auch gleichzeitig stecken, dann versorgt die stärkere Quelle. Die <span class="led g"></span><strong>grüne</strong> Leuchte
+  zeigt: Strom ist da. Nach wenigen Sekunden ist das Netz <strong>CamperMinder</strong> bereit.</li>
+<li><strong>Code 1 scannen: Handy verbinden.</strong> Das Handy fragt, ob es dem Netz <strong>CamperMinder</strong> beitreten soll:
+  <strong>Verbinden</strong> bzw. <strong>Beitreten</strong> bestätigen. Das ist das eigene Netz des Geräts, nicht dein eigenes WLAN, etwa der Router im Fahrzeug –
+  ein Passwort braucht es ab Werk nicht.
+  <p style="margin-top:2mm">Weil dieses Netz kein Internet hat, reagiert jedes Handy etwas anders:</p>
+  <ul>
+   <li><strong>iPhone:</strong> Oft öffnet sich die Bedienseite jetzt <strong>von selbst</strong>, in einem Fenster namens <em>Anmelden</em>.
+     Dann bist du fertig und brauchst Code 2 nicht. Wenn du das Fenster schließt, fragt das iPhone, wie es weitergehen soll:
+     <strong>Ohne Internet verwenden.</strong> Öffnet sich nichts, weiter mit Code 2.</li>
+   <li><strong>Android:</strong> Die Bedienseite öffnet sich meist <strong>nicht</strong> von selbst. Das Handy zeigt eventuell an, das Netz
+     habe kein Internet, und fragt, ob es verbunden bleiben soll: <strong>Ja</strong> bzw. <strong>Verbindung beibehalten.</strong>
+     Dann weiter mit Code 2.</li>
+  </ul></li>
+<li><strong>Code 2 scannen: Bedienseite öffnen.</strong> Die Seite <code>192.168.4.1</code> öffnet sich im Browser, dein Nivellierungssystem ist bereit.</li>
+</ol>
+
+<p>Mehr ist für den Betrieb nicht nötig. Das Gerät braucht kein Internet, und du kannst die Seite jederzeit wieder so
+öffnen: im Netz CamperMinder Code 2 scannen.</p>
+
+<h3>Ohne Aufkleber, oder wenn ein Code nicht geht</h3>
+<ul>
+<li><strong>Statt Code 1:</strong> In den WLAN-Einstellungen des Handys <strong>CamperMinder</strong> wählen. Ab Werk hat dieses Netz kein
+  Passwort. Hast du unter <em>Technik → Eigenes Netz</em> ein eigenes vergeben, gilt deines – dann passt Code 1 nicht mehr, das Netz
+  musst du von Hand wählen.</li>
+<li><strong>Statt Code 2:</strong> Im Browser <code>192.168.4.1</code> eingeben. Manche Browser machen daraus eine Suche; dann vollständig
+  <code>http://192.168.4.1</code> eingeben.</li>
+<li><strong>Abkürzung auf Samsung-Handys:</strong> <em>Einstellungen → Verbindungen → WLAN</em>, beim verbundenen Netz <strong>CamperMinder</strong>
+  auf das Zahnrad tippen, dann <strong>Router verwalten</strong>. Das öffnet ebenfalls <code>192.168.4.1</code>.</li>
+</ul>
+
+<div class="tip"><p><strong>Ein Symbol wie eine App.</strong> Die Seite dafür im richtigen Browser öffnen, nicht im Fenster <em>Anmelden</em> des iPhone:
+auf dem iPhone in Safari <code>192.168.4.1</code> aufrufen, dann <em>Teilen → Zum Home-Bildschirm</em>; auf Android in Chrome, dann
+<em>⋮ → Zum Startbildschirm hinzufügen</em>. Code 2 öffnet die Seite bereits im richtigen Browser. Das Symbol öffnet sie im Vollbild –
+wo ein Bluetooth-Gerät eine App braucht, steckt hier die Seite im Gerät selbst, und jedes Update bringt sie mit.</p></div>
+
+<!-- ========================= 2 EINBAUEN ========================= -->
+<h2>2 · Einbauen</h2>
+
+<figure>
+<svg viewBox="0 0 700 270" width="700" font-family="Segoe UI, Arial, sans-serif">
+  <defs><marker id="ar2" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto"><path d="M0 0 L9 4.5 L0 9 Z" fill="#1c8797"/></marker></defs>
+  <text x="115" y="18" text-anchor="middle" font-size="14" font-weight="700" fill="#1b2430">Draufsicht</text>
+  <text x="115" y="40" text-anchor="middle" font-size="13" font-weight="700" fill="#1c8797">VORN = Fahrtrichtung</text>
+  <rect x="45" y="52" width="140" height="180" rx="14" fill="#eef2f6" stroke="#aab3bd" stroke-width="2"/>
+  <path d="M115 118 V60" stroke="#1c8797" stroke-width="3.5" marker-end="url(#ar2)"/>
+  <rect x="62" y="196" width="46" height="16" rx="3" fill="#c9d1da" stroke="#8a95a2"/>
+  <rect x="124" y="194" width="46" height="20" rx="3" fill="#2f6d55"/>
+  <text x="85" y="226" text-anchor="middle" font-size="11" fill="#1b2430">USB-C</text>
+  <text x="147" y="226" text-anchor="middle" font-size="11" fill="#1b2430">Klemme</text>
+  <text x="115" y="252" text-anchor="middle" font-size="12" fill="#6b7787">hinten</text>
+
+  <text x="365" y="18" text-anchor="middle" font-size="14" font-weight="700" fill="#1b2430">Deckel oben</text>
+  <text x="365" y="36" text-anchor="middle" font-size="12" fill="#6b7787">der Normalfall</text>
+  <rect x="285" y="96" width="160" height="50" rx="6" fill="#eef2f6" stroke="#aab3bd" stroke-width="2"/>
+  <text x="365" y="126" text-anchor="middle" font-size="12" fill="#6b7787">Deckel</text>
+  <rect x="270" y="146" width="190" height="10" fill="#6b7787"/>
+  <text x="365" y="178" text-anchor="middle" font-size="12" fill="#1b2430">flach auf eine feste Fläche</text>
+
+  <text x="595" y="18" text-anchor="middle" font-size="14" font-weight="700" fill="#1b2430">Deckel unten</text>
+  <text x="595" y="36" text-anchor="middle" font-size="12" fill="#6b7787">z. B. unter einem Regalbrett</text>
+  <rect x="500" y="80" width="190" height="10" fill="#6b7787"/>
+  <rect x="515" y="90" width="160" height="50" rx="6" fill="#eef2f6" stroke="#aab3bd" stroke-width="2"/>
+  <text x="595" y="120" text-anchor="middle" font-size="12" fill="#6b7787">Deckel</text>
+  <text x="595" y="166" text-anchor="middle" font-size="12" fill="#1b2430">danach einstellen:</text>
+  <text x="595" y="184" text-anchor="middle" font-size="12" font-weight="700" fill="#1c8797">Anzeige → Gerät → Einbaulage</text>
+</svg>
+<figcaption>Der Pfeil auf der Gehäusewand zeigt nach vorn. USB-Buchse und Klemme liegen hinten.</figcaption>
+</figure>
+
+<ul>
+<li><strong>Der Pfeil zeigt nach vorn.</strong> Er steht auf der Gehäusewand und zeigt in Fahrtrichtung, USB-Buchse und Klemme liegen hinten.
+  Um 90 Grad verdreht eingebaut verwechselt das Gerät längs und quer.</li>
+<li><strong>Deckel oben</strong> ist der Normalfall. Wer das Gehäuse unter ein Regalbrett klebt, stellt unter <em>Anzeige → Gerät → Einbaulage</em>
+  auf <strong>Deckel unten</strong> und kalibriert danach neu (siehe Abschnitt 3).</li>
+<li><strong>Fest und flach.</strong> Auf eine ebene, feste Fläche schrauben oder kleben. Ein Gerät, das wackelt, misst das Wackeln.</li>
+</ul>
+
+<!-- ======================= 3 EINRICHTEN ======================= -->
+<h2>3 · Einmal einrichten</h2>
+
+<h3>Schritt 1: Fahrzeug eintragen</h3>
+<p><em>Anzeige → Fahrzeug</em>: Fahrzeugart, Radstand und Spurweite. Aus den Maßen rechnet das Gerät, wie viele Zentimeter jede Ecke
+hoch muss.</p>
+
+<figure>
+<svg viewBox="0 0 640 300" width="520" font-family="Segoe UI, Arial, sans-serif">
+  <defs>
+    <marker id="a3" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto"><path d="M0 0 L9 4.5 L0 9 Z" fill="#1c8797"/></marker>
+    <marker id="a3s" markerWidth="9" markerHeight="9" refX="1" refY="4.5" orient="auto"><path d="M9 0 L0 4.5 L9 9 Z" fill="#1c8797"/></marker>
+  </defs>
+  <rect x="170" y="30" width="180" height="240" rx="30" fill="#eef2f6" stroke="#aab3bd" stroke-width="2"/>
+  <text x="260" y="60" text-anchor="middle" font-size="12" fill="#6b7787">vorn</text>
+  <g fill="#38506a"><rect x="150" y="70" width="20" height="46" rx="4"/><rect x="350" y="70" width="20" height="46" rx="4"/>
+    <rect x="150" y="190" width="20" height="46" rx="4"/><rect x="350" y="190" width="20" height="46" rx="4"/></g>
+  <!-- Radstand -->
+  <path d="M112 93 V213" stroke="#1c8797" stroke-width="2.4" marker-start="url(#a3s)" marker-end="url(#a3)"/>
+  <path d="M120 93 H150 M120 213 H150" stroke="#1c8797" stroke-width="1" stroke-dasharray="3 3"/>
+  <text x="104" y="158" text-anchor="middle" font-size="13" font-weight="700" fill="#1c8797" transform="rotate(-90 104 158)">Radstand</text>
+  <!-- Spurweite -->
+  <path d="M160 258 H360" stroke="#1c8797" stroke-width="2.4" marker-start="url(#a3s)" marker-end="url(#a3)"/>
+  <path d="M160 236 V262 M360 236 V262" stroke="#1c8797" stroke-width="1" stroke-dasharray="3 3"/>
+  <text x="260" y="288" text-anchor="middle" font-size="13" font-weight="700" fill="#1c8797">Spurweite</text>
+  <text x="440" y="150" font-size="12" fill="#1b2430">Radstand: Vorder- bis</text><text x="440" y="166" font-size="12" fill="#1b2430">Hinterachse (mm)</text>
+  <text x="440" y="200" font-size="12" fill="#1b2430">Spurweite: linkes bis</text><text x="440" y="216" font-size="12" fill="#1b2430">rechtes Rad (mm)</text>
+</svg>
+<figcaption>Die beiden Maße. Auf ±5 cm genau reicht völlig – geschätzte Fantasiewerte nicht.</figcaption>
+</figure>
+
+<p>Die Maße bestimmen zweierlei: wie hoch jede Ecke angehoben werden muss – und ab wann „eben“ gilt. Grob falsche Maße verschieben
+also auch den Punkt, an dem das Gerät „steht eben, Stopp“ sagt.</p>
+
+<h3>Schritt 2: Fahrzeug waagerecht stellen und kalibrieren</h3>
+<p>Das Fahrzeug einmal <strong>wirklich waagerecht</strong> stellen, mit einer Wasserwaage längs und quer geprüft, und auf
+<em>Anzeige</em> unter den Ansichten <strong>Neigung kalibrieren</strong> tippen. Ab Werk ist der Sensor bereits kalibriert; dieser
+Schritt gleicht aus, wie das Gerät in deinem Fahrzeug sitzt.</p>
+<ul>
+<li><strong>Das ist die größte Fehlerquelle, nicht der Sensor.</strong> Alles, was hier schiefsteht, steckt dauerhaft in allen späteren
+  Zentimeter-Angaben.</li>
+<li>Während des Drückens <strong>nicht im Fahrzeug bewegen</strong>.</li>
+<li>Danach <strong>rund eine Minute am Strom lassen</strong>: Erst dann ist der Nullpunkt dauerhaft gespeichert und übersteht
+  jeden Neustart.</li>
+<li><strong>Neu kalibrieren</strong> musst du nach jeder Änderung der Einbaulage (oben/unten) und wenn du das Gerät umsetzt.</li>
+</ul>
+
+<div class="tip"><p><strong>Wie lange hält die Kalibrierung?</strong> Solange das Gerät nicht bewegt wird, unbegrenzt – sie übersteht
+Stromausfall und Software-Update. Ein Wohnmobil erlebt allerdings zwischen Winternacht und Sommermittag 40 bis 50 Grad Unterschied, und
+der Nullpunkt jedes Beschleunigungssensors wandert ein wenig mit der Temperatur. Scheint die Anzeige über die Jahreszeit zu wandern,
+einfach noch einmal kalibrieren.</p></div>
+
+<!-- ======================= 4 ANZEIGE ======================= -->
+<h2>4 · Die Anzeige verstehen</h2>
+
+<p>Die Bedienseite zeigt dein Fahrzeug in drei Ansichten: von oben mit einer wandernden Blase, von der Seite und von hinten,
+dazu eine Anweisung in Klartext, welche Ecke wie viele Zentimeter angehoben werden muss. Die Grafik richtet sich nach der Fahrzeugart,
+die du eingestellt hast.</p>
+
+<div class="grid3 keep">
+  <figure><img src="../../custom_components/camperminder/www/camper_top.svg" style="height:50mm" alt="Wohnmobil von oben"><figcaption>Wohnmobil: Draufsicht</figcaption></figure>
+  <figure><img src="../../custom_components/camperminder/www/camper_side.svg" style="width:100%" alt="Wohnmobil von der Seite"><figcaption>Seitenansicht (längs)</figcaption></figure>
+  <figure><img src="../../custom_components/camperminder/www/camper_rear.svg" style="height:40mm" alt="Wohnmobil von hinten"><figcaption>Heckansicht (quer)</figcaption></figure>
+</div>
+<div class="grid3 keep">
+  <figure><img src="../../custom_components/camperminder/www/caravan_top.svg" style="height:50mm" alt="Wohnwagen von oben"><figcaption>Wohnwagen: Draufsicht</figcaption></figure>
+  <figure><img src="../../custom_components/camperminder/www/caravan_side.svg" style="width:100%" alt="Wohnwagen von der Seite"><figcaption>Seitenansicht (längs)</figcaption></figure>
+  <figure><img src="../../custom_components/camperminder/www/caravan_rear.svg" style="height:40mm" alt="Wohnwagen von hinten"><figcaption>Heckansicht (quer)</figcaption></figure>
+</div>
+<h3>Die Toleranz ist der Maßstab</h3>
+<p>Die Toleranz ist nicht nur die Grenze zwischen „eben“ und „nicht eben“, sondern der Maßstab der Anzeige selbst:
+<strong>Toleranzgrenze = Rand der grünen Zone.</strong> Steht das Fahrzeug innerhalb der Toleranz, steht die Blase in der Mitte, die
+Anzeigen stehen mittig und die Seitenansichten waagerecht.</p>
+<p>Deshalb sieht die Anzeige mit 5 cm Toleranz gröber aus als mit 1 cm. Sie zeigt dieselbe Messung, nur an dem Maßstab, den du
+vorgegeben hast: Wer 5 cm erlaubt, will bei 4 cm nicht sehen, dass 4 cm fehlen – er will sehen, dass er fertig ist.</p>
+<p><strong>Einmal „eben“ bleibt „eben“,</strong> bis die Neigung deutlich über die Toleranz hinausgeht. So springt die Anzeige an der
+Grenze nicht hin und her.</p>
+
+<h3>Wie ruhig soll die Anzeige sein?</h3>
+<p>Das ist Geschmack: Der eine will, dass sie steht wie angenagelt, der andere will jede Regung sehen. Deshalb gibt es zwei Regler, auf
+der Bedienseite unter <strong>Anzeige</strong>. Sie wirken sofort, ohne Neustart – zum Ausprobieren im Fahrzeug.</p>
+
+<table>
+<tr><th>Was du beobachtest</th><th>Regler</th><th>Richtung</th></tr>
+<tr><td>zappelt im Stand noch</td><td><strong>Anzeigeruhe</strong></td><td>höher</td></tr>
+<tr><td>hinkt beim Auffahren hinterher</td><td><strong>Anzeigeruhe</strong></td><td>niedriger</td></tr>
+<tr><td>folgt beim Rangieren zu ruckelig</td><td><strong>Anzeigeruhe</strong></td><td>höher</td></tr>
+<tr><td>springt an der Toleranzgrenze hin und her</td><td><strong>Haltebereich</strong></td><td>höher</td></tr>
+</table>
+
+<p><strong>Anzeigeruhe</strong> geht von 0 bis 10, Vorgabe 5. Sie ändert nichts an der Messung und nichts an der Toleranz – nur die Geduld.</p>
+
+<table>
+<tr><th>Ruhe</th><th>Reaktionszeit</th><th>Woran man es merkt</th></tr>
+<tr><td>0</td><td>sofort</td><td>die Zahl lebt, jede Regung sofort</td></tr>
+<tr><td>2</td><td>rund 1 s</td><td>leichtes Wandern der letzten Stelle</td></tr>
+<tr><td><strong>5</strong></td><td>rund 6 s</td><td><strong>steht im Stand still</strong></td></tr>
+<tr><td>10</td><td>rund 24 s</td><td>steht ebenso still, folgt aber träger</td></tr>
+</table>
+
+<div class="tip"><p><strong>Zum Ausprobieren nach unten drehen, nicht nach oben.</strong> Oberhalb von etwa 3 wird die Anzeige nicht mehr sichtbar
+ruhiger, sie reagiert nur noch später. Den Unterschied zwischen 5 und 10 siehst du nicht im Stillstand, sondern wenn du dich ans Fahrzeug lehnst.</p></div>
+
+<p><strong>Haltebereich</strong> in Prozent, Vorgabe 125: Wie weit die Neigung über die Toleranz hinausgehen darf, bevor „eben“ zurückgenommen wird.
+100 % heißt sofort – dann springt die Anzeige an der Grenze hin und her.</p>
+
+<h3>Präzisionsmodus</h3>
+<p>Wem die Anzeige zu grob ist, schaltet den <strong>Präzisionsmodus</strong> ein: Dort steht die Blase auch innerhalb der Toleranz an ihrer
+echten Stelle, die Winkel stehen mit zwei Nachkommastellen da, und statt der Zentimeter gilt <strong>Toleranz genau</strong> in Grad – dieselbe
+Zahl für beide Achsen. Der Schalter sitzt auf der Bedienseite unter <em>Fahrzeug</em>.</p>
+
+<!-- ======================= 5 LEUCHTEN ======================= -->
+<h2>5 · Was die Leuchten sagen</h2>
+
+<table>
+<tr><th style="width:38mm">Leuchte</th><th>Bedeutung</th></tr>
+<tr><td><span class="led g"></span><strong>grün</strong>, an</td><td>Strom ist da</td></tr>
+<tr><td><span class="led r"></span><strong>rot</strong>, lang an, lang aus</td><td>Das eigene Netz ist offen: Code 1, dann Code 2 – oder von Hand mit <strong>CamperMinder</strong> verbinden und <code>192.168.4.1</code> öffnen</td></tr>
+<tr><td><span class="led r"></span><strong>rot</strong>, ein kurzes Blinken alle drei Sekunden</td><td>Das Gerät ist in deinem WLAN</td></tr>
+<tr><td><span class="led r"></span><strong>rot</strong>, gleichmäßig im Halbsekundentakt</td><td>Der Sensor antwortet nicht. Bitte melden.</td></tr>
+<tr><td><span class="led r"></span><strong>rot</strong>, hektisches Doppelblinken, dazu drei Töne</td><td><strong>Wächteralarm:</strong> Das Fahrzeug hat seine Lage verändert</td></tr>
+<tr><td><span class="led o"></span><strong>rot</strong> aus</td><td>Die Leuchte ist mit dem Schalter <em>Status-LED</em> abgeschaltet. Ein Alarm blinkt trotzdem.</td></tr>
+</table>
+
+<!-- ======================= 6 SPRACHE ======================= -->
+<h2>6 · Sprache</h2>
+<p>Die Bedienseite spricht <strong>Deutsch und Englisch</strong>. Ohne eigene Wahl richtet sie sich nach der Spracheinstellung des Handys;
+umstellen unter Reiter <strong>Technik</strong> → <strong>Sprache</strong>.</p>
+<p>Die Wahl gilt <strong>je Handy</strong>, nicht je Gerät – zwei Leute in einem Fahrzeug lesen so jeder in seiner Sprache. Die Namen der
+Messwerte bleiben deutsch, damit Home Assistant und MQTT bei einem Sprachwechsel weiter zusammenpassen.</p>
+
+<!-- ======================= 7 WLAN ======================= -->
+<h2>7 · Ins eigene WLAN (Erweiterung)</h2>
+<p>Nur nötig für automatische Updates und Home Assistant. Ohne diesen Schritt funktioniert alles andere unverändert, unterwegs sowieso.</p>
+
+<figure>
+<svg viewBox="0 0 700 250" width="700" font-family="Segoe UI, Arial, sans-serif">
+  <g fill="#fff" stroke="#c9d1da" stroke-width="1.5"><rect x="4" y="4" width="340" height="242" rx="12"/><rect x="356" y="4" width="340" height="242" rx="12"/></g>
+  <text x="174" y="32" text-anchor="middle" font-size="14" font-weight="700" fill="#1b2430">Erster Start / kein WLAN in Reichweite</text>
+  <text x="526" y="32" text-anchor="middle" font-size="14" font-weight="700" fill="#1b2430">Gerät in deinem WLAN</text>
+  <!-- links -->
+  <rect x="34" y="88" width="56" height="88" rx="9" fill="#eef2f6" stroke="#6b7787" stroke-width="2"/><text x="62" y="192" text-anchor="middle" font-size="12">Handy</text>
+  <rect x="254" y="100" width="64" height="64" rx="9" fill="#2fb6c9"/><text x="286" y="184" text-anchor="middle" font-size="12">Gerät</text>
+  <path d="M96 132 H248" stroke="#1c8797" stroke-width="2.4" stroke-dasharray="6 5"/>
+  <path d="M150 118 a14 14 0 0 1 24 0 M155 125 a8 8 0 0 1 14 0" stroke="#1c8797" stroke-width="2" fill="none"/>
+  <text x="172" y="104" text-anchor="middle" font-size="12" font-weight="700" fill="#1c8797">Netz „CamperMinder“</text>
+  <text x="172" y="158" text-anchor="middle" font-size="12" fill="#1b2430">Adresse 192.168.4.1</text>
+  <text x="172" y="222" text-anchor="middle" font-size="12" font-weight="700" fill="#1c8797">Code 1, dann Code 2</text>
+  <!-- rechts -->
+  <rect x="376" y="88" width="50" height="80" rx="9" fill="#eef2f6" stroke="#6b7787" stroke-width="2"/><text x="401" y="184" text-anchor="middle" font-size="12">Handy</text>
+  <rect x="470" y="116" width="80" height="34" rx="6" fill="#c9d1da"/><text x="510" y="138" text-anchor="middle" font-size="12" font-weight="600">Router</text>
+  <rect x="610" y="100" width="64" height="64" rx="9" fill="#2fb6c9"/><text x="642" y="184" text-anchor="middle" font-size="12">Gerät</text>
+  <path d="M430 132 H466 M554 132 H606" stroke="#1c8797" stroke-width="2.4" stroke-dasharray="6 5"/>
+  <text x="526" y="100" text-anchor="middle" font-size="12" font-weight="700" fill="#1c8797">dein WLAN</text>
+  <text x="526" y="206" text-anchor="middle" font-size="12" fill="#1b2430">camperminder-level.local</text>
+  <text x="526" y="224" text-anchor="middle" font-size="12" font-weight="700" fill="#1c8797">Code 3</text>
+</svg>
+<figcaption>Zwei Wege zum selben Gerät. Ist dein WLAN außer Reichweite, öffnet das Gerät nach etwa 20 Sekunden wieder sein eigenes Netz.</figcaption>
+</figure>
+
+<ol>
+<li>Das Handy mit dem Netz <strong>CamperMinder</strong> verbinden (Code 1) und die Seite mit <strong>Code 2</strong> öffnen – Code 2 öffnet sie
+  im richtigen Browser. <strong>Nicht im Fenster <em>Anmelden</em></strong> des iPhone arbeiten: Das schließt sich, sobald das Handy das Netz wechselt,
+  und dann kann die Seite das Gerät nicht mehr suchen. Dort <em>Technik → WLAN</em>, Name und Passwort deines WLANs eintragen,
+  <strong>Speichern und verbinden</strong>.</li>
+<li><strong>Auf der Seite bleiben.</strong> Das Gerät startet neu und meldet sich in deinem WLAN an. Das Netz CamperMinder verschwindet, und dein Handy
+  kehrt von selbst in dein WLAN zurück. Die Seite sucht das Gerät dann dort und zeigt nach meist unter einer Minute:
+  <em>Gefunden: Das Gerät ist in deinem WLAN unter 192.168.178.45 erreichbar</em> (die Zahl ist bei dir eine andere).</li>
+<li><strong>Im Heimnetz öffnen</strong> tippen und dort das Symbol neu auf den Home-Bildschirm legen.</li>
+</ol>
+
+<p>Damit hast du zwei Symbole, und beide bleiben richtig. Ist das Gerät in deinem WLAN, gilt die neue Adresse. Ist dein WLAN nicht in Reichweite,
+öffnet das Gerät nach etwa 20 Sekunden wieder sein eigenes Netz, und es gilt <code>192.168.4.1</code>. Die Zugangsdaten bleiben gespeichert.</p>
+
+<p><strong>Code 3 auf dem Aufkleber</strong> öffnet das Gerät in deinem WLAN über seinen Namen, <code>camperminder-level.local</code>, ganz gleich, welche
+Adresse dein Router ihm gibt. Dein Handy muss dafür in deinem WLAN sein, nicht im Netz CamperMinder. Auf dem iPhone klappt das, auf Android
+nicht auf jedem Gerät. Öffnet Code 3 dort nichts, nimm das Symbol, das du dir in Schritt 3 angelegt hast.</p>
+
+<table>
+<tr><th>Du bist …</th><th style="width:34mm">Code</th></tr>
+<tr><td>beim ersten Start, oder dein WLAN ist nicht in Reichweite: das Gerät hat sein eigenes Netz offen</td><td><strong>1</strong>, dann <strong>2</strong></td></tr>
+<tr><td>das Gerät ist in deinem WLAN</td><td><strong>3</strong></td></tr>
+</table>
+
+<p><strong>Kommt das Netz CamperMinder nach einer halben Minute wieder,</strong> hat die Anmeldung nicht geklappt, meist wegen eines Tippfehlers im
+Passwort. Die Seite sagt das dann auch. Einfach wieder verbinden, berichtigen, speichern.</p>
+
+<h3>Wenn die Seite das Gerät nicht findet</h3>
+<ul>
+<li><strong>Im Router nachsehen.</strong> In der Geräteliste deines Routers steht das Gerät unter seinem Namen, meist <strong>camperminder-level</strong>, bei der
+  Fritzbox unter <em>Heimnetz → Netzwerk</em>. Die Adresse daneben im Browser aufrufen. Den genauen Namen nennt die Seite unter <em>Technik</em> als <em>Name im Netz</em>.</li>
+<li><strong>Code 3 scannen</strong> oder <code>camperminder-level.local</code> im Browser eingeben. Auf dem iPhone klappt das fast immer, auf Android nicht auf jedem Gerät.</li>
+<li><strong>Beim nächsten Mal nachlesen.</strong> Das Gerät merkt sich seine Adresse. Wenn du das nächste Mal im Netz CamperMinder bist, steht sie oben unter
+  <em>Technik → WLAN</em>.</li>
+</ul>
+<p>Die Suche findet nichts in Gäste-WLANs, die ihre Geräte voneinander abschotten, und in ungewöhnlich eingerichteten Netzen. Dann bleibt der Blick in den Router.</p>
+
+<!-- ======================= 8 FERNALARM ======================= -->
+<h2>8 · Fernalarm einrichten (Erweiterung)</h2>
+
+<p>Der Wächter meldet eine Lageänderung an alle, die das Gerät erreichen – im eigenen Netz. Wer am Strand steht, während das Fahrzeug aufgebockt
+wird, erfährt es damit erst bei der Rückkehr. Genau dafür gibt es den Fernalarm: Das Gerät schickt die Meldung selbst an einen Push-Dienst,
+den <strong>du</strong> betreibst oder benutzt.</p>
+
+<figure>
+<svg viewBox="0 0 700 120" width="700" font-family="Segoe UI, Arial, sans-serif">
+  <defs><marker id="a8" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0 L8 4 L0 8 Z" fill="#1c8797"/></marker></defs>
+  <g stroke="#c9d1da" stroke-width="1.5" fill="#fff">
+    <rect x="4" y="30" width="130" height="60" rx="10"/><rect x="190" y="30" width="130" height="60" rx="10"/>
+    <rect x="380" y="30" width="150" height="60" rx="10"/><rect x="586" y="30" width="110" height="60" rx="10"/></g>
+  <g font-size="13" font-weight="600" fill="#1b2430" text-anchor="middle">
+    <text x="69" y="56">CamperMinder</text><text x="69" y="74" font-weight="400" font-size="11">meldet Lageänderung</text>
+    <text x="255" y="56">Internet</text><text x="255" y="74" font-weight="400" font-size="11">über dein WLAN</text>
+    <text x="455" y="56">Push-Dienst</text><text x="455" y="74" font-weight="400" font-size="11">z. B. Telegram</text>
+    <text x="641" y="56">Dein Handy</text><text x="641" y="74" font-weight="400" font-size="11">Nachricht</text></g>
+  <g stroke="#1c8797" stroke-width="2.4" fill="none" marker-end="url(#a8)"><path d="M138 60 H184"/><path d="M324 60 H374"/><path d="M534 60 H580"/></g>
+</svg>
+<figcaption>Der Weg der Meldung. Kein Konto bei uns, keine Daten bei uns.</figcaption>
+</figure>
+
+<div class="warn"><p><strong>Kein Konto bei uns, keine Daten bei uns, keine Verfügbarkeitszusage.</strong> Das ist der Preis dafür, dass es nichts kostet
+und niemand mitliest.</p></div>
+
+<p>Reiter <strong>Technik</strong> → Abschnitt <strong>Fernalarm</strong>: Adresse eintragen, speichern, <strong>Testmeldung senden</strong>. Der letzte Schritt ist
+gehört unbedingt dazu – ein Alarmweg, den niemand ausprobiert hat, ist keiner.</p>
+
+<h3>Was in das Feld gehört</h3>
+<p>Zwei Betriebsarten, unterschieden am Platzhalter <code>{text}</code>:</p>
+<table>
+<tr><th></th><th>Adresse</th><th>Was das Gerät tut</th></tr>
+<tr><td><strong>A</strong></td><td>ohne <code>{text}</code></td><td>schickt die Meldung als Rumpf einer POST-Anfrage</td></tr>
+<tr><td><strong>B</strong></td><td>mit <code>{text}</code></td><td>setzt die Meldung kodiert in die Adresse ein und ruft sie ab</td></tr>
+</table>
+
+<h3>Dienste</h3>
+<table>
+<tr><th>Dienst</th><th>Beispiel</th><th>Art</th><th>Kosten</th></tr>
+<tr><td><strong>Telegram</strong></td><td><code>https://api.telegram.org/bot&lt;TOKEN&gt;/sendMessage?chat_id=&lt;Nr&gt;&amp;text={text}</code></td><td>B</td><td>kostenlos</td></tr>
+<tr><td><strong>Home Assistant Webhook</strong></td><td><code>https://dein-ha/api/webhook/xyz</code></td><td>A</td><td>kostenlos, wenn HA ohnehin läuft</td></tr>
+<tr><td><strong>Node-RED, n8n, eigener Dienst</strong></td><td>Adresse des Ablaufs</td><td>A oder B</td><td>eigener Server</td></tr>
+<tr><td><strong>ntfy selbst betrieben</strong></td><td><code>https://ntfy.mein-server/mein-thema</code></td><td>A</td><td>kostenlos, braucht einen Server</td></tr>
+<tr><td><strong>ntfy.sh (gehostet)</strong></td><td><code>https://ntfy.sh/mein-thema</code></td><td>A</td><td>Grenzen im Gratisteil, Tarife darüber</td></tr>
+<tr><td><strong>IFTTT Webhooks</strong></td><td><code>https://maker.ifttt.com/trigger/&lt;Ereignis&gt;/with/key/&lt;Schlüssel&gt;?value1={text}</code></td><td>B</td><td>Gratisteil begrenzt</td></tr>
+</table>
+
+<p><strong>Empfehlung für den Standardfall: Telegram.</strong> Kein Server, kein Abo, kein weiterer Dienst, den man kennenlernen muss – ein Bot bei
+@BotFather, und die Meldung landet in einem Chat. Wer Home Assistant betreibt, nimmt besser den Webhook: Dann entscheidet die Automatisierung,
+wohin die Meldung geht, und kann auch Dienste bedienen, die das Gerät selbst nicht ansprechen kann.</p>
+
+<p><strong>Pushover und Ähnliches gehen nicht direkt.</strong> Sie verlangen eine POST-Anfrage mit mehreren Formularfeldern; dafür passt keine der beiden
+Betriebsarten. Der Weg dorthin führt über einen Webhook in Home Assistant oder Node-RED – der nimmt die Meldung entgegen und schickt sie weiter.</p>
+
+<h3>Telegram einrichten</h3>
+
+<p><strong>1. Bot anlegen.</strong> In Telegram <strong>@BotFather</strong> anschreiben, <code>/newbot</code>, Anzeigename eingeben (etwa <code>CamperMinder</code>), dann einen
+eindeutigen Benutzernamen, der auf <code>bot</code> endet. BotFather antwortet mit dem <strong>Token</strong>:</p>
+<pre>8123456789:AAHxyz-abcDEF_ghiJKL1234567890mnop</pre>
+
+<p><strong>2. Den Chat starten.</strong> Den eigenen Bot öffnen und <strong>Start</strong> drücken. Ein Bot darf niemandem schreiben, der ihn nicht zuerst angeschrieben
+hat – ohne diesen Schritt schlägt alles Weitere fehl.</p>
+
+<p><strong>3. Chat-Nummer holen.</strong> Im Browser aufrufen:</p>
+<pre>https://api.telegram.org/bot&lt;TOKEN&gt;/getUpdates</pre>
+<p>In der Antwort steht <code>"chat":{"id":123456789,...}</code> – diese Zahl ist die Chat-Nummer. Kommt <code>{"ok":true,"result":[]}</code>, fehlt Schritt 2.</p>
+
+<p><strong>4. Im Browser gegenprüfen,</strong> bevor etwas ins Gerät getippt wird:</p>
+<pre>https://api.telegram.org/bot&lt;TOKEN&gt;/sendMessage?chat_id=&lt;NUMMER&gt;&amp;text=Test</pre>
+<p><code>{"ok":true,…}</code> und die Nachricht auf dem Handy heißt: passt. Bei <code>403</code> fehlt Schritt 2, bei <code>401</code> stimmt der Token nicht.</p>
+
+<p><strong>5. Ins Gerät eintragen</strong> – dieselbe Adresse, statt <code>Test</code> der Platzhalter:</p>
+<pre>https://api.telegram.org/bot&lt;TOKEN&gt;/sendMessage?chat_id=&lt;NUMMER&gt;&amp;text={text}</pre>
+<p><em>Technik → Fernalarm</em>, eintragen, <strong>speichern</strong>, <strong>Testmeldung senden</strong>. Die Adresse braucht rund 120 Zeichen, das Feld fasst 191.</p>
+
+<h3>Wenn schon ein Bot vorhanden ist</h3>
+<p>Wer Telegram bereits mit Home Assistant oder einem anderen System benutzt, braucht <strong>keinen neuen Bot</strong> – und muss nichts umstellen:
+<strong>Das Gerät schickt nur, es liest nie.</strong> Es ruft ausschließlich <code>sendMessage</code> auf. Mehrere Absender auf demselben Bot stören sich nicht.
+Ein bestehender Webhook oder ein laufendes Abrufen durch Home Assistant bleibt unberührt.</p>
+<ul>
+<li><strong>Token:</strong> steht in der Konfiguration des bestehenden Systems (bei Home Assistant unter <code>telegram_bot: api_key</code>). Sonst in Telegram bei
+  <strong>@BotFather</strong> → <code>/mybots</code> → Bot auswählen → <em>API Token</em>.</li>
+<li><strong>Chat-Nummer:</strong> ebenfalls aus der bestehenden Konfiguration (bei Home Assistant <code>allowed_chat_ids</code>).</li>
+</ul>
+<div class="warn"><p><strong><code>getUpdates</code> in diesem Fall nicht aufrufen.</strong> Telegram lässt nur einen Abrufer gleichzeitig zu: Ist für den Bot ein Webhook gesetzt,
+antwortet <code>getUpdates</code> mit <code>409 Conflict</code>; ruft ein anderes System gerade ab, reißt man ihm die Meldung weg. Die Chat-Nummer kommt deshalb aus der
+vorhandenen Konfiguration – oder aus einem zweiten, eigenen Bot.</p></div>
+<p><strong>Ein eigener Bot lohnt sich trotzdem,</strong> wenn die Alarmmeldung anders klingen oder in einem anderen Chat landen soll als der übrige Hausbetrieb.
+Beides geht, es ist eine Frage des Geschmacks und nicht der Technik.</p>
+
+<h3>Der Token ist ein Geheimnis</h3>
+<div class="warn"><p>Wer den Token hat, kann als dieser Bot schreiben. Er steht im Gerät und ist auf der Geräteseite lesbar – bei offenem eigenem Netz also für jeden in
+Funkreichweite. <strong>Wer den Fernalarm benutzt, vergibt unter <em>Technik → Eigenes Netz</em> ein Passwort.</strong> Und er gehört auf kein Bildschirmfoto.</p></div>
+
+<h3>Was der Fernalarm nicht kann</h3>
+<ul>
+<li><strong>Er braucht Internet am Fahrzeug.</strong> Ohne eingetragenes WLAN mit Verbindung nach draußen geht nichts hinaus – auf einem Stellplatz ohne Empfang
+  bleibt nur der Summer und die eingerastete Meldung im Gerät.</li>
+<li><strong>Er weiß nicht, ob die Meldung ankommt.</strong> Das Gerät erfährt vom Dienst nur, ob dieser sie angenommen hat. Was danach passiert, liegt beim Dienst
+  und bei deinem Handy. Deshalb die Testmeldung.</li>
+<li><strong>Eine Meldung je Alarm.</strong> Der Alarm rastet im Gerät ein und bleibt stehen, bis er quittiert wird – wiederholt verschickt wird er nicht.</li>
+</ul>
+
+<!-- ======================= 9 UPDATES ======================= -->
+<h2>9 · Software-Updates</h2>
+
+<table>
+<tr><th>Lage</th><th>Weg</th></tr>
+<tr><td>Gerät hat Internet</td><td>Reiter <em>Technik</em> → <strong>Auf Updates prüfen</strong></td></tr>
+<tr><td>Gerät im eigenen Netz</td><td>Reiter <em>Technik</em> → Firmwaredatei vom Handy aufspielen</td></tr>
+</table>
+<p>Die laufende Fassung steht im selben Reiter.</p>
+
+<p><strong>Auf Updates prüfen</strong> fragt bei GitHub nach und sagt dir, was es gefunden hat:</p>
+<ul>
+<li><strong>„Du hast bereits die neueste Fassung (…)“</strong> – nichts zu tun, das Gerät läuft einfach weiter.</li>
+<li><strong>„Neue Fassung … wird installiert“</strong> – das Gerät lädt sie, spielt sie auf und startet neu. Danach <strong>mindestens eine Minute am Strom lassen</strong>,
+  dann gilt die neue Fassung.</li>
+<li><strong>„Das Gerät hat gerade kein Internet“</strong> – das Gerät ist nicht in einem WLAN mit Internet, etwa auf dem Stellplatz. Dann die Datei vom Handy aufspielen, siehe unten.</li>
+<li><strong>„GitHub war nicht zu erreichen“</strong> – später noch einmal versuchen.</li>
+</ul>
+<p>Aufgespielt wird nur eine <strong>höhere</strong> Fassung, nie eine ältere.</p>
+
+<div class="tip"><p><strong>Drücken musst du dafür nicht.</strong> Hat das Gerät Internet, sieht es nach jedem Einschalten und danach alle 12 Stunden selbst nach.
+Gibt es eine neue Fassung, steht oben auf der Seite, auf jedem Reiter, ein blauer Hinweis <em>„Neue Fassung … verfügbar. Zum Installieren hier tippen.“</em>
+Installiert wird erst, wenn du tippst und bestätigst – nie von allein, also auch nicht während der Fahrt.</p></div>
+
+<h3>Firmware vom Handy aufspielen</h3>
+<ol>
+<li>Aus dem Release auf GitHub die Datei <strong><code>level-firmware.ota.bin</code></strong> aufs Handy laden. <strong>Nicht die <code>factory.bin</code></strong>: Die ist für ein leeres
+  Board, als Update weist das Gerät sie ab.</li>
+<li><em>Technik → Software → Datei auswählen</em>, dann <strong>Datei aufspielen</strong>. Die Seite meldet „Übertragen. Das Gerät startet neu.“</li>
+<li><strong>Mindestens eine Minute am Strom lassen.</strong> Erst dann gilt die neue Fassung als gut. Fällt der Strom vorher weg, kehrt das Gerät beim nächsten Einschalten
+  zur alten Fassung zurück – mit Absicht, damit ein kaputtes Update es nicht lahmlegt.</li>
+<li>Die Seite neu laden: Unter <em>Technik → Software</em> steht die neue Nummer.</li>
+</ol>
+
+<!-- ======================= 10 HOME ASSISTANT ======================= -->
+<h2>10 · Mit Home Assistant (Erweiterung)</h2>
+<p>Sobald das Gerät in deinem WLAN ist, findet Home Assistant es über ESPHome von selbst. Die Integration <strong>CamperMinder</strong> kommt über
+HACS und bringt die Bedienkarte mit; Firmware-Updates meldet Home Assistant dann automatisch.</p>
+
+<h3>Meldungen aufs Handy: die Blueprints</h3>
+<p>Drei fertige Automatisierungen bringen die Meldungen des Geräts dorthin, wo du sie liest. In Home Assistant: <em>Einstellungen → Automatisierungen &amp; Szenen →
+Blueprints → Blueprint importieren</em>, dann die Adresse einfügen:</p>
+<ul>
+<li>Kühlschrankwarnung:<br><code>https://github.com/rcdev67/camperminder/blob/main/blueprints/automation/camperminder/kuehlschrank_warnung.yaml</code></li>
+<li>Wächteralarm:<br><code>https://github.com/rcdev67/camperminder/blob/main/blueprints/automation/camperminder/waechter_alarm.yaml</code></li>
+<li>Frostwarnung:<br><code>https://github.com/rcdev67/camperminder/blob/main/blueprints/automation/camperminder/frostwarnung.yaml</code></li>
+</ul>
+<p>Danach <em>Automatisierung erstellen → Aus einem Blueprint</em>, das Gerät auswählen und unter „Was soll passieren?“ eintragen, wie du benachrichtigt werden willst.</p>
+<p>Beide Betriebsarten laufen auf derselben Firmware. Wer klein anfängt, kann jederzeit umsteigen – ohne neue Software, ohne neues Gerät.</p>
+
+<!-- ======================= 11 MQTT ======================= -->
+<h2>11 · MQTT – Anbindung an andere Systeme (Erweiterung)</h2>
+<p>Das Gerät meldet Neigung, Hubhöhe je Ecke und die Anweisung im Klartext an einen <strong>MQTT-Broker</strong>. Damit lässt es sich in Systeme einbinden,
+die selbst keinen Neigungssensor haben – etwa <strong>Victron Cerbo GX</strong>, ioBroker, openHAB, Node-RED oder E1NFACH E1NS.</p>
+<div class="tip"><p><strong>Für Home Assistant nicht nötig.</strong> Dort läuft alles über die eingebaute Verbindung zum Gerät. MQTT ist der Weg zu allem anderen.
+Wer MQTT nicht benutzt, merkt nichts davon: Ohne eingetragene Adresse baut das Gerät keine Verbindung auf.</p></div>
+
+<h3>Einrichten</h3>
+<p>Auf der Bedienseite unter <strong>Technik → MQTT</strong>: Adresse des Brokers, Port, Benutzer und Passwort eintragen und speichern. Danach startet das Gerät neu.
+Der Zustand steht anschließend im Feld <strong>MQTT</strong>. <strong>Adresse leeren und speichern schaltet MQTT wieder ab.</strong></p>
+<table>
+<tr><th style="width:52mm">Anzeige</th><th>Bedeutung</th></tr>
+<tr><td><code>aus</code></td><td>keine Adresse eingetragen – MQTT ist abgeschaltet</td></tr>
+<tr><td><code>verbunden mit …</code></td><td>läuft</td></tr>
+<tr><td><code>keine Verbindung zu …</code></td><td>Adresse erreichbar? Port? Benutzer und Passwort? Das Gerät muss dafür im selben WLAN sein wie der Broker.</td></tr>
+</table>
+
+<h3>Wie die Themen heißen</h3>
+<pre>camperminder/level/&lt;art&gt;/&lt;name&gt;/state</pre>
+<p>Ob das Gerät erreichbar ist, meldet es unter <code>camperminder/level/status</code> mit <code>online</code> bzw. <code>offline</code>. Wer Werte weiterverarbeitet, sollte darauf hören –
+sonst rechnet er nach einem Stromausfall mit dem letzten bekannten Stand weiter. Vorzeichen wie überall im Gerät: <strong>längs plus = Front höher, quer plus = rechte Seite höher.</strong></p>
+
+<h3>Was zum Ausrichten gebraucht wird</h3>
+<table>
+<tr><th>Thema (nach <code>camperminder/level/</code>)</th><th>Inhalt</th></tr>
+<tr><td><code>sensor/neigung_pitch</code></td><td>Längsneigung in Grad, + = Front höher</td></tr>
+<tr><td><code>sensor/neigung_roll</code></td><td>Querneigung in Grad, + = rechts höher</td></tr>
+<tr><td><code>sensor/hub_vorne_links</code>, <code>…_vorne_rechts</code>, <code>…_hinten_links</code>, <code>…_hinten_rechts</code></td><td>Hubhöhe je Ecke in cm</td></tr>
+<tr><td><code>sensor/stuetzrad</code></td><td>Wohnwagen: + hoch, − runter</td></tr>
+<tr><td><code>sensor/abweichung_…</code> (je Ecke, und <code>abweichung_stuetzrad</code>)</td><td>Abweichung in cm bis ganz waagerecht, auch innerhalb der Toleranz</td></tr>
+<tr><td><code>text_sensor/anweisung</code></td><td>z. B. <em>Hinten links 4,5 cm hoch – Keilstufe 1</em> – derselbe Satz wie auf der Bedienseite</td></tr>
+</table>
+<p>Beim <strong>Wohnwagen</strong> bedeuten „hinten links/rechts“ die beiden Räder der einen Achse; „vorne“ bleibt auf 0, dort steht das Stützrad.
+Die Hubhöhen sind <strong>fertig gerechnet</strong> – Fahrzeugmaße, Fahrzeugart und Toleranz sind darin schon berücksichtigt. Das anbindende System muss nichts nachrechnen.
+<strong>Hub oder Abweichung?</strong> Der Hub sagt, was zu tun ist: Steht eine Achse innerhalb der Toleranz, fällt er auf 0. Die Abweichung zeigt dagegen immer, wie weit die Ecke noch von ganz waagerecht entfernt ist.</p>
+
+<h3>Zustände</h3>
+<table>
+<tr><th>Thema (nach <code>camperminder/level/</code>)</th><th>Inhalt</th></tr>
+<tr><td><code>binary_sensor/camper_steht_gerade</code></td><td><code>ON</code> = beide Achsen eben</td></tr>
+<tr><td><code>binary_sensor/pitch_eben</code>, <code>…/roll_eben</code></td><td><code>ON</code> = Längs- bzw. Querachse eben</td></tr>
+<tr><td><code>binary_sensor/schraeglage</code></td><td><code>ON</code> = über dem Grenzwert, Vorgabe 3° (Absorberkühlschrank)</td></tr>
+<tr><td><code>binary_sensor/lageaenderung</code></td><td><code>ON</code> = Fahrzeug hat seine Ruhelage verlassen</td></tr>
+<tr><td><code>binary_sensor/in_bewegung</code></td><td><code>ON</code> = Erschütterung, also Anwesenheit</td></tr>
+<tr><td><code>text_sensor/eigenes_netz</code></td><td><code>offen</code> oder <code>mit Passwort</code></td></tr>
+<tr><td><code>text_sensor/firmware_version</code></td><td>z. B. <code>4.2.4</code></td></tr>
+<tr><td><code>text_sensor/update_stand</code></td><td>Ergebnis der Update-Prüfung: <em>prüft, aktuell, Update verfügbar, kein Internet …</em></td></tr>
+<tr><td><code>text_sensor/name_im_netz</code></td><td>Name in der Geräteliste des Routers, z. B. <code>camperminder-level</code></td></tr>
+</table>
+<p><strong><code>in_bewegung</code> ist kein Alarm.</strong> Es meldet, dass jemand einsteigt, der Wind drückt oder der Nachbar rangiert. Der Alarm ist <code>lageaenderung</code> – das Fahrzeug hat seine Lage verlassen.</p>
+
+<h3>Selbstüberwachung</h3>
+<table>
+<tr><th>Thema (nach <code>camperminder/level/</code>)</th><th>Inhalt</th></tr>
+<tr><td><code>binary_sensor/kalibrierung_pruefen</code></td><td><code>ON</code> = Temperatur oder Sensorwerte weit weg von der Kalibrierung – neu kalibrieren</td></tr>
+<tr><td><code>text_sensor/kalibrierung</code></td><td>z. B. <em>am 22.08.2026 bei 21 °C</em>; <em>ab Werk kalibriert</em>, solange im Fahrzeug nicht kalibriert wurde</td></tr>
+<tr><td><code>binary_sensor/montage_pruefen</code></td><td><code>ON</code> = der Sensor liefert Unsinn, Gehäuse lose?</td></tr>
+<tr><td><code>binary_sensor/frostgefahr</code></td><td><code>ON</code> = Temperatur unter dem Grenzwert (einstellbar, Vorgabe 3 °C)</td></tr>
+<tr><td><code>sensor/innentemperatur</code></td><td>in °C. <strong>Kein Thermometer:</strong> Der Chip erwärmt sich selbst. Für eine Frostwarnung reicht es, für eine Klimaregelung nicht.</td></tr>
+</table>
+
+<h3>Zielprofile</h3>
+<p>Ein einfaches Nivellierungssystem kennt ein Ziel: null. Dieses Gerät kennt drei Profile und richtet danach aus: <strong>Ausrichten</strong>, <strong>Schlafen</strong> (Kopfende etwas höher) und
+<strong>Ablassen</strong> (Boiler oder Tank laufen zu einem Punkt hin ab). Das Profil wirkt <em>nur</em> auf das Ausrichten; Schräglagenwarnung und Wächter rechnen weiter mit der echten Neigung.</p>
+<table>
+<tr><th>Thema (nach <code>camperminder/level/</code>)</th><th>Inhalt</th></tr>
+<tr><td><code>select/zielprofil</code></td><td><code>Ausrichten</code>, <code>Schlafen</code>, <code>Ablassen</code></td></tr>
+<tr><td><code>select/schlafrichtung</code></td><td><code>Kopf vorn</code>, <code>Kopf hinten</code>, <code>Kopf links</code>, <code>Kopf rechts</code> (in Fahrtrichtung gesehen)</td></tr>
+<tr><td><code>number/kopfende_anheben</code></td><td>0 … 15 cm, Vorgabe 2</td></tr>
+<tr><td><code>select/ablasspunkt</code></td><td>der <em>tiefste</em> Punkt: vorn, hinten, links, rechts oder eine der vier Ecken</td></tr>
+<tr><td><code>number/neigung_zum_ablasspunkt</code></td><td>0 … 15 cm, Vorgabe 5</td></tr>
+<tr><td><code>sensor/ziel_laengs</code>, <code>sensor/ziel_quer</code></td><td>die geltende Zielneigung in cm – der bequeme Weg für ein anbindendes System</td></tr>
+</table>
+
+<h3>Kühlschrank-Zeitkonto</h3>
+<p><code>schraeglage</code> meldet den <strong>Winkel</strong>. Was einen Absorberkühlschrank beschädigt, ist aber der Winkel <strong>mal der Zeit</strong> – kurz schief beim Rangieren ist folgenlos.
+Wer eine Benachrichtigung schalten will, nimmt deshalb <code>kuehlschrank_warnung</code>.</p>
+<table>
+<tr><th>Thema (nach <code>camperminder/level/</code>)</th><th>Inhalt</th></tr>
+<tr><td><code>binary_sensor/kuehlschrank_warnung</code></td><td><code>ON</code> = lange genug schief, dass der Kühlschrank leidet</td></tr>
+<tr><td><code>sensor/schraeglage_dauer</code></td><td>Minuten über dem Grenzwert, <code>0</code> wenn gerade nicht</td></tr>
+<tr><td><code>text_sensor/kuehlschrank</code></td><td><em>arbeitet normal</em> oder z. B. <em>3,4° schief seit 42 min – die Kühlleistung fällt ab</em></td></tr>
+<tr><td><code>number/kuehlschrank_kritisch_nach</code></td><td>5 – 240 Minuten</td></tr>
+</table>
+<p>Drei Stufen aus einem einzigen Regler: Hinweis ab dem Überschreiten des Winkels, Warnung nach einem Drittel der eingestellten Zeit, dringend nach der vollen Zeit.</p>
+
+<h3>Wächter</h3>
+<p><code>lageaenderung</code> geht wieder aus, sobald das Fahrzeug in seine Lage zurückkommt. Als Alarm taugt das nicht – wer schläft, verpasst es. Der Wächter macht daraus einen Zustand, der
+<strong>einrastet</strong> und stehen bleibt, bis er quittiert wird. Der Alarm übersteht einen Stromausfall.</p>
+<table>
+<tr><th>Thema (nach <code>camperminder/level/</code>)</th><th>Inhalt</th></tr>
+<tr><td><code>binary_sensor/waechter_alarm</code></td><td><code>ON</code> = hat ausgelöst und ist nicht quittiert</td></tr>
+<tr><td><code>text_sensor/waechter</code></td><td><em>aus</em>, <em>scharf in 45 s</em>, <em>scharf seit 2 h 10 min</em>, <em>ALARM – Lage verändert am 22.08. um 03:14</em></td></tr>
+<tr><td><code>text_sensor/letzte_bewegung</code></td><td><em>gerade jetzt</em>, <em>22.08. um 21:40</em>, <em>vor 3 h 12 min</em></td></tr>
+<tr><td><code>switch/waechter</code></td><td><code>ON</code> / <code>OFF</code> – scharf schalten</td></tr>
+<tr><td><code>number/waechter_karenzzeit</code></td><td>0 – 600 s</td></tr>
+<tr><td><code>button/alarm_quittieren/command</code></td><td><code>PRESS</code> – löscht den Alarm, <strong>ohne</strong> den Wächter abzuschalten, und nimmt die jetzige Lage als neuen Bezugspunkt</td></tr>
+</table>
+<p>Fehlte beim Auslösen eine gültige Uhr – auf einem Stellplatz ohne Internet der Normalfall –, nennt der Text eine Zeitspanne statt einer Uhrzeit.</p>
+
+<h3>Einstellen über MQTT</h3>
+<p>Diese Themen nehmen auch Befehle entgegen (<code>…/command</code>):</p>
+<table>
+<tr><th>Thema (nach <code>camperminder/level/</code>)</th><th>Werte</th></tr>
+<tr><td><code>number/schraeglage_grenzwert</code></td><td>1 – 10 Grad</td></tr>
+<tr><td><code>number/lageaenderung_grenzwert</code></td><td>0,2 – 5 Grad</td></tr>
+<tr><td><code>number/waechter_karenzzeit</code></td><td>0 – 600 Sekunden</td></tr>
+<tr><td><code>switch/praezisionsmodus</code>, <code>switch/waechter</code></td><td><code>ON</code> / <code>OFF</code></td></tr>
+<tr><td><code>switch/status_led</code></td><td><code>ON</code> / <code>OFF</code> – die Leuchte am Gerät</td></tr>
+<tr><td><code>switch/alarmton</code></td><td><code>ON</code> / <code>OFF</code> – der Summer beim Alarm</td></tr>
+<tr><td><code>switch/auffahrton</code></td><td><code>ON</code> / <code>OFF</code> – die akustische Auffahrhilfe. Kommt nach einem Neustart immer <em>aus</em> zurück und schaltet sich beim Erreichen des Ziels selbst ab.</td></tr>
+<tr><td><code>button/neigung_kalibrieren/command</code></td><td><code>PRESS</code> – jetzige Lage als eben übernehmen</td></tr>
+<tr><td><code>button/kalibrierung_zuruecksetzen/command</code></td><td><code>PRESS</code> – Kalibrierung im Fahrzeug löschen; es gilt wieder die Werkskalibrierung</td></tr>
+</table>
+<p>Der Auffahrton taktet umso schneller, je kleiner der größte Hub einer Ecke ist – 1000 ms ab zehn Zentimetern, 120 ms am Ziel, dann ein langer Ton. Er folgt dem <strong>Zielprofil</strong>.
+<strong>Ein eingerasteter Alarm blinkt auch bei ausgeschalteter Status-LED</strong> – der Schalter nimmt die Betriebsanzeige weg, nicht die Meldung.</p>
+
+<h3>Beispiel: Victron Cerbo GX</h3>
+<p>Venus OS bringt einen eigenen Broker mit; in der <strong>Large</strong>-Fassung lassen sich mit Node-RED <em>virtuelle Geräte</em> anlegen, die auf dem GX-Display und in VRM wie echte Victron-Hardware erscheinen.</p>
+<ol>
+<li>In Venus OS unter <em>Settings → Services → MQTT on LAN</em> den Broker freischalten.</li>
+<li>Auf der Bedienseite des CamperMinder unter <em>Technik → MQTT</em> die Adresse des Cerbo eintragen.</li>
+<li>In Node-RED die Themen oben abonnieren und auf ein virtuelles Gerät legen.</li>
+</ol>
+<p>Zum Ausrichten genügen <code>anweisung</code> und die vier <code>hub_*</code> – der Rest ist Zugabe.</p>
+
+<!-- ======================= 12 STÖRUNG ======================= -->
+<h2>12 · Wenn etwas nicht klappt</h2>
+<table>
+<tr><th style="width:52mm">Was</th><th>Was hilft</th></tr>
+<tr><td>Kein Netz <strong>CamperMinder</strong> in der Liste</td><td>Leuchtet die grüne Leuchte? Sonst fehlt Strom. Blinkt die rote kurz alle drei Sekunden, ist das Gerät in deinem WLAN, und das eigene Netz ist deshalb aus: siehe <em>Ins eigene WLAN</em>. Nach dem Einschalten bis zu 20 Sekunden warten.</td></tr>
+<tr><td>Die Kamera reagiert nicht auf die Codes</td><td>In den Einstellungen der Kamera das Scannen von QR-Codes einschalten, oder Google Lens nehmen. Sonst die Wege unter <em>Ohne Aufkleber</em>.</td></tr>
+<tr><td>Code 1 wird gelesen, aber das Handy tritt dem Netz nicht bei</td><td>Hat das eigene Netz ein Passwort bekommen (<em>Technik → Eigenes Netz</em>), passt Code 1 nicht mehr: Netz von Hand wählen und dein Passwort eingeben.</td></tr>
+<tr><td>Nach Code 1 öffnet sich nichts</td><td>Auf Android normal: Code 2 scannen. Auf Samsung geht auch <em>WLAN → Zahnrad bei CamperMinder → Router verwalten</em>.</td></tr>
+<tr><td>Code 2 öffnet nichts oder „Seite nicht erreichbar“</td><td>Das Handy ist nicht (mehr) im Netz CamperMinder. Erst Code 1, dann noch einmal Code 2.</td></tr>
+<tr><td>Code 3 öffnet nichts</td><td>Code 3 gilt nur, wenn das Gerät in deinem WLAN ist und das Handy auch. Auf manchen Android-Handys geht <code>.local</code> gar nicht: dann das Symbol aus <em>Ins eigene WLAN</em>, Schritt 3, oder die Adresse aus dem Router.</td></tr>
+<tr><td>Das Handy springt aus dem Netz CamperMinder zurück</td><td>Es sucht Internet und nimmt lieber dein WLAN. <em>Verbunden bleiben</em> bestätigen; hilft das nicht, bei deinem WLAN <em>Automatisch verbinden</em> kurz ausschalten oder die mobilen Daten.</td></tr>
+<tr><td><code>192.168.4.1</code> lädt nicht</td><td>Vollständig eingeben: <code>http://192.168.4.1</code>. Manche Browser machen sonst eine Suche daraus. Das Handy muss im Netz CamperMinder sein.</td></tr>
+<tr><td>Längs und quer sind vertauscht</td><td>Das Gehäuse ist verdreht eingebaut. Der Pfeil muss nach vorn zeigen.</td></tr>
+<tr><td>Die Blase springt bei der kleinsten Bewegung von Rand zu Rand</td><td>Kopfüber eingebaut, aber die <em>Einbaulage</em> steht auf <em>Deckel oben</em>. Auf <em>Deckel unten</em> stellen und neu kalibrieren.</td></tr>
+<tr><td>Nach dem Eintragen des WLANs nicht mehr erreichbar</td><td><em>Wenn die Seite das Gerät nicht findet</em>, Abschnitt 7.</td></tr>
+<tr><td>Alles auf Anfang</td><td><em>Technik → Zurücksetzen</em>. Löscht WLAN, Kalibrierung im Fahrzeug und Fahrzeugmaße; die Werkskalibrierung bleibt. Auch ein vergessenes Passwort für das eigene Netz ist damit weg – ausgesperrt ist niemand.</td></tr>
+</table>
+
+</body>
+</html>

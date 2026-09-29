@@ -116,7 +116,7 @@ Klimaregelung nicht.
 
 ### Zielprofile
 
-Eine Wasserwaage kennt ein Ziel: null. Dieses Gerät kennt Ziele — und richtet
+Ein einfaches Nivellierungssystem kennt ein Ziel: null. Dieses Gerät kennt Ziele — und richtet
 danach aus. Das Profil wirkt **ausschließlich** auf das Ausrichten;
 Schräglagenwarnung und Wächter rechnen weiter mit der echten Neigung.
 
