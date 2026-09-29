@@ -79,7 +79,7 @@ esphome run camperminder-level.yaml
   WLAN". Gleichmäßiges Blinken im Halbsekundentakt heißt: Der Sensor
   antwortet nicht.
 
-Ein Display hat die ausgelieferte Ausführung nicht — die Wasserwaage gehört
+Ein Display hat die ausgelieferte Ausführung nicht — das Nivellierungssystem gehört
 aufs Handy, und dorthin geht es im nächsten Schritt. Für Werkstatt und
 Messplatz lässt sich ein 0,42"-OLED an die Stiftleiste J4 stecken; dann in
 `camperminder-level.yaml` unter `packages:` die Zeile
@@ -110,11 +110,11 @@ Einschalten sein eigenes Netz.
 Dort stellst du unter **Fahrzeug** Fahrzeugart, Radstand, Spurweite, Toleranz,
 Präzisionsmodus und Keilstufe ein — die Werte liegen im Gerät, nicht im Handy.
 
-- ✔ Zwei Wasserwaagen, Draufsicht mit wandernder Blase, Seiten- und
+- ✔ Zwei Anzeigen, Draufsicht mit wandernder Blase, Seiten- und
   Heckansicht, Klartextanweisung.
 - ✔ Unter *Technik → Software* steht die Firmware-Version.
 
-Wer hier stehenbleibt, ist fertig. Alles Weitere ist freiwillig.
+Wer hier stehenbleibt, ist fertig. Alles Weitere ist eine Erweiterung.
 
 ---
 
@@ -152,6 +152,20 @@ mitgelieferte Firmware läuft.
 Erscheint sie nicht in der Auswahl, prüf unter Einstellungen → Dashboards → ⋮
 → *Ressourcen*, ob `/camperminder_karte/camperminder-card.js` eingetragen ist.
 Die Integration legt den Eintrag beim Start selbst an.
+
+**3.6 Blueprints importieren (Erweiterung)** — drei fertige Automatisierungen,
+die die Meldungen des Geräts aufs Handy oder an eine Sirene bringen. Einstellungen →
+Automatisierungen & Szenen → Blueprints → *Blueprint importieren*, dann die
+Adresse einfügen:
+
+| Blueprint | Adresse |
+|---|---|
+| Kühlschrankwarnung | `https://github.com/rcdev67/camperminder/blob/main/blueprints/automation/camperminder/kuehlschrank_warnung.yaml` |
+| Wächteralarm | `https://github.com/rcdev67/camperminder/blob/main/blueprints/automation/camperminder/waechter_alarm.yaml` |
+| Frostwarnung | `https://github.com/rcdev67/camperminder/blob/main/blueprints/automation/camperminder/frostwarnung.yaml` |
+
+Danach *Automatisierung erstellen → Aus einem Blueprint*. Mehr dazu, auch der
+Import per Klick und ohne Internet, in [blueprints/README.md](blueprints/README.md).
 
 ---
 

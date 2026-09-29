@@ -133,7 +133,7 @@ am Aufbau, und sie gehören an das erste Muster jeder Revision:
    Voreinstellung.
 5. **QR-Aufkleber und Anmeldeseite** — mit einem iPhone und einem
    Android-Handy: Code 1 scannen, das Handy muss dem Netz CamperMinder
-   beitreten. Notieren, ob sich die Wasserwaage danach **von selbst** öffnet
+   beitreten. Notieren, ob sich die Bedienseite danach **von selbst** öffnet
    (iPhone: Fenster *Anmelden*). Dann Code 2: Die Seite muss im Browser
    normal laufen, nicht umgeleitet werden. Code 3 mit dem Gerät im
    Heim-WLAN: das Ergebnis je Handy notieren, auf Android ist `.local`
@@ -153,7 +153,7 @@ am Aufbau, und sie gehören an das erste Muster jeder Revision:
 | Punkt | Ergebnis |
 |---|---|
 | Code 1 | tritt dem Netz bei; die Seite öffnet sich **nicht** von selbst, obwohl die Umleitung der Prüfanfrage im Protokoll steht. Mit 4.2.4 (Seite statt Weiterleitung) am 29.09. nach Werkseinstellungen wiederholt: ebenso nicht |
-| Code 2 | öffnet die Wasserwaage |
+| Code 2 | öffnet die Bedienseite |
 | Suche im Heimnetz | nach Werkseinstellungen komplett durchgespielt: „Gefunden" nach rund 20 s, Knopf *Im Heimnetz öffnen* erscheint |
 | Code 3 | `camperminder-level.local` öffnet die Seite |
 | Update-Taste (4.2.3) | 4.2.2 hat 4.2.3 von GitHub geholt, lief nach rund 35 s. Danach über die Geräteseite gedrückt: „Du hast bereits die neueste Fassung (4.2.3)", nichts installiert, kein Neustart |
@@ -171,8 +171,8 @@ Drei Codes, damit niemand etwas tippen muss:
 | Code | Inhalt | Wann |
 |---|---|---|
 | **1** Handy verbinden | `WIFI:T:nopass;S:CamperMinder;;` — das Handy tritt dem Netz bei | erster Start, unterwegs; immer zuerst |
-| **2** Wasserwaage öffnen | `http://192.168.4.1/` | direkt nach Code 1 |
-| **3** Im Heim-WLAN | `http://camperminder-level.local/` | Gerät im WLAN zu Hause, unter welcher Adresse auch immer |
+| **2** Nivellierungssystem | `http://192.168.4.1/` | direkt nach Code 1 |
+| **3** Im eigenen WLAN | `http://camperminder-level.local/` | Gerät im WLAN, unter welcher Adresse auch immer |
 
 Netzbeitritt und Adresse lassen sich nicht in einem Code vereinen: Das
 WLAN-Format kennt kein Feld für eine Adresse. Den zweiten Scan erspart nur
@@ -189,7 +189,7 @@ das Gerät wie ESPHomes eigene Anmeldeseite mit einer Seite (200). Am
 dann nichts. An der Antwort des Geräts liegt es also nicht; Code 2 bleibt
 der Weg auf Android.
 
-Code 3 geht über den Namen, weil die Adresse im Heim-WLAN in jedem Haushalt
+Code 3 geht über den Namen, weil die Adresse im WLAN in jedem Fahrzeug
 eine andere ist. Auf dem iPhone trägt das, auf Android nicht auf jedem Gerät;
 dafür nennt die Anleitung die Suche der Geräteseite und den Router.
 

@@ -141,7 +141,7 @@ nicht.
 
 Nicht nur die Grenze zwischen „eben" und „nicht eben", sondern der Maßstab
 selbst: **Toleranzgrenze = Rand der grünen Zone.** Steht das Fahrzeug innerhalb
-der Toleranz, steht die Blase in der Mitte, die Wasserwaagen stehen mittig und
+der Toleranz, steht die Blase in der Mitte, die Anzeigen stehen mittig und
 die Seitenansichten waagerecht — in jeder Ansicht und auf beiden Achsen.
 
 Das ist der Grund, warum die Anzeige mit 5 cm Toleranz gröber aussieht als mit

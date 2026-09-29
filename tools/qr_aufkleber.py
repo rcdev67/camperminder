@@ -8,7 +8,7 @@ Der Aufkleber kommt dem so nahe, wie es mit WLAN geht - niemand muss etwas
 tippen:
 
     Code 1   WIFI:T:nopass;S:CamperMinder;;   Handy tritt dem Netz bei
-    Code 2   http://192.168.4.1/              die Wasserwaage oeffnet sich
+    Code 2   http://192.168.4.1/              das Nivellierungssystem oeffnet sich
     Code 3   http://camperminder-level.local/ Geraet im Heim-WLAN
 
 GESCHICHTE, damit niemand denselben Weg zweimal geht (28.09.2026):
@@ -179,9 +179,9 @@ def aufkleber(netz, ip, name):
         (helpers.make_wifi_data(ssid=netz, password=None, security="nopass"),
          "Handy verbinden", "Connect your phone", "Netz %s" % netz),
         ("http://%s/" % ip,
-         "Wasserwaage öffnen", "Open the level", ip),
+         "Nivellierungssystem", "Open levelling system", ip),
         ("http://%s.local/" % name,
-         "Im Heim-WLAN", "On your home Wi-Fi", "%s.local" % name),
+         "Im eigenen WLAN", "On your own Wi-Fi", "%s.local" % name),
     ]
     unten = QR_OBEN + QR_GROESSE
 
