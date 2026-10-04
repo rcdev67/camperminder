@@ -78,7 +78,7 @@ substitutions:
   #
   # DAS GILT NUR FUER DIESES MUSTER. Die Zuordnung der Platine Rev B ist damit
   # NICHT bestaetigt - dort ist sie aus dem Layout abgeleitet und bleibt am
-  # ersten bestueckten Board zu pruefen (docs/verkabelung.md).
+  # ersten bestueckten Board zu pruefen.
   #
   # Nach jeder Aenderung hier: neu flashen UND neu kalibrieren.
   axis_pitch: "y"

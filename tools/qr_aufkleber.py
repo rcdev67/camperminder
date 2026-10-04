@@ -3,7 +3,7 @@
 
 WARUM ES IHN GIBT
 =================
-Der Massstab ist ein Bluetooth-Geraet mit App: auspacken, koppeln, fertig.
+Der Massstab ist ein Geraet mit App: auspacken, anmelden, fertig.
 Der Aufkleber kommt dem so nahe, wie es mit WLAN geht - niemand muss etwas
 tippen:
 

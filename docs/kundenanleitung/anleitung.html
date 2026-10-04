@@ -156,7 +156,7 @@ das Scannen von QR-Codes vielleicht abgeschaltet.</p>
 <div class="tip"><p><strong>Ein Symbol wie eine App.</strong> Die Seite dafür im richtigen Browser öffnen, nicht im Fenster <em>Anmelden</em> des iPhone:
 auf dem iPhone in Safari <code>192.168.4.1</code> aufrufen, dann <em>Teilen → Zum Home-Bildschirm</em>; auf Android in Chrome, dann
 <em>⋮ → Zum Startbildschirm hinzufügen</em>. Code 2 öffnet die Seite bereits im richtigen Browser. Das Symbol öffnet sie im Vollbild –
-wo ein Bluetooth-Gerät eine App braucht, steckt hier die Seite im Gerät selbst, und jedes Update bringt sie mit.</p></div>
+wo andere Geräte eine App brauchen, steckt hier die Seite im Gerät selbst, und jedes Update bringt sie mit.</p></div>
 
 <!-- ========================= 2 EINBAUEN ========================= -->
 <h2>2 · Einbauen</h2>
@@ -554,7 +554,7 @@ Blueprints → Blueprint importieren</em>, dann die Adresse einfügen:</p>
 <!-- ======================= 11 MQTT ======================= -->
 <h2>11 · MQTT – Anbindung an andere Systeme (Erweiterung)</h2>
 <p>Das Gerät meldet Neigung, Hubhöhe je Ecke und die Anweisung im Klartext an einen <strong>MQTT-Broker</strong>. Damit lässt es sich in Systeme einbinden,
-die selbst keinen Neigungssensor haben – etwa <strong>Victron Cerbo GX</strong>, ioBroker, openHAB, Node-RED oder E1NFACH E1NS.</p>
+die selbst keinen Neigungssensor haben – etwa ioBroker, openHAB oder Node-RED.</p>
 <div class="tip"><p><strong>Für Home Assistant nicht nötig.</strong> Dort läuft alles über die eingebaute Verbindung zum Gerät. MQTT ist der Weg zu allem anderen.
 Wer MQTT nicht benutzt, merkt nichts davon: Ohne eingetragene Adresse baut das Gerät keine Verbindung auf.</p></div>
 
@@ -668,13 +668,6 @@ Wer eine Benachrichtigung schalten will, nimmt deshalb <code>kuehlschrank_warnun
 <p>Der Auffahrton taktet umso schneller, je kleiner der größte Hub einer Ecke ist – 1000 ms ab zehn Zentimetern, 120 ms am Ziel, dann ein langer Ton. Er folgt dem <strong>Zielprofil</strong>.
 <strong>Ein eingerasteter Alarm blinkt auch bei ausgeschalteter Status-LED</strong> – der Schalter nimmt die Betriebsanzeige weg, nicht die Meldung.</p>
 
-<h3>Beispiel: Victron Cerbo GX</h3>
-<p>Venus OS bringt einen eigenen Broker mit; in der <strong>Large</strong>-Fassung lassen sich mit Node-RED <em>virtuelle Geräte</em> anlegen, die auf dem GX-Display und in VRM wie echte Victron-Hardware erscheinen.</p>
-<ol>
-<li>In Venus OS unter <em>Settings → Services → MQTT on LAN</em> den Broker freischalten.</li>
-<li>Auf der Bedienseite des CamperMinder unter <em>Technik → MQTT</em> die Adresse des Cerbo eintragen.</li>
-<li>In Node-RED die Themen oben abonnieren und auf ein virtuelles Gerät legen.</li>
-</ol>
 <p>Zum Ausrichten genügen <code>anweisung</code> und die vier <code>hub_*</code> – der Rest ist Zugabe.</p>
 
 <!-- ======================= 12 STÖRUNG ======================= -->

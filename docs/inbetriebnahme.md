@@ -67,8 +67,8 @@ scannen.
 > nicht im Fenster *Anmelden* des iPhone: auf dem iPhone in Safari
 > `192.168.4.1` aufrufen, dann *Teilen → Zum Home-Bildschirm*; auf Android in
 > Chrome, dann *⋮ → Zum Startbildschirm hinzufügen*. Code 2 öffnet die Seite
-> bereits im richtigen Browser. Das Symbol öffnet sie im Vollbild — wo ein
-> Bluetooth-Gerät eine App braucht, steckt hier die Seite im Gerät selbst,
+> bereits im richtigen Browser. Das Symbol öffnet sie im Vollbild — wo
+> andere Geräte eine App brauchen, steckt hier die Seite im Gerät selbst,
 > und jedes Update bringt sie mit.
 
 ## Einbauen

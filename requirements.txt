@@ -21,6 +21,4 @@
 #      Prüfstand durchsehen.
 #   4. Erst dann ein Release bauen. build_release.ps1 bricht ab, solange die
 #      installierte Fassung von dieser abweicht.
-#
-# Der Ablauf steht in docs/firmware_update.md, Abschnitt "ESPHome wechseln".
 esphome==2026.8.2

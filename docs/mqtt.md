@@ -2,8 +2,7 @@
 
 Level meldet Neigung, Hubhöhe je Ecke und die Anweisung im Klartext an einen
 MQTT-Broker. Damit lässt es sich in Systeme einbinden, die keinen
-Neigungssensor haben — **Victron Cerbo GX**, ioBroker, openHAB, Node-RED,
-E1NFACH E1NS.
+Neigungssensor haben — ioBroker, openHAB, Node-RED und andere.
 
 > **Für Home Assistant nicht nötig.** Dort läuft alles über die native
 > ESPHome-Schnittstelle. MQTT ist der Weg zu allem anderen.
@@ -106,7 +105,7 @@ Ein fest verbautes Gerät kann sich selbst beobachten, ein Handgerät nicht.
 | `camperminder/level/number/frostwarnung_unter/…` | −10 … 15 °C, Vorgabe 3 |
 
 Nicht die Zeit verschiebt den Nullpunkt eines Neigungsmessers, sondern die
-**Temperatur** — siehe `drift_messung.md`. Das Gerät merkt sich deshalb beim
+**Temperatur**. Das Gerät merkt sich deshalb beim
 Kalibrieren die Chiptemperatur und den Betrag des Beschleunigungsvektors und
 vergleicht laufend dagegen.
 
@@ -271,18 +270,7 @@ direkt. Wer sie doch will — etwa für eine zweite Home-Assistant-Instanz, die
 das Gerät nicht selbst eingebunden hat —, setzt `discovery: true` in
 `esphome/level/hardware.yaml` und baut neu.
 
-## Victron Cerbo GX
-
-Venus OS bringt einen eigenen Broker mit; in der **Large**-Fassung lassen sich
-mit Node-RED *virtuelle Geräte* anlegen, die auf dem GX-Display und in VRM wie
-echte Victron-Hardware erscheinen.
-
-Der Weg:
-
-1. In Venus OS unter *Settings → Services → MQTT on LAN* den Broker
-   freischalten.
-2. Auf der CamperMinder-Geräteseite die Adresse des Cerbo eintragen.
-3. In Node-RED die Themen oben abonnieren und auf ein virtuelles Gerät legen.
+## Das Nötigste
 
 Zum Ausrichten genügen `anweisung` und die vier `hub_*` — der Rest ist Zugabe.
 

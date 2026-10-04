@@ -169,8 +169,7 @@ def main():
         print("FEHLER: Die installierte Fassung weicht von requirements.txt ab.")
         print("        Entweder  .venv\\Scripts\\python.exe -m pip install -r requirements.txt")
         print("        oder requirements.txt bewusst aendern - dann aber den")
-        print("        Ablauf in docs/firmware_update.md, Abschnitt")
-        print('        "ESPHome wechseln", vollstaendig durchgehen.')
+        print("        Ablauf fuer den Wechsel der ESPHome-Fassung vollstaendig durchgehen.")
         fehler = 1
 
     print("")

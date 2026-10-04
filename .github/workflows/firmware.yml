@@ -48,8 +48,7 @@ jobs:
       # Nur die Fassung aus requirements.txt - dieselbe, mit der gebaut und
       # ausgeliefert wird. Ein blankes "pip install esphome" baute hier gegen
       # die jeweils neueste Fassung; ein grüner Lauf sagte dann nichts über
-      # die Firmware, die tatsächlich ausgeliefert wird. Warum die Fassung
-      # festgenagelt ist: docs/firmware_update.md.
+      # die Firmware, die tatsächlich ausgeliefert wird.
       - name: ESPHome einrichten
         run: pip install -r requirements.txt
 

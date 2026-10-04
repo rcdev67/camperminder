@@ -45,8 +45,7 @@
 #
 #  ANSCHLÜSSE: I2C auf GPIO5/GPIO6, Status-LED auf GPIO8, Summer auf GPIO10 -
 #  die Belegung der Platine "CamperMinder Level" Rev B. Alle vier stehen als
-#  Substitution weiter unten; die Platine ist in docs/verkabelung.md
-#  beschrieben.
+#  Substitution weiter unten.
 # ============================================================================
 
 substitutions:
@@ -65,7 +64,7 @@ substitutions:
   # dauerhaft "Update verfügbar".
   # Ein Bindestrich macht die Nummer zur Vorabfassung: "2.0.4-rc1" statt
   # "2.0.4". Daran erkennen die Werkzeuge, dass dieser Stand NICHT
-  # veröffentlicht werden soll - Einzelheiten in docs/firmware_update.md.
+  # veröffentlicht werden soll.
   firmware_version: "4.2.4"
 
   # --- Anschluesse: Platine "CamperMinder Level" Rev B -----------------------
@@ -262,8 +261,7 @@ substitutions:
   # AN DER PLATINE REV B NACHMESSEN. Derselbe Sensortyp, aber ein anderer
   # Aufbau: Das Handmuster liegt auf einem Schreibtisch in einem Haus, mit
   # Litzen und einem Breakout. Wird Rev B ruhiger, ist diese Grenze
-  # unnötig weit - schädlich ist das nicht, nur nicht optimal. Die Messreihe
-  # dafür steht in docs/kalibrierung.md.
+  # unnötig weit - schädlich ist das nicht, nur nicht optimal.
   calm_default: "5"
   calm_noise_base: "0.023"
   calm_noise_step: "0.018"
@@ -503,10 +501,9 @@ i2c:
 
 # --- Lagesensor: LSM6DS3TR-C (U5 auf der Platine Rev B) --------------------
 #
-# Warum dieser Chip, steht in docs/produktentscheidungen.md: in laufender
-# Produktion, rauscharm, driftstabil - und bei einem Geraet, dessen
-# Genauigkeit am Temperaturdrift des Sensors haengt, ist der Sensor die
-# schlechteste Stelle zum Sparen.
+# Warum dieser Chip: in laufender Produktion, rauscharm, driftstabil - und
+# bei einem Geraet, dessen Genauigkeit am Temperaturdrift des Sensors
+# haengt, ist der Sensor die schlechteste Stelle zum Sparen.
 #
 # ESPHome bringt ihn seit 2026.6 selbst mit - als "motion"-Plattform, nicht als
 # gewoehnliche Sensorplattform. Der Unterschied ist wichtig fuer jeden, der
@@ -760,7 +757,7 @@ globals:
   #
   # Warum überhaupt im Gerät und nicht in Home Assistant: Stünde sie dort,
   # gäbe es sie nur dort - nicht auf der Geräteseite, nicht über MQTT, nicht
-  # auf einem Cerbo GX. Genau das Merkmal, mit dem verkauft wird, wäre an die
+  # in einem fremden System. Genau das Merkmal, mit dem verkauft wird, wäre an die
   # Plattform gefesselt, von der es unabhängig sein soll.
   - id: hub_vl
     type: float
@@ -919,7 +916,7 @@ globals:
   # Was bei der letzten Kalibrierung galt. Der Vergleich damit ist die ganze
   # Driftwarnung: Nicht die Zeit verschiebt den Nullpunkt, sondern die
   # Temperatur. Wer im März bei 6 Grad kalibriert hat, misst im August bei 35
-  # Grad etwas anderes - siehe docs/drift_messung.md.
+  # Grad etwas anderes.
   - id: kal_temp
     type: float
     initial_value: "-999.0"     # Wächter: nie kalibriert oder alte Firmware
@@ -1066,7 +1063,7 @@ globals:
 # Damit deckt EIN Eingabefeld die verbreiteten Dienste ab, ohne dass das
 # Geraet einen davon kennen muss. Kein Konto bei uns, keine Daten bei uns,
 # keine Verfuegbarkeitszusage - das war die Bedingung, unter der Stufe 2
-# ueberhaupt gebaut wurde (docs/produktentscheidungen.md, "Fernalarm").
+# ueberhaupt gebaut wurde.
 #
 # Der Aufruf blockiert bis zum Zeitlimit des http_request-Bausteins (15 s).
 # Das ist hier vertretbar: Er laeuft einmal beim Einrasten des Alarms und
@@ -1424,7 +1421,7 @@ number:
   #
   # 30 Minuten als Vorgabe sind bewusst vorsichtig gewählt. Die belastbare
   # Zahl gehört aus den Handbüchern von Dometic und Thetford belegt, bevor sie
-  # auf einer Verpackung steht - siehe docs/produktentscheidungen.md.
+  # auf einer Verpackung steht.
   - platform: template
     name: "Kühlschrank kritisch nach"
     id: schraeg_zeit
@@ -2092,8 +2089,6 @@ sensor:
   # keinen toten Bereich, er läuft jeder echten Verschiebung vollständig nach.
   # Der Herzschlag im Filter oben sorgt dafür, dass hier auch im völligen
   # Stillstand je Minute Werte ankommen und die Reihe keine Lücken bekommt.
-  #
-  # Auswertung siehe docs/drift_messung.md.
   - platform: copy
     source_id: pitch
     name: "Diagnose Pitch Mittel"
@@ -2188,7 +2183,7 @@ sensor:
   #
   # Bewusst NICHT internal: Geräteseite, Home Assistant und MQTT liefern
   # dieselben Werte. Eine Zahl, die es nur auf einem der Wege gibt, taugt für
-  # keinen - wer auf dem Cerbo GX etwas anderes sieht als auf dem Handy, glaubt
+  # keinen - wer in einem fremden System etwas anderes sieht als auf dem Handy, glaubt
   # keinem von beiden.
   - platform: template
     name: "Abweichung vorne links"
@@ -3248,7 +3243,7 @@ text_sensor:
   # Wasserwaage zeigt zwei Winkel und überlässt den Rest dem Kopfrechnen.
   # Diese Zeile sagt, was zu tun ist - und sie sagt es überall, wo das Gerät
   # gelesen wird: auf der Geräteseite, in Home Assistant, später über MQTT auf
-  # einem Cerbo GX.
+  # einem fremden System.
   - platform: template
     name: "Anweisung"
     id: anweisung_text
@@ -3990,7 +3985,7 @@ button:
              *
              * Der Betrag des Beschleunigungsvektors kommt dazu, weil ihn
              * weder Reifendruck noch Untergrund noch ein Umparken
-             * verfaelschen koennen - siehe docs/drift_messung.md. */
+             * verfaelschen koennen. */
             if (!isnan(id(chip_temp).state)) id(kal_temp) = id(chip_temp).state;
             if (!isnan(id(accel_magnitude).state)) id(kal_betrag) = id(accel_magnitude).state;
             id(kal_uhr) = id(uhr).now().is_valid() ? id(uhr).now().timestamp : 0;

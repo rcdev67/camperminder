@@ -3,7 +3,7 @@
 //
 // WARUM ES DAS GIBT
 // =================
-// Der Massstab ist ein Bluetooth-Geraet mit App: Ein Handgriff, und die
+// Der Massstab ist ein Geraet mit App: Ein Handgriff, und die
 // Anzeige ist da. Bei uns waren es drei - Netz CamperMinder waehlen, Browser
 // oeffnen, 192.168.4.1 tippen. Der QR-Aufkleber nimmt das Tippen ab (Code 1
 // Netz, Code 2 Seite), und diese Datei spart, wo das Handy mitspielt, auch

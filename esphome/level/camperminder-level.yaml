@@ -15,9 +15,6 @@
 #  Wer HA nicht nutzt, merkt von api: schlicht nichts.
 #
 #  Erwartet Einträge in der secrets.yaml (siehe secrets.yaml.example).
-#
-#  Wer nicht selbst bauen will, nimmt die fertige level-firmware.factory.bin
-#  aus dem Release - siehe INSTALL.md.
 # ============================================================================
 
 substitutions:
