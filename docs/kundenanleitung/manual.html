@@ -1,0 +1,700 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>CamperMinder Level – Manual</title>
+<!-- Quelle der englischen Kunden-PDF, Uebersetzung von anleitung.html (gleicher Aufbau, gleiche Grafiken).
+     Erzeugen: tools\anleitung_pdf.py (Edge, headless). Die PDF nicht von Hand aendern.
+     Bezeichnungen aus der Bedienseite des Geraets stehen hier wortgleich wie im englischen
+     Woerterbuch in esphome/level/webui.js (TEXTE.en). Namen und Werte von Entitaeten bleiben deutsch. -->
+<style>
+  @page { size: A4; margin: 18mm 17mm 20mm 17mm;
+    @bottom-center { content: "CamperMinder Level  ·  Page " counter(page); font: 8.5pt "Segoe UI", Arial, sans-serif; color: #6b7787; } }
+  @page :first { margin: 0; @bottom-center { content: none; } }
+  :root { --teal:#2fb6c9; --teald:#1c8797; --ink:#1b2430; --mut:#6b7787; --line:#d5dce3; --soft:#f3f7f9; --warn:#fff6e0; --warnb:#e2a72e; }
+  * { box-sizing: border-box; }
+  html { font: 10.3pt/1.5 "Segoe UI", Arial, sans-serif; color: var(--ink); }
+  body { margin: 0; }
+  h1 { font-size: 30pt; margin: 0 0 4mm; line-height: 1.1; }
+  h2 { font-size: 16pt; margin: 9mm 0 3mm; padding-bottom: 1.5mm; border-bottom: 2px solid var(--teal); break-after: avoid; }
+  h3 { font-size: 11.5pt; margin: 6mm 0 1.5mm; color: var(--teald); break-after: avoid; }
+  p { margin: 0 0 2.6mm; }
+  ul, ol { margin: 0 0 3mm; padding-left: 6mm; }
+  li { margin-bottom: 1.4mm; }
+  code { font: 9pt Consolas, "Courier New", monospace; background: #eef2f5; padding: 0 1.2mm; border-radius: 1mm; word-break: break-all; }
+  pre { font: 8.6pt/1.4 Consolas, "Courier New", monospace; background: #eef2f5; padding: 2.5mm 3mm; border-radius: 2mm; white-space: pre-wrap; word-break: break-all; margin: 0 0 3mm; }
+  table { border-collapse: collapse; width: 100%; margin: 0 0 4mm; font-size: 9.5pt; }
+  th, td { border: 1px solid var(--line); padding: 1.6mm 2.4mm; vertical-align: top; text-align: left; }
+  th { background: var(--soft); }
+  tr { break-inside: avoid; }
+  figure { margin: 3mm 0 5mm; text-align: center; break-inside: avoid; }
+  figure svg, figure img { max-width: 100%; height: auto; }
+  figcaption { font-size: 8.8pt; color: var(--mut); margin-top: 1.5mm; }
+  .tip, .warn { padding: 2.5mm 3.5mm; border-radius: 2mm; margin: 0 0 4mm; break-inside: avoid; }
+  .tip { background: #e8f6f9; border-left: 1.4mm solid var(--teal); }
+  .warn { background: var(--warn); border-left: 1.4mm solid var(--warnb); }
+  .tip p:last-child, .warn p:last-child { margin: 0; }
+  .cover { height: 297mm; padding: 26mm 22mm; background: linear-gradient(180deg,#fff 0,#fff 62%,#e8f6f9 100%); position: relative; break-after: page; }
+  .cover .logo { width: 105mm; margin-bottom: 30mm; }
+  .cover .sub { font-size: 14pt; color: var(--mut); margin-bottom: 14mm; }
+  .cover ol { font-size: 11pt; line-height: 1.7; padding-left: 7mm; }
+  .cover .foot { position: absolute; left: 22mm; bottom: 20mm; color: var(--mut); font-size: 9.5pt; }
+  .led { display: inline-block; width: 3.4mm; height: 3.4mm; border-radius: 50%; vertical-align: -0.4mm; margin-right: 1.5mm; }
+  .g { background:#2bb24c; } .r { background:#e0362c; } .o { background:#fff; border:1.5px solid #e0362c; }
+  .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 6mm; }
+  .grid3 { display: grid; grid-template-columns: 1fr 1.5fr 1fr; gap: 4mm; align-items: center; margin-bottom: 3mm; }
+  .grid3 figure { margin: 0; }
+  .keep { break-inside: avoid; }
+  a { color: var(--teald); text-decoration: none; }
+</style>
+</head>
+<body>
+
+<!-- ============================ TITEL ============================ -->
+<section class="cover">
+  <img class="logo" src="../../brand/camperminder-wordmark-light.svg" alt="CamperMinder">
+  <h1>CamperMinder Level</h1>
+  <div class="sub">Manual – from unboxing to the levelling display on your phone</div>
+  <p style="max-width:120mm"><strong>No app, no account, no pairing.</strong> Everything that goes beyond the first minute
+    is an optional extra that you add when you need it.</p>
+  <ol style="margin-top:14mm">
+    <li>Your levelling display in one minute</li>
+    <li>Installation</li>
+    <li>Setting up, once</li>
+    <li>Understanding the display</li>
+    <li>What the lights say</li>
+    <li>Language</li>
+    <li>Joining your own Wi-Fi (optional extra)</li>
+    <li>Setting up the remote alert (optional extra)</li>
+    <li>Software updates</li>
+    <li>With Home Assistant (optional extra)</li>
+    <li>MQTT – connecting to other systems (optional extra)</li>
+    <li>If something does not work</li>
+  </ol>
+  <div class="foot">As of: September 2026</div>
+</section>
+
+<!-- ======================== 1 EINE MINUTE ======================== -->
+<h2 style="margin-top:0">1 · Your levelling display in one minute</h2>
+
+<figure>
+  <img src="../bilder/aufkleber-qr.svg" style="width:120mm" alt="Sticker with three QR codes">
+  <figcaption>The sticker on the device. The codes in this manual work exactly like the ones on the device.</figcaption>
+</figure>
+
+<p>This sticker with three codes is on the device. You do not need to type anything: for the first start,
+scan <strong>code 1 and then code 2</strong>. Code 3 only comes into play later, once the device is on your
+Wi-Fi.</p>
+
+<p><strong>What to scan with:</strong> the camera app of your phone – hold the camera on the code until a notice
+appears, and tap it. On Android, Google Lens works as well. If the camera reads nothing, scanning of QR codes may be
+switched off in its settings.</p>
+
+<figure>
+<svg viewBox="0 0 700 175" width="700" font-family="Segoe UI, Arial, sans-serif">
+  <defs><marker id="ar" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0 L8 4 L0 8 Z" fill="#1c8797"/></marker></defs>
+  <g fill="#fff" stroke="#c9d1da" stroke-width="1.5">
+    <rect x="4" y="20" width="150" height="130" rx="10"/><rect x="184" y="20" width="150" height="130" rx="10"/>
+    <rect x="364" y="20" width="150" height="130" rx="10"/><rect x="544" y="20" width="150" height="130" rx="10"/>
+  </g>
+  <g fill="#2fb6c9"><circle cx="79" cy="20" r="14"/><circle cx="259" cy="20" r="14"/><circle cx="439" cy="20" r="14"/><circle cx="619" cy="20" r="14"/></g>
+  <g fill="#fff" font-size="15" font-weight="700" text-anchor="middle"><text x="79" y="25">1</text><text x="259" y="25">2</text><text x="439" y="25">3</text><text x="619" y="25">4</text></g>
+  <g fill="#1b2430" font-size="13" text-anchor="middle" font-weight="600">
+    <text x="79" y="98">Connect</text><text x="79" y="116">power</text>
+    <text x="259" y="98">Scan code 1</text><text x="259" y="116">Join network</text>
+    <text x="439" y="98">Scan code 2</text><text x="439" y="116">Page opens</text>
+    <text x="619" y="98">Control page</text><text x="619" y="116">is ready</text>
+  </g>
+  <!-- Symbole -->
+  <g stroke="#1b2430" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M86 44 L70 68 H80 L74 82 L92 58 H82 Z" fill="#2fb6c9" stroke="#1c8797"/>
+    <path d="M238 46 a24 24 0 0 1 42 0 M245 56 a14 14 0 0 1 28 0"/><circle cx="259" cy="66" r="2.5" fill="#1b2430"/>
+    <rect x="422" y="40" width="34" height="34" rx="4"/><rect x="428" y="46" width="9" height="9"/><rect x="441" y="46" width="9" height="9"/><rect x="428" y="59" width="9" height="9"/><path d="M443 62 h7 M443 68 h7"/>
+    <rect x="598" y="42" width="42" height="30" rx="4"/><path d="M606 66 L614 56 L620 62 L626 52 L634 66"/>
+  </g>
+  <g stroke="#1c8797" stroke-width="2.4" fill="none" marker-end="url(#ar)"><path d="M156 85 H180"/><path d="M336 85 H360"/><path d="M516 85 H540"/></g>
+</svg>
+<figcaption>The whole first start.</figcaption>
+</figure>
+
+<ol>
+<li><strong>Connect power</strong>, in one of two ways:
+  <ul>
+   <li><strong>USB-C</strong>, 5 V: to a USB socket in the vehicle, a USB power supply or a power bank.</li>
+   <li><strong>Screw terminal</strong>, 7 to 36 V: <strong>VIN</strong> to plus, <strong>GND</strong> to minus of the
+     leisure battery, i.e. 12 or 24 V straight from the on-board electrics. If you connect it the wrong way round, nothing happens – it just does not work.</li>
+  </ul>
+  Both may be plugged in at the same time; the stronger source then supplies the power. The <span class="led g"></span><strong>green</strong> light
+  shows that power is on. After a few seconds the <strong>CamperMinder</strong> network is ready.</li>
+<li><strong>Scan code 1: connect your phone.</strong> The phone asks whether it should join the <strong>CamperMinder</strong> network:
+  confirm <strong>Connect</strong> or <strong>Join</strong>. This is the device’s own network, not your own Wi-Fi such as the router in the vehicle –
+  it needs no password from the factory.
+  <p style="margin-top:2mm">Because this network has no internet, every phone reacts a little differently:</p>
+  <ul>
+   <li><strong>iPhone:</strong> Often the control page now opens <strong>by itself</strong>, in a window called <em>Log In</em>.
+     Then you are done and do not need code 2. If you close the window, the iPhone asks how to continue:
+     <strong>Use Without Internet.</strong> If nothing opens, carry on with code 2.</li>
+   <li><strong>Android:</strong> The control page usually does <strong>not</strong> open by itself. The phone may point out that the network
+     has no internet and ask whether to stay connected: <strong>Yes</strong> or <strong>Stay connected.</strong>
+     Then carry on with code 2.</li>
+  </ul></li>
+<li><strong>Scan code 2: open the control page.</strong> The page <code>192.168.4.1</code> opens in the browser, and your levelling display is ready.</li>
+</ol>
+
+<p>Nothing more is needed for operation. The device needs no internet, and you can open the page again at any time in the same way:
+scan code 2 while on the CamperMinder network.</p>
+
+<h3>Without the sticker, or if a code does not work</h3>
+<ul>
+<li><strong>Instead of code 1:</strong> In the Wi-Fi settings of your phone choose <strong>CamperMinder</strong>. From the factory this network has no
+  password. If you have set one of your own under <em>System → Own network</em>, yours applies – then code 1 no longer fits, and you
+  have to choose the network by hand.</li>
+<li><strong>Instead of code 2:</strong> Type <code>192.168.4.1</code> into the browser. Some browsers turn that into a search; then type the full
+  <code>http://192.168.4.1</code>.</li>
+<li><strong>Shortcut on Samsung phones:</strong> <em>Settings → Connections → Wi-Fi</em>, tap the gear next to the connected network <strong>CamperMinder</strong>,
+  then <strong>Manage router</strong>. That also opens <code>192.168.4.1</code>.</li>
+</ul>
+
+<div class="tip"><p><strong>An icon like an app.</strong> Open the page for this in the right browser, not in the <em>Log In</em> window of the iPhone:
+on the iPhone call up <code>192.168.4.1</code> in Safari, then <em>Share → Add to Home Screen</em>; on Android in Chrome, then
+<em>⋮ → Add to Home screen</em>. Code 2 already opens the page in the right browser. The icon opens it full screen –
+where other devices need an app, here the page lives in the device itself, and every update brings it along.</p></div>
+
+<!-- ========================= 2 EINBAUEN ========================= -->
+<h2>2 · Installation</h2>
+
+<figure>
+<svg viewBox="0 0 700 270" width="700" font-family="Segoe UI, Arial, sans-serif">
+  <defs><marker id="ar2" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto"><path d="M0 0 L9 4.5 L0 9 Z" fill="#1c8797"/></marker></defs>
+  <text x="115" y="18" text-anchor="middle" font-size="14" font-weight="700" fill="#1b2430">Top view</text>
+  <text x="115" y="40" text-anchor="middle" font-size="13" font-weight="700" fill="#1c8797">FRONT = direction of travel</text>
+  <rect x="45" y="52" width="140" height="180" rx="14" fill="#eef2f6" stroke="#aab3bd" stroke-width="2"/>
+  <path d="M115 118 V60" stroke="#1c8797" stroke-width="3.5" marker-end="url(#ar2)"/>
+  <rect x="62" y="196" width="46" height="16" rx="3" fill="#c9d1da" stroke="#8a95a2"/>
+  <rect x="124" y="194" width="46" height="20" rx="3" fill="#2f6d55"/>
+  <text x="85" y="226" text-anchor="middle" font-size="11" fill="#1b2430">USB-C</text>
+  <text x="147" y="226" text-anchor="middle" font-size="11" fill="#1b2430">Terminal</text>
+  <text x="115" y="252" text-anchor="middle" font-size="12" fill="#6b7787">rear</text>
+
+  <text x="365" y="18" text-anchor="middle" font-size="14" font-weight="700" fill="#1b2430">Lid facing up</text>
+  <text x="365" y="36" text-anchor="middle" font-size="12" fill="#6b7787">the normal case</text>
+  <rect x="285" y="96" width="160" height="50" rx="6" fill="#eef2f6" stroke="#aab3bd" stroke-width="2"/>
+  <text x="365" y="126" text-anchor="middle" font-size="12" fill="#6b7787">Lid</text>
+  <rect x="270" y="146" width="190" height="10" fill="#6b7787"/>
+  <text x="365" y="178" text-anchor="middle" font-size="12" fill="#1b2430">flat on a solid surface</text>
+
+  <text x="595" y="18" text-anchor="middle" font-size="14" font-weight="700" fill="#1b2430">Lid facing down</text>
+  <text x="595" y="36" text-anchor="middle" font-size="12" fill="#6b7787">e.g. under a shelf</text>
+  <rect x="500" y="80" width="190" height="10" fill="#6b7787"/>
+  <rect x="515" y="90" width="160" height="50" rx="6" fill="#eef2f6" stroke="#aab3bd" stroke-width="2"/>
+  <text x="595" y="120" text-anchor="middle" font-size="12" fill="#6b7787">Lid</text>
+  <text x="595" y="166" text-anchor="middle" font-size="12" fill="#1b2430">then set:</text>
+  <text x="595" y="184" text-anchor="middle" font-size="12" font-weight="700" fill="#1c8797">Display → Device → Mounting</text>
+</svg>
+<figcaption>The arrow on the housing wall points forwards. The USB socket and the terminal are at the rear.</figcaption>
+</figure>
+
+<ul>
+<li><strong>The arrow points forwards.</strong> It is on the housing wall and points in the direction of travel; the USB socket and terminal are at the rear.
+  If the device is installed turned by 90 degrees, it mixes up lengthways and crossways.</li>
+<li><strong>Lid facing up</strong> is the normal case. If you stick the housing under a shelf, set <em>Display → Device → Mounting</em>
+  to <strong>Lid facing down</strong> and then calibrate again (see section 3).</li>
+<li><strong>Firm and flat.</strong> Screw or stick it onto a level, solid surface. A device that wobbles measures the wobble.</li>
+</ul>
+
+<!-- ======================= 3 EINRICHTEN ======================= -->
+<h2>3 · Setting up, once</h2>
+
+<h3>Step 1: Enter your vehicle</h3>
+<p><em>Display → Vehicle</em>: vehicle type, wheelbase and track width. From these dimensions the device works out how many centimetres each corner
+has to be raised.</p>
+
+<figure>
+<svg viewBox="0 0 640 300" width="520" font-family="Segoe UI, Arial, sans-serif">
+  <defs>
+    <marker id="a3" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto"><path d="M0 0 L9 4.5 L0 9 Z" fill="#1c8797"/></marker>
+    <marker id="a3s" markerWidth="9" markerHeight="9" refX="1" refY="4.5" orient="auto"><path d="M9 0 L0 4.5 L9 9 Z" fill="#1c8797"/></marker>
+  </defs>
+  <rect x="170" y="30" width="180" height="240" rx="30" fill="#eef2f6" stroke="#aab3bd" stroke-width="2"/>
+  <text x="260" y="60" text-anchor="middle" font-size="12" fill="#6b7787">front</text>
+  <g fill="#38506a"><rect x="150" y="70" width="20" height="46" rx="4"/><rect x="350" y="70" width="20" height="46" rx="4"/>
+    <rect x="150" y="190" width="20" height="46" rx="4"/><rect x="350" y="190" width="20" height="46" rx="4"/></g>
+  <!-- Radstand -->
+  <path d="M112 93 V213" stroke="#1c8797" stroke-width="2.4" marker-start="url(#a3s)" marker-end="url(#a3)"/>
+  <path d="M120 93 H150 M120 213 H150" stroke="#1c8797" stroke-width="1" stroke-dasharray="3 3"/>
+  <text x="104" y="158" text-anchor="middle" font-size="13" font-weight="700" fill="#1c8797" transform="rotate(-90 104 158)">Wheelbase</text>
+  <!-- Spurweite -->
+  <path d="M160 258 H360" stroke="#1c8797" stroke-width="2.4" marker-start="url(#a3s)" marker-end="url(#a3)"/>
+  <path d="M160 236 V262 M360 236 V262" stroke="#1c8797" stroke-width="1" stroke-dasharray="3 3"/>
+  <text x="260" y="288" text-anchor="middle" font-size="13" font-weight="700" fill="#1c8797">Track width</text>
+  <text x="440" y="150" font-size="12" fill="#1b2430">Wheelbase: front to</text><text x="440" y="166" font-size="12" fill="#1b2430">rear axle (mm)</text>
+  <text x="440" y="200" font-size="12" fill="#1b2430">Track width: left to</text><text x="440" y="216" font-size="12" fill="#1b2430">right wheel (mm)</text>
+</svg>
+<figcaption>The two dimensions. Accurate to ±5 cm is perfectly fine – guessed made-up values are not.</figcaption>
+</figure>
+
+<p>The dimensions determine two things: how high each corner has to be raised – and when “level” applies. Grossly wrong dimensions
+therefore also shift the point at which the device says “level, stop”.</p>
+
+<h3>Step 2: Set the vehicle level and calibrate</h3>
+<p>Set the vehicle up <strong>truly level</strong> once, checked lengthways and crossways with a spirit level, and tap
+<strong>Calibrate level</strong> on <em>Display</em>, below the views. The sensor is already calibrated from the factory; this
+step compensates for how the device sits in your vehicle.</p>
+<ul>
+<li><strong>This is the biggest source of error, not the sensor.</strong> Whatever is off here stays permanently baked into all later
+  centimetre figures.</li>
+<li>While pressing, <strong>do not move about in the vehicle</strong>.</li>
+<li>Afterwards <strong>leave it powered for about a minute</strong>: only then is the zero point stored permanently and survives
+  every restart.</li>
+<li>You have to <strong>calibrate again</strong> after every change of the mounting (up/down) and whenever you move the device.</li>
+</ul>
+
+<div class="tip"><p><strong>How long does the calibration last?</strong> As long as the device is not moved, indefinitely – it survives
+power cuts and software updates. A motorhome, however, goes through a 40 to 50 degree difference between a winter night and a summer midday, and
+the zero point of every acceleration sensor drifts a little with the temperature. If the display seems to drift over the seasons,
+simply calibrate again.</p></div>
+
+<!-- ======================= 4 ANZEIGE ======================= -->
+<h2>4 · Understanding the display</h2>
+
+<p>The control page shows your vehicle in three views: from above with a moving bubble, from the side and from behind,
+plus an instruction in plain language saying which corner has to be raised by how many centimetres. The graphic follows the vehicle type
+you have set.</p>
+
+<div class="grid3 keep">
+  <figure><img src="../../custom_components/camperminder/www/camper_top.svg" style="height:50mm" alt="Motorhome from above"><figcaption>Motorhome: top view</figcaption></figure>
+  <figure><img src="../../custom_components/camperminder/www/camper_side.svg" style="width:100%" alt="Motorhome from the side"><figcaption>Side view (along)</figcaption></figure>
+  <figure><img src="../../custom_components/camperminder/www/camper_rear.svg" style="height:40mm" alt="Motorhome from behind"><figcaption>Rear view (across)</figcaption></figure>
+</div>
+<div class="grid3 keep">
+  <figure><img src="../../custom_components/camperminder/www/caravan_top.svg" style="height:50mm" alt="Caravan from above"><figcaption>Caravan: top view</figcaption></figure>
+  <figure><img src="../../custom_components/camperminder/www/caravan_side.svg" style="width:100%" alt="Caravan from the side"><figcaption>Side view (along)</figcaption></figure>
+  <figure><img src="../../custom_components/camperminder/www/caravan_rear.svg" style="height:40mm" alt="Caravan from behind"><figcaption>Rear view (across)</figcaption></figure>
+</div>
+<h3>The tolerance is the yardstick</h3>
+<p>The tolerance is not just the limit between “level” and “not level”, but the yardstick of the display itself:
+<strong>tolerance limit = edge of the green zone.</strong> If the vehicle is within the tolerance, the bubble sits in the middle, the
+readouts sit in the middle and the side views are horizontal.</p>
+<p>That is why the display looks coarser with a 5 cm tolerance than with 1 cm. It shows the same measurement, only on the scale you
+have specified: someone who allows 5 cm does not want to see at 4 cm that 4 cm are missing – they want to see that they are done.</p>
+<p><strong>Once “level”, always “level”,</strong> until the tilt clearly goes beyond the tolerance. That way the display does not flip back and forth at the
+limit.</p>
+
+<h3>How calm should the display be?</h3>
+<p>That is a matter of taste: one person wants it to stand as if nailed down, another wants to see every twitch. That is why there are two controls, on
+the control page under <strong>Display</strong>. They take effect immediately, without a restart – for trying out in the vehicle.</p>
+
+<table>
+<tr><th>What you observe</th><th>Control</th><th>Direction</th></tr>
+<tr><td>still jitters when parked</td><td><strong>Display steadiness</strong></td><td>higher</td></tr>
+<tr><td>lags behind when driving up</td><td><strong>Display steadiness</strong></td><td>lower</td></tr>
+<tr><td>follows too jerkily when manoeuvring</td><td><strong>Display steadiness</strong></td><td>higher</td></tr>
+<tr><td>flips back and forth at the tolerance limit</td><td><strong>Hold range</strong></td><td>higher</td></tr>
+</table>
+
+<p><strong>Display steadiness</strong> runs from 0 to 10, default 5. It changes nothing about the measurement and nothing about the tolerance – only the patience.</p>
+
+<table>
+<tr><th>Steadiness</th><th>Response time</th><th>What you notice</th></tr>
+<tr><td>0</td><td>immediate</td><td>the number is alive, every twitch shows at once</td></tr>
+<tr><td>2</td><td>about 1 s</td><td>slight wandering of the last digit</td></tr>
+<tr><td><strong>5</strong></td><td>about 6 s</td><td><strong>stands still when parked</strong></td></tr>
+<tr><td>10</td><td>about 24 s</td><td>stands just as still, but follows more sluggishly</td></tr>
+</table>
+
+<div class="tip"><p><strong>To try it out, turn it down, not up.</strong> Above about 3 the display no longer becomes visibly
+calmer, it just reacts later. You do not see the difference between 5 and 10 when parked, but when you lean against the vehicle.</p></div>
+
+<p><strong>Hold range</strong> in per cent, default 125: how far the tilt may go beyond the tolerance before “level” is taken back.
+100 % means immediately – then the display flips back and forth at the limit.</p>
+
+<h3>Precision mode</h3>
+<p>If the display is too coarse for you, switch on <strong>Precision mode</strong>: there the bubble sits at its true position even within the tolerance,
+the angles are shown with two decimal places, and instead of centimetres <strong>Precise tolerance</strong> applies, in degrees – the same
+number for both axes. The switch is on the control page under <em>Vehicle</em>.</p>
+
+<!-- ======================= 5 LEUCHTEN ======================= -->
+<h2>5 · What the lights say</h2>
+
+<table>
+<tr><th style="width:38mm">Light</th><th>Meaning</th></tr>
+<tr><td><span class="led g"></span><strong>green</strong>, on</td><td>Power is on</td></tr>
+<tr><td><span class="led r"></span><strong>red</strong>, long on, long off</td><td>The device’s own network is open: code 1, then code 2 – or connect to <strong>CamperMinder</strong> by hand and open <code>192.168.4.1</code></td></tr>
+<tr><td><span class="led r"></span><strong>red</strong>, one short flash every three seconds</td><td>The device is on your Wi-Fi</td></tr>
+<tr><td><span class="led r"></span><strong>red</strong>, steady at half-second intervals</td><td>The sensor is not responding. Please report it.</td></tr>
+<tr><td><span class="led r"></span><strong>red</strong>, frantic double flashing, plus three tones</td><td><strong>Guard alarm:</strong> The vehicle has changed its position</td></tr>
+<tr><td><span class="led o"></span><strong>red</strong> off</td><td>The light has been switched off with the <em>Status LED</em> switch. An alarm still flashes.</td></tr>
+</table>
+
+<!-- ======================= 6 SPRACHE ======================= -->
+<h2>6 · Language</h2>
+<p>The control page speaks <strong>German and English</strong>. Without a choice of your own it follows the language setting of the phone;
+change it under the tab <strong>System</strong> → <strong>Language</strong>.</p>
+<p>The choice applies <strong>per phone</strong>, not per device – two people in one vehicle can each read in their own language. The names of the
+readings stay German, so that Home Assistant and MQTT keep matching up when the language is changed.</p>
+
+<!-- ======================= 7 WLAN ======================= -->
+<h2>7 · Joining your own Wi-Fi (optional extra)</h2>
+<p>Only needed for automatic updates and Home Assistant. Without this step everything else works unchanged, on the road anyway.</p>
+
+<figure>
+<svg viewBox="0 0 700 250" width="700" font-family="Segoe UI, Arial, sans-serif">
+  <g fill="#fff" stroke="#c9d1da" stroke-width="1.5"><rect x="4" y="4" width="340" height="242" rx="12"/><rect x="356" y="4" width="340" height="242" rx="12"/></g>
+  <text x="174" y="32" text-anchor="middle" font-size="14" font-weight="700" fill="#1b2430">First start / no Wi-Fi in range</text>
+  <text x="526" y="32" text-anchor="middle" font-size="14" font-weight="700" fill="#1b2430">Device on your Wi-Fi</text>
+  <!-- links -->
+  <rect x="34" y="88" width="56" height="88" rx="9" fill="#eef2f6" stroke="#6b7787" stroke-width="2"/><text x="62" y="192" text-anchor="middle" font-size="12">Phone</text>
+  <rect x="254" y="100" width="64" height="64" rx="9" fill="#2fb6c9"/><text x="286" y="184" text-anchor="middle" font-size="12">Device</text>
+  <path d="M96 132 H248" stroke="#1c8797" stroke-width="2.4" stroke-dasharray="6 5"/>
+  <path d="M150 118 a14 14 0 0 1 24 0 M155 125 a8 8 0 0 1 14 0" stroke="#1c8797" stroke-width="2" fill="none"/>
+  <text x="172" y="104" text-anchor="middle" font-size="12" font-weight="700" fill="#1c8797">Network “CamperMinder”</text>
+  <text x="172" y="158" text-anchor="middle" font-size="12" fill="#1b2430">Address 192.168.4.1</text>
+  <text x="172" y="222" text-anchor="middle" font-size="12" font-weight="700" fill="#1c8797">Code 1, then code 2</text>
+  <!-- rechts -->
+  <rect x="376" y="88" width="50" height="80" rx="9" fill="#eef2f6" stroke="#6b7787" stroke-width="2"/><text x="401" y="184" text-anchor="middle" font-size="12">Phone</text>
+  <rect x="470" y="116" width="80" height="34" rx="6" fill="#c9d1da"/><text x="510" y="138" text-anchor="middle" font-size="12" font-weight="600">Router</text>
+  <rect x="610" y="100" width="64" height="64" rx="9" fill="#2fb6c9"/><text x="642" y="184" text-anchor="middle" font-size="12">Device</text>
+  <path d="M430 132 H466 M554 132 H606" stroke="#1c8797" stroke-width="2.4" stroke-dasharray="6 5"/>
+  <text x="526" y="100" text-anchor="middle" font-size="12" font-weight="700" fill="#1c8797">your Wi-Fi</text>
+  <text x="526" y="206" text-anchor="middle" font-size="12" fill="#1b2430">camperminder-level.local</text>
+  <text x="526" y="224" text-anchor="middle" font-size="12" font-weight="700" fill="#1c8797">Code 3</text>
+</svg>
+<figcaption>Two ways to the same device. If your Wi-Fi is out of range, the device opens its own network again after about 20 seconds.</figcaption>
+</figure>
+
+<ol>
+<li>Connect the phone to the <strong>CamperMinder</strong> network (code 1) and open the page with <strong>code 2</strong> – code 2 opens it
+  in the right browser. <strong>Do not work in the <em>Log In</em> window</strong> of the iPhone: it closes as soon as the phone switches networks,
+  and then the page can no longer search for the device. There go to <em>System → Wi-Fi</em>, enter the name and password of your Wi-Fi, and tap
+  <strong>Save and connect</strong>.</li>
+<li><strong>Stay on the page.</strong> The device restarts and logs on to your Wi-Fi. The CamperMinder network disappears, and your phone
+  returns to your Wi-Fi by itself. The page then searches for the device there and, usually after less than a minute, shows:
+  <em>Found: the device is reachable on your Wi-Fi at 192.168.178.45</em> (your number will be a different one).</li>
+<li>Tap <strong>Open on home network</strong> and add the icon to your home screen again from there.</li>
+</ol>
+
+<p>That gives you two icons, and both stay correct. If the device is on your Wi-Fi, the new address applies. If your Wi-Fi is not in range,
+the device opens its own network again after about 20 seconds, and <code>192.168.4.1</code> applies. The credentials stay saved.</p>
+
+<p><strong>Code 3 on the sticker</strong> opens the device on your Wi-Fi by its name, <code>camperminder-level.local</code>, no matter which
+address your router gives it. For this your phone must be on your Wi-Fi, not on the CamperMinder network. On the iPhone this works, on Android
+not on every phone. If code 3 opens nothing there, use the icon you created in step 3.</p>
+
+<table>
+<tr><th>You are …</th><th style="width:34mm">Code</th></tr>
+<tr><td>at the first start, or your Wi-Fi is not in range: the device has its own network open</td><td><strong>1</strong>, then <strong>2</strong></td></tr>
+<tr><td>the device is on your Wi-Fi</td><td><strong>3</strong></td></tr>
+</table>
+
+<p><strong>If the CamperMinder network comes back after half a minute,</strong> logging on did not work, usually because of a typo in the
+password. The page says so as well. Simply connect again, correct it, save.</p>
+
+<h3>If the page does not find the device</h3>
+<ul>
+<li><strong>Look in the router.</strong> In the device list of your router the device appears under its name, usually <strong>camperminder-level</strong>, on a
+  FRITZ!Box under <em>Home Network → Network</em>. Open the address next to it in the browser. The page gives the exact name under <em>System</em> as <em>Network name</em>.</li>
+<li><strong>Scan code 3</strong> or type <code>camperminder-level.local</code> into the browser. On the iPhone this almost always works, on Android not on every phone.</li>
+<li><strong>Look it up next time.</strong> The device remembers its address. The next time you are on the CamperMinder network, it is shown at the top under
+  <em>System → Wi-Fi</em>.</li>
+</ul>
+<p>The search finds nothing in guest Wi-Fis that isolate their devices from each other, and in unusually set-up networks. Then all that is left is a look in the router.</p>
+
+<!-- ======================= 8 FERNALARM ======================= -->
+<h2>8 · Setting up the remote alert (optional extra)</h2>
+
+<p>The guard reports a change of position to everyone who can reach the device – on its own network. If you are on the beach while the vehicle is being jacked up,
+you only find out when you get back. That is exactly what the remote alert is for: the device sends the message itself to a push service
+that <strong>you</strong> run or use.</p>
+
+<figure>
+<svg viewBox="0 0 700 120" width="700" font-family="Segoe UI, Arial, sans-serif">
+  <defs><marker id="a8" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0 L8 4 L0 8 Z" fill="#1c8797"/></marker></defs>
+  <g stroke="#c9d1da" stroke-width="1.5" fill="#fff">
+    <rect x="4" y="30" width="130" height="60" rx="10"/><rect x="190" y="30" width="130" height="60" rx="10"/>
+    <rect x="380" y="30" width="150" height="60" rx="10"/><rect x="586" y="30" width="110" height="60" rx="10"/></g>
+  <g font-size="13" font-weight="600" fill="#1b2430" text-anchor="middle">
+    <text x="69" y="56">CamperMinder</text><text x="69" y="74" font-weight="400" font-size="11">reports position change</text>
+    <text x="255" y="56">Internet</text><text x="255" y="74" font-weight="400" font-size="11">via your Wi-Fi</text>
+    <text x="455" y="56">Push service</text><text x="455" y="74" font-weight="400" font-size="11">e.g. Telegram</text>
+    <text x="641" y="56">Your phone</text><text x="641" y="74" font-weight="400" font-size="11">Message</text></g>
+  <g stroke="#1c8797" stroke-width="2.4" fill="none" marker-end="url(#a8)"><path d="M138 60 H184"/><path d="M324 60 H374"/><path d="M534 60 H580"/></g>
+</svg>
+<figcaption>The route of the message. No account with us, no data with us.</figcaption>
+</figure>
+
+<div class="warn"><p><strong>No account with us, no data with us, no availability guarantee.</strong> That is the price for it costing nothing
+and nobody reading along.</p></div>
+
+<p>Tab <strong>System</strong> → section <strong>Remote alert</strong>: enter the address, save, <strong>Send a test message</strong>. The last step
+is an absolute must – an alert path nobody has tried is not an alert path.</p>
+
+<h3>What goes into the field</h3>
+<p>Two modes, told apart by the placeholder <code>{text}</code>:</p>
+<table>
+<tr><th></th><th>Address</th><th>What the device does</th></tr>
+<tr><td><strong>A</strong></td><td>without <code>{text}</code></td><td>sends the message as the body of a POST request</td></tr>
+<tr><td><strong>B</strong></td><td>with <code>{text}</code></td><td>inserts the message, encoded, into the address and calls it up</td></tr>
+</table>
+
+<h3>Services</h3>
+<table>
+<tr><th>Service</th><th>Example</th><th>Mode</th><th>Cost</th></tr>
+<tr><td><strong>Telegram</strong></td><td><code>https://api.telegram.org/bot&lt;TOKEN&gt;/sendMessage?chat_id=&lt;ID&gt;&amp;text={text}</code></td><td>B</td><td>free</td></tr>
+<tr><td><strong>Home Assistant webhook</strong></td><td><code>https://your-ha/api/webhook/xyz</code></td><td>A</td><td>free if HA is running anyway</td></tr>
+<tr><td><strong>Node-RED, n8n, your own service</strong></td><td>address of the flow</td><td>A or B</td><td>own server</td></tr>
+<tr><td><strong>ntfy, self-hosted</strong></td><td><code>https://ntfy.my-server/my-topic</code></td><td>A</td><td>free, needs a server</td></tr>
+<tr><td><strong>ntfy.sh (hosted)</strong></td><td><code>https://ntfy.sh/my-topic</code></td><td>A</td><td>limits on the free tier, plans above that</td></tr>
+<tr><td><strong>IFTTT Webhooks</strong></td><td><code>https://maker.ifttt.com/trigger/&lt;event&gt;/with/key/&lt;key&gt;?value1={text}</code></td><td>B</td><td>free tier limited</td></tr>
+</table>
+
+<p><strong>Recommendation for the standard case: Telegram.</strong> No server, no subscription, no further service to get to know – a bot with
+@BotFather, and the message lands in a chat. If you run Home Assistant, you are better off with the webhook: then the automation decides
+where the message goes, and can also serve services that the device cannot address itself.</p>
+
+<p><strong>Pushover and the like do not work directly.</strong> They require a POST request with several form fields; neither of the two
+modes fits that. The way there is through a webhook in Home Assistant or Node-RED – it receives the message and passes it on.</p>
+
+<h3>Setting up Telegram</h3>
+
+<p><strong>1. Create a bot.</strong> In Telegram write to <strong>@BotFather</strong>, send <code>/newbot</code>, enter a display name (such as <code>CamperMinder</code>), then a
+unique user name ending in <code>bot</code>. BotFather replies with the <strong>token</strong>:</p>
+<pre>8123456789:AAHxyz-abcDEF_ghiJKL1234567890mnop</pre>
+
+<p><strong>2. Start the chat.</strong> Open your own bot and press <strong>Start</strong>. A bot may not write to anyone who has not written to it first
+– without this step everything that follows fails.</p>
+
+<p><strong>3. Get the chat ID.</strong> Call up in the browser:</p>
+<pre>https://api.telegram.org/bot&lt;TOKEN&gt;/getUpdates</pre>
+<p>The reply contains <code>"chat":{"id":123456789,...}</code> – that number is the chat ID. If <code>{"ok":true,"result":[]}</code> comes back, step 2 is missing.</p>
+
+<p><strong>4. Check it in the browser</strong> before typing anything into the device:</p>
+<pre>https://api.telegram.org/bot&lt;TOKEN&gt;/sendMessage?chat_id=&lt;NUMBER&gt;&amp;text=Test</pre>
+<p><code>{"ok":true,…}</code> and the message on your phone means: it works. With <code>403</code> step 2 is missing, with <code>401</code> the token is wrong.</p>
+
+<p><strong>5. Enter it in the device</strong> – the same address, with the placeholder instead of <code>Test</code>:</p>
+<pre>https://api.telegram.org/bot&lt;TOKEN&gt;/sendMessage?chat_id=&lt;NUMBER&gt;&amp;text={text}</pre>
+<p><em>System → Remote alert</em>, enter it, <strong>Save remote alert</strong>, <strong>Send a test message</strong>. The address needs about 120 characters, the field holds 191.</p>
+
+<h3>If you already have a bot</h3>
+<p>If you already use Telegram with Home Assistant or another system, you need <strong>no new bot</strong> – and do not have to change anything:
+<strong>the device only sends, it never reads.</strong> It calls only <code>sendMessage</code>. Several senders on the same bot do not get in each other’s way.
+An existing webhook, or Home Assistant polling at the moment, is left untouched.</p>
+<ul>
+<li><strong>Token:</strong> is in the configuration of the existing system (for Home Assistant under <code>telegram_bot: api_key</code>). Otherwise in Telegram with
+  <strong>@BotFather</strong> → <code>/mybots</code> → choose the bot → <em>API Token</em>.</li>
+<li><strong>Chat ID:</strong> likewise from the existing configuration (for Home Assistant <code>allowed_chat_ids</code>).</li>
+</ul>
+<div class="warn"><p><strong>Do not call <code>getUpdates</code> in this case.</strong> Telegram allows only one poller at a time: if a webhook is set for the bot,
+<code>getUpdates</code> answers with <code>409 Conflict</code>; if another system is polling right now, you snatch the message away from it. The chat ID therefore comes from the
+existing configuration – or from a second bot of your own.</p></div>
+<p><strong>A bot of your own is still worthwhile</strong> if the alarm message should sound different or land in a different chat from the rest of your home automation.
+Both work; it is a question of taste, not of technology.</p>
+
+<h3>The token is a secret</h3>
+<div class="warn"><p>Whoever has the token can write as this bot. It is stored in the device and can be read on the device page – so, while the own network is open, by anyone within
+radio range. <strong>If you use the remote alert, set a password under <em>System → Own network</em>.</strong> And it does not belong on any screenshot.</p></div>
+
+<h3>What the remote alert cannot do</h3>
+<ul>
+<li><strong>It needs internet at the vehicle.</strong> Without a Wi-Fi entered that has a connection to the outside, nothing goes out – on a pitch without reception
+  all that remains is the buzzer and the latched alert in the device.</li>
+<li><strong>It does not know whether the message arrives.</strong> The device only learns from the service whether it accepted it. What happens after that is up to the service
+  and your phone. That is why the test message.</li>
+<li><strong>One message per alarm.</strong> The alarm latches in the device and stays on until it is acknowledged – it is not sent repeatedly.</li>
+</ul>
+
+<!-- ======================= 9 UPDATES ======================= -->
+<h2>9 · Software updates</h2>
+
+<table>
+<tr><th>Situation</th><th>Way</th></tr>
+<tr><td>Device has internet</td><td>Tab <em>System</em> → <strong>Check for updates</strong></td></tr>
+<tr><td>Device on its own network</td><td>Tab <em>System</em> → upload the firmware file from your phone</td></tr>
+</table>
+<p>The running version is shown in the same tab.</p>
+
+<p><strong>Check for updates</strong> asks GitHub and tells you what it found:</p>
+<ul>
+<li><strong>“You already have the latest version (…)”</strong> – nothing to do, the device simply carries on running.</li>
+<li><strong>“New version … is being installed”</strong> – the device downloads it, installs it and restarts. Afterwards <strong>keep it powered for at least a minute</strong>,
+  then the new version counts.</li>
+<li><strong>“The device has no internet right now”</strong> – the device is not on a Wi-Fi with internet, for example on the pitch. Then upload the file from your phone, see below.</li>
+<li><strong>“GitHub could not be reached”</strong> – try again later.</li>
+</ul>
+<p>Only a <strong>higher</strong> version is installed, never an older one.</p>
+
+<div class="tip"><p><strong>You do not have to press anything for this.</strong> If the device has internet, it checks by itself after every power-on and every 12 hours after that.
+If there is a new version, a blue notice appears at the top of the page, on every tab: <em>“New version … available. Tap here to install.”</em>
+It is only installed when you tap and confirm – never on its own, so not while driving either.</p></div>
+
+<h3>Uploading firmware from your phone</h3>
+<ol>
+<li>From the release on GitHub, download the file <strong><code>level-firmware.ota.bin</code></strong> to your phone. <strong>Not the <code>factory.bin</code></strong>: that one is for a blank board,
+  and the device rejects it as an update.</li>
+<li><em>System → Software → Choose file</em>, then <strong>Upload file</strong>. The page reports “Uploaded. The device is restarting.”</li>
+<li><strong>Keep it powered for at least a minute.</strong> Only then does the new version count as good. If power is lost before that, the device goes back
+  to the old version the next time it is switched on – deliberately, so that a faulty update cannot cripple it.</li>
+<li>Reload the page: under <em>System → Software</em> the new number is shown.</li>
+</ol>
+
+<!-- ======================= 10 HOME ASSISTANT ======================= -->
+<h2>10 · With Home Assistant (optional extra)</h2>
+<p>As soon as the device is on your Wi-Fi, Home Assistant finds it by itself via ESPHome. The <strong>CamperMinder</strong> integration comes through
+HACS and brings the control card with it; Home Assistant then reports firmware updates automatically.</p>
+
+<div class="tip"><p><strong>The entity names stay German.</strong> Home Assistant shows the entities of the device under their German names, for example <em>Wächter Alarm</em>.
+The firmware deliberately does not translate them, so that existing installations – automations, dashboards, MQTT – do not break when the language is switched.
+Only the control page itself changes language.</p></div>
+
+<h3>Messages to your phone: the blueprints</h3>
+<p>Three ready-made automations bring the messages of the device to where you read them. In Home Assistant: <em>Settings → Automations &amp; scenes →
+Blueprints → Import blueprint</em>, then paste the address:</p>
+<ul>
+<li>Fridge warning:<br><code>https://github.com/rcdev67/camperminder/blob/main/blueprints/automation/camperminder/kuehlschrank_warnung.yaml</code></li>
+<li>Guard alarm:<br><code>https://github.com/rcdev67/camperminder/blob/main/blueprints/automation/camperminder/waechter_alarm.yaml</code></li>
+<li>Frost warning:<br><code>https://github.com/rcdev67/camperminder/blob/main/blueprints/automation/camperminder/frostwarnung.yaml</code></li>
+</ul>
+<p>Then <em>Create automation → Use a blueprint</em>, choose the device and enter under “Was soll passieren?” (“What should happen?” – the blueprints are in German) how you want to be notified.</p>
+<p>Both modes run on the same firmware. If you start small, you can switch at any time – no new software, no new device.</p>
+
+<!-- ======================= 11 MQTT ======================= -->
+<h2>11 · MQTT – connecting to other systems (optional extra)</h2>
+<p>The device reports tilt, lift height per corner and the instruction in plain language to an <strong>MQTT broker</strong>. That lets it be integrated into systems
+that have no tilt sensor of their own – such as ioBroker, openHAB or Node-RED.</p>
+<div class="tip"><p><strong>Not needed for Home Assistant.</strong> There everything runs through the built-in connection to the device. MQTT is the way to everything else.
+If you do not use MQTT, you will not notice it: with no address entered, the device does not open a connection.</p></div>
+<div class="tip"><p><strong>Names and values stay German.</strong> The topics below, the entity names and the text values they report (<em>aus</em>, <em>scharf in 45 s</em> …) are
+not translated by the firmware, so that existing installations do not break when the language of the control page is switched. English meanings follow in brackets.</p></div>
+
+<h3>Setting up</h3>
+<p>On the control page under <strong>System → MQTT</strong>: enter the broker address, port, user and password and save. After that the device restarts.
+The state is then shown in the <strong>MQTT</strong> field. <strong>Clearing the address and saving switches MQTT off again.</strong></p>
+<table>
+<tr><th style="width:52mm">Shown</th><th>Meaning</th></tr>
+<tr><td><code>MQTT is off</code></td><td>no address entered – MQTT is switched off</td></tr>
+<tr><td><code>Connected to …</code></td><td>running</td></tr>
+<tr><td><code>No connection to …</code></td><td>Address reachable? Port? User and password? For this the device must be on the same Wi-Fi as the broker.</td></tr>
+</table>
+
+<h3>How the topics are named</h3>
+<pre>camperminder/level/&lt;art&gt;/&lt;name&gt;/state</pre>
+<p>Whether the device is reachable is reported under <code>camperminder/level/status</code> with <code>online</code> or <code>offline</code>. Anyone processing values should listen to it –
+otherwise, after a power cut, they carry on calculating with the last known state. Signs as everywhere in the device: <strong>lengthways plus = front higher, crossways plus = right side higher.</strong></p>
+
+<h3>What you need for levelling</h3>
+<table>
+<tr><th>Topic (after <code>camperminder/level/</code>)</th><th>Content</th></tr>
+<tr><td><code>sensor/neigung_pitch</code></td><td>Lengthways tilt in degrees, + = front higher</td></tr>
+<tr><td><code>sensor/neigung_roll</code></td><td>Crossways tilt in degrees, + = right higher</td></tr>
+<tr><td><code>sensor/hub_vorne_links</code>, <code>…_vorne_rechts</code>, <code>…_hinten_links</code>, <code>…_hinten_rechts</code></td><td>Lift height per corner in cm</td></tr>
+<tr><td><code>sensor/stuetzrad</code></td><td>Caravan: + up, − down</td></tr>
+<tr><td><code>sensor/abweichung_…</code> (per corner, and <code>abweichung_stuetzrad</code>)</td><td>Deviation in cm from fully level, also within the tolerance</td></tr>
+<tr><td><code>text_sensor/anweisung</code></td><td>e.g. <em>Hinten links 4,5 cm hoch – Keilstufe 1</em> (“rear left 4.5 cm up – ramp step 1”) – the same sentence as on the control page</td></tr>
+</table>
+<p>On a <strong>caravan</strong>, “rear left/right” stand for the two wheels of the one axle; “front” stays at 0, that is where the jockey wheel is.
+The lift heights are <strong>fully calculated</strong> – vehicle dimensions, vehicle type and tolerance are already taken into account. The connected system does not have to calculate anything.
+<strong>Lift or deviation?</strong> The lift says what to do: if an axle is within the tolerance, it drops to 0. The deviation, on the other hand, always shows how far the corner is still from fully level.</p>
+
+<h3>States</h3>
+<table>
+<tr><th>Topic (after <code>camperminder/level/</code>)</th><th>Content</th></tr>
+<tr><td><code>binary_sensor/camper_steht_gerade</code></td><td><code>ON</code> = both axes level</td></tr>
+<tr><td><code>binary_sensor/pitch_eben</code>, <code>…/roll_eben</code></td><td><code>ON</code> = lengthways or crossways axis level</td></tr>
+<tr><td><code>binary_sensor/schraeglage</code></td><td><code>ON</code> = above the limit, default 3° (absorption fridge)</td></tr>
+<tr><td><code>binary_sensor/lageaenderung</code></td><td><code>ON</code> = vehicle has left its resting position</td></tr>
+<tr><td><code>binary_sensor/in_bewegung</code></td><td><code>ON</code> = shaking, i.e. someone present</td></tr>
+<tr><td><code>text_sensor/eigenes_netz</code></td><td><code>offen</code> (open) or <code>mit Passwort</code> (with password)</td></tr>
+<tr><td><code>text_sensor/firmware_version</code></td><td>e.g. <code>4.2.4</code></td></tr>
+<tr><td><code>text_sensor/update_stand</code></td><td>Result of the update check: <em>prüft</em> (checking), <em>aktuell</em> (up to date), <em>Update verfügbar</em> (update available), <em>kein Internet</em> (no internet) …</td></tr>
+<tr><td><code>text_sensor/name_im_netz</code></td><td>Name in the device list of the router, e.g. <code>camperminder-level</code></td></tr>
+</table>
+<p><strong><code>in_bewegung</code> is not an alarm.</strong> It reports that someone is getting in, the wind is pushing, or the neighbour is manoeuvring. The alarm is <code>lageaenderung</code> – the vehicle has left its position.</p>
+
+<h3>Self-monitoring</h3>
+<table>
+<tr><th>Topic (after <code>camperminder/level/</code>)</th><th>Content</th></tr>
+<tr><td><code>binary_sensor/kalibrierung_pruefen</code></td><td><code>ON</code> = temperature or sensor values far from the calibration – calibrate again</td></tr>
+<tr><td><code>text_sensor/kalibrierung</code></td><td>e.g. <em>am 22.08.2026 bei 21 °C</em> (“on 22.08.2026 at 21 °C”); <em>ab Werk kalibriert</em> (“factory calibrated”) for as long as no calibration has been done in the vehicle</td></tr>
+<tr><td><code>binary_sensor/montage_pruefen</code></td><td><code>ON</code> = the sensor is delivering nonsense, housing loose?</td></tr>
+<tr><td><code>binary_sensor/frostgefahr</code></td><td><code>ON</code> = temperature below the limit (adjustable, default 3 °C)</td></tr>
+<tr><td><code>sensor/innentemperatur</code></td><td>in °C. <strong>Not a thermometer:</strong> The chip heats itself up. Good enough for a frost warning, not for climate control.</td></tr>
+</table>
+
+<h3>Target profiles</h3>
+<p>A simple levelling system knows one target: zero. This device knows three profiles and levels accordingly: <strong>Levelling</strong>, <strong>Sleeping</strong> (head end a little higher) and
+<strong>Draining</strong> (boiler or tank drain towards one point). The profile affects <em>only</em> the levelling; the tilt warning and the guard carry on calculating with the real tilt.</p>
+<table>
+<tr><th>Topic (after <code>camperminder/level/</code>)</th><th>Content</th></tr>
+<tr><td><code>select/zielprofil</code></td><td><code>Ausrichten</code>, <code>Schlafen</code>, <code>Ablassen</code> (levelling, sleeping, draining)</td></tr>
+<tr><td><code>select/schlafrichtung</code></td><td><code>Kopf vorn</code>, <code>Kopf hinten</code>, <code>Kopf links</code>, <code>Kopf rechts</code> (head at the front, rear, left, right – seen in the direction of travel)</td></tr>
+<tr><td><code>number/kopfende_anheben</code></td><td>0 … 15 cm, default 2</td></tr>
+<tr><td><code>select/ablasspunkt</code></td><td>the <em>lowest</em> point: front, rear, left, right or one of the four corners</td></tr>
+<tr><td><code>number/neigung_zum_ablasspunkt</code></td><td>0 … 15 cm, default 5</td></tr>
+<tr><td><code>sensor/ziel_laengs</code>, <code>sensor/ziel_quer</code></td><td>the target tilt currently in force, in cm – the convenient way for a connected system</td></tr>
+</table>
+
+<h3>Fridge time account</h3>
+<p><code>schraeglage</code> reports the <strong>angle</strong>. What damages an absorption fridge, however, is the angle <strong>times the time</strong> – being briefly tilted while manoeuvring is harmless.
+If you want to trigger a notification, therefore use <code>kuehlschrank_warnung</code>.</p>
+<table>
+<tr><th>Topic (after <code>camperminder/level/</code>)</th><th>Content</th></tr>
+<tr><td><code>binary_sensor/kuehlschrank_warnung</code></td><td><code>ON</code> = tilted for long enough that the fridge suffers</td></tr>
+<tr><td><code>sensor/schraeglage_dauer</code></td><td>Minutes above the limit, <code>0</code> when not currently</td></tr>
+<tr><td><code>text_sensor/kuehlschrank</code></td><td><em>arbeitet normal</em> (“works normally”) or e.g. <em>3,4° schief seit 42 min – die Kühlleistung fällt ab</em> (“3.4° tilted for 42 min – cooling performance is dropping”)</td></tr>
+<tr><td><code>number/kuehlschrank_kritisch_nach</code></td><td>5 – 240 minutes</td></tr>
+</table>
+<p>Three levels from a single control: a notice as soon as the angle is exceeded, a warning after a third of the set time, urgent after the full time.</p>
+
+<h3>Guard</h3>
+<p><code>lageaenderung</code> goes off again as soon as the vehicle returns to its position. That is no use as an alarm – whoever is asleep misses it. The guard turns it into a state that
+<strong>latches</strong> and stays on until it is acknowledged. The alarm survives a power cut.</p>
+<table>
+<tr><th>Topic (after <code>camperminder/level/</code>)</th><th>Content</th></tr>
+<tr><td><code>binary_sensor/waechter_alarm</code></td><td><code>ON</code> = has triggered and is not acknowledged</td></tr>
+<tr><td><code>text_sensor/waechter</code></td><td><em>aus</em> (off), <em>scharf in 45 s</em> (armed in 45 s), <em>scharf seit 2 h 10 min</em> (armed for 2 h 10 min), <em>ALARM – Lage verändert am 22.08. um 03:14</em> (alarm – position changed on 22.08. at 03:14)</td></tr>
+<tr><td><code>text_sensor/letzte_bewegung</code></td><td><em>gerade jetzt</em> (right now), <em>22.08. um 21:40</em> (22.08. at 21:40), <em>vor 3 h 12 min</em> (3 h 12 min ago)</td></tr>
+<tr><td><code>switch/waechter</code></td><td><code>ON</code> / <code>OFF</code> – arm</td></tr>
+<tr><td><code>number/waechter_karenzzeit</code></td><td>0 – 600 s</td></tr>
+<tr><td><code>button/alarm_quittieren/command</code></td><td><code>PRESS</code> – clears the alarm <strong>without</strong> switching the guard off, and takes the current position as the new reference point</td></tr>
+</table>
+<p>If there was no valid clock when it triggered – the normal case on a pitch without internet – the text gives a time span instead of a time of day.</p>
+
+<h3>Setting values via MQTT</h3>
+<p>These topics also accept commands (<code>…/command</code>):</p>
+<table>
+<tr><th>Topic (after <code>camperminder/level/</code>)</th><th>Values</th></tr>
+<tr><td><code>number/schraeglage_grenzwert</code></td><td>1 – 10 degrees</td></tr>
+<tr><td><code>number/lageaenderung_grenzwert</code></td><td>0.2 – 5 degrees</td></tr>
+<tr><td><code>number/waechter_karenzzeit</code></td><td>0 – 600 seconds</td></tr>
+<tr><td><code>switch/praezisionsmodus</code>, <code>switch/waechter</code></td><td><code>ON</code> / <code>OFF</code></td></tr>
+<tr><td><code>switch/status_led</code></td><td><code>ON</code> / <code>OFF</code> – the light on the device</td></tr>
+<tr><td><code>switch/alarmton</code></td><td><code>ON</code> / <code>OFF</code> – the buzzer on alarm</td></tr>
+<tr><td><code>switch/auffahrton</code></td><td><code>ON</code> / <code>OFF</code> – the audible ramp guidance. Always comes back <em>off</em> after a restart and switches itself off when the target is reached.</td></tr>
+<tr><td><code>button/neigung_kalibrieren/command</code></td><td><code>PRESS</code> – take the current position as level</td></tr>
+<tr><td><code>button/kalibrierung_zuruecksetzen/command</code></td><td><code>PRESS</code> – delete the calibration in the vehicle; the factory calibration applies again</td></tr>
+</table>
+<p>The ramp guidance tone beeps faster the smaller the largest lift of any corner is – 1000 ms from ten centimetres, 120 ms at the target, then one long tone. It follows the <strong>Target profile</strong>.
+<strong>A latched alarm flashes even when the Status LED is switched off</strong> – the switch takes away the operating indicator, not the alert.</p>
+
+<p>For levelling, <code>anweisung</code> and the four <code>hub_*</code> are enough – the rest is a bonus.</p>
+
+<!-- ======================= 12 STOERUNG ======================= -->
+<h2>12 · If something does not work</h2>
+<table>
+<tr><th style="width:52mm">Problem</th><th>What helps</th></tr>
+<tr><td>No <strong>CamperMinder</strong> network in the list</td><td>Is the green light on? If not, power is missing. If the red light flashes briefly every three seconds, the device is on your Wi-Fi, and its own network is therefore off: see <em>Joining your own Wi-Fi</em>. After switching on, wait up to 20 seconds.</td></tr>
+<tr><td>The camera does not react to the codes</td><td>In the camera settings switch on scanning of QR codes, or use Google Lens. Otherwise use the ways under <em>Without the sticker</em>.</td></tr>
+<tr><td>Code 1 is read, but the phone does not join the network</td><td>If the own network has been given a password (<em>System → Own network</em>), code 1 no longer fits: choose the network by hand and enter your password.</td></tr>
+<tr><td>Nothing opens after code 1</td><td>Normal on Android: scan code 2. On Samsung, <em>Wi-Fi → gear next to CamperMinder → Manage router</em> also works.</td></tr>
+<tr><td>Code 2 opens nothing, or “Page not reachable”</td><td>The phone is not (or no longer) on the CamperMinder network. First code 1, then code 2 again.</td></tr>
+<tr><td>Code 3 opens nothing</td><td>Code 3 only works if the device is on your Wi-Fi and the phone is, too. On some Android phones <code>.local</code> does not work at all: then use the icon from <em>Joining your own Wi-Fi</em>, step 3, or the address from the router.</td></tr>
+<tr><td>The phone jumps out of the CamperMinder network</td><td>It is looking for internet and prefers your Wi-Fi. Confirm <em>Stay connected</em>; if that does not help, briefly switch off <em>Auto-connect</em> for your Wi-Fi, or the mobile data.</td></tr>
+<tr><td><code>192.168.4.1</code> does not load</td><td>Type it in full: <code>http://192.168.4.1</code>. Some browsers otherwise turn it into a search. The phone must be on the CamperMinder network.</td></tr>
+<tr><td>Lengthways and crossways are swapped</td><td>The housing is installed turned. The arrow must point forwards.</td></tr>
+<tr><td>The bubble jumps from edge to edge at the slightest movement</td><td>Installed upside down, but <em>Mounting</em> is set to <em>Lid facing up</em>. Set it to <em>Lid facing down</em> and calibrate again.</td></tr>
+<tr><td>No longer reachable after entering the Wi-Fi</td><td><em>If the page does not find the device</em>, section 7.</td></tr>
+<tr><td>Back to square one</td><td><em>System → Factory reset</em>. Deletes the Wi-Fi, the calibration in the vehicle and the vehicle dimensions; the factory calibration stays. A forgotten password for the own network is gone with it, too – nobody is locked out.</td></tr>
+</table>
+
+</body>
+</html>
