@@ -44,6 +44,13 @@
   .grid3 figure { margin: 0; }
   .keep { break-inside: avoid; }
   a { color: var(--teald); text-decoration: none; }
+  /* Schrift fuer "Level": Alfphabet IV, (c) 2007-2010 OSP (Pierre Huyghebaert, Ludivine Loiseau),
+     SIL Open Font License 1.1, http://scripts.sil.org/OFL . Die Datei wird von
+     tools/anleitung_pdf.py beim Erzeugen der PDF eingebettet. */
+  @font-face { font-family: "Alfphabet"; src: url("fonts/Alfphabet-IV.ttf") format("truetype"); font-weight: 400; font-style: normal; }
+  .lvl { font-family: "Alfphabet", "Segoe UI", Arial, sans-serif; font-weight: 400; font-synthesis: none; font-size: .88em; letter-spacing: .03em; }
+  .cover .marke { font-size: 13pt; letter-spacing: .14em; text-transform: uppercase; color: var(--teald); font-weight: 700; margin-bottom: 1mm; }
+  .cover h1.produkt { font-family: "Alfphabet", "Segoe UI", Arial, sans-serif; font-size: 66pt; font-weight: 400; font-synthesis: none; letter-spacing: .02em; margin: 0 0 4mm; line-height: 1; }
 </style>
 </head>
 <body>
@@ -51,19 +58,20 @@
 <!-- ============================ TITEL ============================ -->
 <section class="cover">
   <img class="logo" src="../../brand/camperminder-wordmark-light.svg" alt="CamperMinder">
-  <h1>CamperMinder Level</h1>
-  <div class="sub">Anleitung – vom Auspacken bis zum Nivellierungssystem auf dem Handy</div>
+  <div class="marke">CamperMinder</div>
+  <h1 class="produkt">Level</h1>
+  <div class="sub">Anleitung – vom Auspacken bis zur Bedienung auf dem Handy</div>
   <p style="max-width:120mm"><strong>Ohne App, ohne Konto, ohne Koppeln.</strong> Alles, was über die erste Minute
     hinausgeht, ist eine Erweiterung, die du bei Bedarf dazunimmst.</p>
   <ol style="margin-top:14mm">
-    <li>In einer Minute zum Nivellierungssystem</li>
+    <li>In einer Minute startklar</li>
     <li>Einbauen</li>
     <li>Einmal einrichten</li>
     <li>Die Anzeige verstehen</li>
     <li>Was die Leuchten sagen</li>
     <li>Sprache</li>
     <li>Ins eigene WLAN (Erweiterung)</li>
-    <li>Fernalarm einrichten (Erweiterung)</li>
+    <li>Alarm aufs Handy: Fernalarm einrichten (Erweiterung)</li>
     <li>Software-Updates</li>
     <li>Mit Home Assistant (Erweiterung)</li>
     <li>MQTT – Anbindung an andere Systeme (Erweiterung)</li>
@@ -73,14 +81,14 @@
 </section>
 
 <!-- ======================== 1 EINE MINUTE ======================== -->
-<h2 style="margin-top:0">1 · In einer Minute zum Nivellierungssystem</h2>
+<h2 style="margin-top:0">1 · In einer Minute startklar</h2>
 
 <figure>
   <img src="../bilder/aufkleber-qr.svg" style="width:120mm" alt="Aufkleber mit drei QR-Codes">
   <figcaption>Der Aufkleber auf dem Gerät. Die Codes in dieser Anleitung funktionieren genauso wie die auf dem Gerät.</figcaption>
 </figure>
 
-<p>Auf dem Gerät klebt dieser Aufkleber mit drei Codes. Du brauchst nichts zu tippen: Für den ersten Start
+<p>Auf <span class="lvl">Level</span> klebt dieser Aufkleber mit drei Codes. Du brauchst nichts zu tippen: Für den ersten Start
 scannst du <strong>Code 1 und dann Code 2</strong>. Code 3 kommt erst später dazu, wenn das Gerät in deinem
 WLAN ist.</p>
 
@@ -99,7 +107,7 @@ das Scannen von QR-Codes vielleicht abgeschaltet.</p>
   <g fill="#fff" font-size="15" font-weight="700" text-anchor="middle"><text x="79" y="25">1</text><text x="259" y="25">2</text><text x="439" y="25">3</text><text x="619" y="25">4</text></g>
   <g fill="#1b2430" font-size="13" text-anchor="middle" font-weight="600">
     <text x="79" y="98">Strom</text><text x="79" y="116">anschließen</text>
-    <text x="259" y="98">Code 1 scannen</text><text x="259" y="116">Netz beitreten</text>
+    <text x="259" y="98">Code 1 scannen</text><text x="259" y="116">WLAN beitreten</text>
     <text x="439" y="98">Code 2 scannen</text><text x="439" y="116">Seite öffnet sich</text>
     <text x="619" y="98">Bedienseite</text><text x="619" y="116">ist da</text>
   </g>
@@ -116,47 +124,49 @@ das Scannen von QR-Codes vielleicht abgeschaltet.</p>
 </figure>
 
 <ol>
-<li><strong>Strom anschließen</strong>, auf einem von zwei Wegen:
+<li><strong>Strom anschließen.</strong> <span class="lvl">Level</span> läuft mit <strong>5 bis 36 Volt</strong> und hat dafür zwei Anschlüsse:
   <ul>
    <li><strong>USB-C</strong>, 5 V: an eine USB-Steckdose im Fahrzeug, ein USB-Netzteil oder eine Powerbank.</li>
    <li><strong>Schraubklemme</strong>, 7 bis 36 V: <strong>VIN</strong> an Plus, <strong>GND</strong> an Minus der
-     Aufbaubatterie, also 12 oder 24 V direkt aus dem Bordnetz. Falsch herum angeklemmt passiert nichts, es geht nur nichts.</li>
+     Aufbaubatterie, also direkt ans 12- oder 24-Volt-Bordnetz. Plus und Minus vertauscht? Kein Problem: <span class="lvl">Level</span> ist gegen
+     falsches Anklemmen geschützt, es geht dabei nichts kaputt.</li>
   </ul>
   Beide dürfen auch gleichzeitig stecken, dann versorgt die stärkere Quelle. Die <span class="led g"></span><strong>grüne</strong> Leuchte
-  zeigt: Strom ist da. Nach wenigen Sekunden ist das Netz <strong>CamperMinder</strong> bereit.</li>
-<li><strong>Code 1 scannen: Handy verbinden.</strong> Das Handy fragt, ob es dem Netz <strong>CamperMinder</strong> beitreten soll:
-  <strong>Verbinden</strong> bzw. <strong>Beitreten</strong> bestätigen. Das ist das eigene Netz des Geräts, nicht dein eigenes WLAN, etwa der Router im Fahrzeug –
-  ein Passwort braucht es ab Werk nicht.
-  <p style="margin-top:2mm">Weil dieses Netz kein Internet hat, reagiert jedes Handy etwas anders:</p>
+  zeigt: Strom ist da. Nach wenigen Sekunden ist das WLAN <strong>CamperMinder</strong> bereit.</li>
+<li><strong>Code 1 scannen: Handy verbinden.</strong> Das Handy fragt, ob es dem WLAN <strong>CamperMinder</strong> beitreten soll:
+  <strong>Verbinden</strong> bzw. <strong>Beitreten</strong> bestätigen. Dieses WLAN sendet <span class="lvl">Level</span> selbst; es ist nicht dein eigenes WLAN, etwa der Router im Fahrzeug.
+  Ein Passwort braucht es ab Werk nicht.
+  <p style="margin-top:2mm">Weil dieses WLAN kein Internet hat, reagiert jedes Handy etwas anders:</p>
   <ul>
    <li><strong>iPhone:</strong> Oft öffnet sich die Bedienseite jetzt <strong>von selbst</strong>, in einem Fenster namens <em>Anmelden</em>.
      Dann bist du fertig und brauchst Code 2 nicht. Wenn du das Fenster schließt, fragt das iPhone, wie es weitergehen soll:
      <strong>Ohne Internet verwenden.</strong> Öffnet sich nichts, weiter mit Code 2.</li>
-   <li><strong>Android:</strong> Die Bedienseite öffnet sich meist <strong>nicht</strong> von selbst. Das Handy zeigt eventuell an, das Netz
+   <li><strong>Android:</strong> Die Bedienseite öffnet sich meist <strong>nicht</strong> von selbst. Das Handy zeigt eventuell an, das WLAN
      habe kein Internet, und fragt, ob es verbunden bleiben soll: <strong>Ja</strong> bzw. <strong>Verbindung beibehalten.</strong>
      Dann weiter mit Code 2.</li>
   </ul></li>
-<li><strong>Code 2 scannen: Bedienseite öffnen.</strong> Die Seite <code>192.168.4.1</code> öffnet sich im Browser, dein Nivellierungssystem ist bereit.</li>
+<li><strong>Code 2 scannen: Bedienseite öffnen.</strong> Die Seite <code>192.168.4.1</code> öffnet sich im Browser, <span class="lvl">Level</span> ist bereit.</li>
 </ol>
 
-<p>Mehr ist für den Betrieb nicht nötig. Das Gerät braucht kein Internet, und du kannst die Seite jederzeit wieder so
-öffnen: im Netz CamperMinder Code 2 scannen.</p>
+<p>Mehr ist für den Betrieb nicht nötig. <span class="lvl">Level</span> braucht kein Internet, und du kannst die Seite jederzeit wieder so
+öffnen: im WLAN CamperMinder Code 2 scannen.</p>
 
 <h3>Ohne Aufkleber, oder wenn ein Code nicht geht</h3>
 <ul>
-<li><strong>Statt Code 1:</strong> In den WLAN-Einstellungen des Handys <strong>CamperMinder</strong> wählen. Ab Werk hat dieses Netz kein
+<li><strong>Statt Code 1:</strong> In den WLAN-Einstellungen des Handys <strong>CamperMinder</strong> wählen. Ab Werk hat dieses WLAN kein
   Passwort. Hast du unter <em>Technik → Eigenes Netz</em> ein eigenes vergeben, gilt deines – dann passt Code 1 nicht mehr, das Netz
   musst du von Hand wählen.</li>
 <li><strong>Statt Code 2:</strong> Im Browser <code>192.168.4.1</code> eingeben. Manche Browser machen daraus eine Suche; dann vollständig
   <code>http://192.168.4.1</code> eingeben.</li>
-<li><strong>Abkürzung auf Samsung-Handys:</strong> <em>Einstellungen → Verbindungen → WLAN</em>, beim verbundenen Netz <strong>CamperMinder</strong>
+<li><strong>Abkürzung auf Samsung-Handys:</strong> <em>Einstellungen → Verbindungen → WLAN</em>, beim verbundenen WLAN <strong>CamperMinder</strong>
   auf das Zahnrad tippen, dann <strong>Router verwalten</strong>. Das öffnet ebenfalls <code>192.168.4.1</code>.</li>
 </ul>
 
 <div class="tip"><p><strong>Ein Symbol wie eine App.</strong> Die Seite dafür im richtigen Browser öffnen, nicht im Fenster <em>Anmelden</em> des iPhone:
 auf dem iPhone in Safari <code>192.168.4.1</code> aufrufen, dann <em>Teilen → Zum Home-Bildschirm</em>; auf Android in Chrome, dann
 <em>⋮ → Zum Startbildschirm hinzufügen</em>. Code 2 öffnet die Seite bereits im richtigen Browser. Das Symbol öffnet sie im Vollbild –
-wo andere Geräte eine App brauchen, steckt hier die Seite im Gerät selbst, und jedes Update bringt sie mit.</p></div>
+wo andere Geräte eine App brauchen, hat <span class="lvl">Level</span> die Bedienung selbst eingebaut. Neue Funktionen kommen später als Update
+aufs Gerät; eine App musst du nie aktualisieren.</p></div>
 
 <!-- ========================= 2 EINBAUEN ========================= -->
 <h2>2 · Einbauen</h2>
@@ -204,7 +214,7 @@ wo andere Geräte eine App brauchen, steckt hier die Seite im Gerät selbst, und
 <h2>3 · Einmal einrichten</h2>
 
 <h3>Schritt 1: Fahrzeug eintragen</h3>
-<p><em>Anzeige → Fahrzeug</em>: Fahrzeugart, Radstand und Spurweite. Aus den Maßen rechnet das Gerät, wie viele Zentimeter jede Ecke
+<p><em>Anzeige → Fahrzeug</em>: Fahrzeugart, Radstand und Spurweite. Aus den Maßen rechnet <span class="lvl">Level</span>, wie viele Zentimeter jede Ecke
 hoch muss.</p>
 
 <figure>
@@ -317,7 +327,7 @@ Zahl für beide Achsen. Der Schalter sitzt auf der Bedienseite unter <em>Fahrzeu
 <table>
 <tr><th style="width:38mm">Leuchte</th><th>Bedeutung</th></tr>
 <tr><td><span class="led g"></span><strong>grün</strong>, an</td><td>Strom ist da</td></tr>
-<tr><td><span class="led r"></span><strong>rot</strong>, lang an, lang aus</td><td>Das eigene Netz ist offen: Code 1, dann Code 2 – oder von Hand mit <strong>CamperMinder</strong> verbinden und <code>192.168.4.1</code> öffnen</td></tr>
+<tr><td><span class="led r"></span><strong>rot</strong>, lang an, lang aus</td><td>Das WLAN von <span class="lvl">Level</span> ist offen: Code 1, dann Code 2 – oder von Hand mit <strong>CamperMinder</strong> verbinden und <code>192.168.4.1</code> öffnen</td></tr>
 <tr><td><span class="led r"></span><strong>rot</strong>, ein kurzes Blinken alle drei Sekunden</td><td>Das Gerät ist in deinem WLAN</td></tr>
 <tr><td><span class="led r"></span><strong>rot</strong>, gleichmäßig im Halbsekundentakt</td><td>Der Sensor antwortet nicht. Bitte melden.</td></tr>
 <tr><td><span class="led r"></span><strong>rot</strong>, hektisches Doppelblinken, dazu drei Töne</td><td><strong>Wächteralarm:</strong> Das Fahrzeug hat seine Lage verändert</td></tr>
@@ -345,7 +355,7 @@ Messwerte bleiben deutsch, damit Home Assistant und MQTT bei einem Sprachwechsel
   <rect x="254" y="100" width="64" height="64" rx="9" fill="#2fb6c9"/><text x="286" y="184" text-anchor="middle" font-size="12">Gerät</text>
   <path d="M96 132 H248" stroke="#1c8797" stroke-width="2.4" stroke-dasharray="6 5"/>
   <path d="M150 118 a14 14 0 0 1 24 0 M155 125 a8 8 0 0 1 14 0" stroke="#1c8797" stroke-width="2" fill="none"/>
-  <text x="172" y="104" text-anchor="middle" font-size="12" font-weight="700" fill="#1c8797">Netz „CamperMinder“</text>
+  <text x="172" y="104" text-anchor="middle" font-size="12" font-weight="700" fill="#1c8797">WLAN „CamperMinder“</text>
   <text x="172" y="158" text-anchor="middle" font-size="12" fill="#1b2430">Adresse 192.168.4.1</text>
   <text x="172" y="222" text-anchor="middle" font-size="12" font-weight="700" fill="#1c8797">Code 1, dann Code 2</text>
   <!-- rechts -->
@@ -361,11 +371,11 @@ Messwerte bleiben deutsch, damit Home Assistant und MQTT bei einem Sprachwechsel
 </figure>
 
 <ol>
-<li>Das Handy mit dem Netz <strong>CamperMinder</strong> verbinden (Code 1) und die Seite mit <strong>Code 2</strong> öffnen – Code 2 öffnet sie
+<li>Das Handy mit dem WLAN <strong>CamperMinder</strong> verbinden (Code 1) und die Seite mit <strong>Code 2</strong> öffnen – Code 2 öffnet sie
   im richtigen Browser. <strong>Nicht im Fenster <em>Anmelden</em></strong> des iPhone arbeiten: Das schließt sich, sobald das Handy das Netz wechselt,
   und dann kann die Seite das Gerät nicht mehr suchen. Dort <em>Technik → WLAN</em>, Name und Passwort deines WLANs eintragen,
   <strong>Speichern und verbinden</strong>.</li>
-<li><strong>Auf der Seite bleiben.</strong> Das Gerät startet neu und meldet sich in deinem WLAN an. Das Netz CamperMinder verschwindet, und dein Handy
+<li><strong>Auf der Seite bleiben.</strong> Das Gerät startet neu und meldet sich in deinem WLAN an. Das WLAN CamperMinder verschwindet, und dein Handy
   kehrt von selbst in dein WLAN zurück. Die Seite sucht das Gerät dann dort und zeigt nach meist unter einer Minute:
   <em>Gefunden: Das Gerät ist in deinem WLAN unter 192.168.178.45 erreichbar</em> (die Zahl ist bei dir eine andere).</li>
 <li><strong>Im Heimnetz öffnen</strong> tippen und dort das Symbol neu auf den Home-Bildschirm legen.</li>
@@ -375,7 +385,7 @@ Messwerte bleiben deutsch, damit Home Assistant und MQTT bei einem Sprachwechsel
 öffnet das Gerät nach etwa 20 Sekunden wieder sein eigenes Netz, und es gilt <code>192.168.4.1</code>. Die Zugangsdaten bleiben gespeichert.</p>
 
 <p><strong>Code 3 auf dem Aufkleber</strong> öffnet das Gerät in deinem WLAN über seinen Namen, <code>camperminder-level.local</code>, ganz gleich, welche
-Adresse dein Router ihm gibt. Dein Handy muss dafür in deinem WLAN sein, nicht im Netz CamperMinder. Auf dem iPhone klappt das, auf Android
+Adresse dein Router ihm gibt. Dein Handy muss dafür in deinem WLAN sein, nicht im WLAN CamperMinder. Auf dem iPhone klappt das, auf Android
 nicht auf jedem Gerät. Öffnet Code 3 dort nichts, nimm das Symbol, das du dir in Schritt 3 angelegt hast.</p>
 
 <table>
@@ -384,7 +394,7 @@ nicht auf jedem Gerät. Öffnet Code 3 dort nichts, nimm das Symbol, das du dir 
 <tr><td>das Gerät ist in deinem WLAN</td><td><strong>3</strong></td></tr>
 </table>
 
-<p><strong>Kommt das Netz CamperMinder nach einer halben Minute wieder,</strong> hat die Anmeldung nicht geklappt, meist wegen eines Tippfehlers im
+<p><strong>Kommt das WLAN CamperMinder nach einer halben Minute wieder,</strong> hat die Anmeldung nicht geklappt, meist wegen eines Tippfehlers im
 Passwort. Die Seite sagt das dann auch. Einfach wieder verbinden, berichtigen, speichern.</p>
 
 <h3>Wenn die Seite das Gerät nicht findet</h3>
@@ -392,13 +402,13 @@ Passwort. Die Seite sagt das dann auch. Einfach wieder verbinden, berichtigen, s
 <li><strong>Im Router nachsehen.</strong> In der Geräteliste deines Routers steht das Gerät unter seinem Namen, meist <strong>camperminder-level</strong>, bei der
   Fritzbox unter <em>Heimnetz → Netzwerk</em>. Die Adresse daneben im Browser aufrufen. Den genauen Namen nennt die Seite unter <em>Technik</em> als <em>Name im Netz</em>.</li>
 <li><strong>Code 3 scannen</strong> oder <code>camperminder-level.local</code> im Browser eingeben. Auf dem iPhone klappt das fast immer, auf Android nicht auf jedem Gerät.</li>
-<li><strong>Beim nächsten Mal nachlesen.</strong> Das Gerät merkt sich seine Adresse. Wenn du das nächste Mal im Netz CamperMinder bist, steht sie oben unter
+<li><strong>Beim nächsten Mal nachlesen.</strong> Das Gerät merkt sich seine Adresse. Wenn du das nächste Mal im WLAN CamperMinder bist, steht sie oben unter
   <em>Technik → WLAN</em>.</li>
 </ul>
 <p>Die Suche findet nichts in Gäste-WLANs, die ihre Geräte voneinander abschotten, und in ungewöhnlich eingerichteten Netzen. Dann bleibt der Blick in den Router.</p>
 
 <!-- ======================= 8 FERNALARM ======================= -->
-<h2>8 · Fernalarm einrichten (Erweiterung)</h2>
+<h2>8 · Alarm aufs Handy: Fernalarm einrichten (Erweiterung)</h2>
 
 <p>Der Wächter meldet eine Lageänderung an alle, die das Gerät erreichen – im eigenen Netz. Wer am Strand steht, während das Fahrzeug aufgebockt
 wird, erfährt es damit erst bei der Rückkehr. Genau dafür gibt es den Fernalarm: Das Gerät schickt die Meldung selbst an einen Push-Dienst,
@@ -495,19 +505,21 @@ Funkreichweite. <strong>Wer den Fernalarm benutzt, vergibt unter <em>Technik →
 <h3>Was der Fernalarm nicht kann</h3>
 <ul>
 <li><strong>Er braucht Internet am Fahrzeug.</strong> Ohne eingetragenes WLAN mit Verbindung nach draußen geht nichts hinaus – auf einem Stellplatz ohne Empfang
-  bleibt nur der Summer und die eingerastete Meldung im Gerät.</li>
+  bleibt nur der Summer und die Meldung im Gerät.</li>
 <li><strong>Er weiß nicht, ob die Meldung ankommt.</strong> Das Gerät erfährt vom Dienst nur, ob dieser sie angenommen hat. Was danach passiert, liegt beim Dienst
   und bei deinem Handy. Deshalb die Testmeldung.</li>
-<li><strong>Eine Meldung je Alarm.</strong> Der Alarm rastet im Gerät ein und bleibt stehen, bis er quittiert wird – wiederholt verschickt wird er nicht.</li>
+<li><strong>Eine Meldung je Alarm.</strong> Der Alarm bleibt im Gerät stehen, bis du ihn mit <em>Alarm quittieren</em> bestätigst – wiederholt verschickt wird er nicht.</li>
 </ul>
 
 <!-- ======================= 9 UPDATES ======================= -->
 <h2>9 · Software-Updates</h2>
 
+<p>Updates bringen neue Funktionen und Verbesserungen auf <span class="lvl">Level</span>. Installiert wird immer erst, wenn du es bestätigst.</p>
+
 <table>
 <tr><th>Lage</th><th>Weg</th></tr>
 <tr><td>Gerät hat Internet</td><td>Reiter <em>Technik</em> → <strong>Auf Updates prüfen</strong></td></tr>
-<tr><td>Gerät im eigenen Netz</td><td>Reiter <em>Technik</em> → Firmwaredatei vom Handy aufspielen</td></tr>
+<tr><td>Gerät im eigenen Netz</td><td>Reiter <em>Technik</em> → Update-Datei vom Handy aufspielen</td></tr>
 </table>
 <p>Die laufende Fassung steht im selben Reiter.</p>
 
@@ -525,7 +537,7 @@ Funkreichweite. <strong>Wer den Fernalarm benutzt, vergibt unter <em>Technik →
 Gibt es eine neue Fassung, steht oben auf der Seite, auf jedem Reiter, ein blauer Hinweis <em>„Neue Fassung … verfügbar. Zum Installieren hier tippen.“</em>
 Installiert wird erst, wenn du tippst und bestätigst – nie von allein, also auch nicht während der Fahrt.</p></div>
 
-<h3>Firmware vom Handy aufspielen</h3>
+<h3>Update-Datei vom Handy aufspielen</h3>
 <ol>
 <li>Aus dem Release auf GitHub die Datei <strong><code>level-firmware.ota.bin</code></strong> aufs Handy laden. <strong>Nicht die <code>factory.bin</code></strong>: Die ist für ein leeres
   Board, als Update weist das Gerät sie ab.</li>
@@ -538,7 +550,7 @@ Installiert wird erst, wenn du tippst und bestätigst – nie von allein, also a
 <!-- ======================= 10 HOME ASSISTANT ======================= -->
 <h2>10 · Mit Home Assistant (Erweiterung)</h2>
 <p>Sobald das Gerät in deinem WLAN ist, findet Home Assistant es über ESPHome von selbst. Die Integration <strong>CamperMinder</strong> kommt über
-HACS und bringt die Bedienkarte mit; Firmware-Updates meldet Home Assistant dann automatisch.</p>
+HACS und bringt die Bedienkarte mit; Updates für die Software im Gerät meldet Home Assistant dann automatisch.</p>
 
 <h3>Meldungen aufs Handy: die Blueprints</h3>
 <p>Drei fertige Automatisierungen bringen die Meldungen des Geräts dorthin, wo du sie liest. In Home Assistant: <em>Einstellungen → Automatisierungen &amp; Szenen →
@@ -549,7 +561,7 @@ Blueprints → Blueprint importieren</em>, dann die Adresse einfügen:</p>
 <li>Frostwarnung:<br><code>https://github.com/rcdev67/camperminder/blob/main/blueprints/automation/camperminder/frostwarnung.yaml</code></li>
 </ul>
 <p>Danach <em>Automatisierung erstellen → Aus einem Blueprint</em>, das Gerät auswählen und unter „Was soll passieren?“ eintragen, wie du benachrichtigt werden willst.</p>
-<p>Beide Betriebsarten laufen auf derselben Firmware. Wer klein anfängt, kann jederzeit umsteigen – ohne neue Software, ohne neues Gerät.</p>
+<p>Beide Betriebsarten laufen mit derselben Software im Gerät. Wer klein anfängt, kann jederzeit umsteigen – ohne neue Software, ohne neues Gerät.</p>
 
 <!-- ======================= 11 MQTT ======================= -->
 <h2>11 · MQTT – Anbindung an andere Systeme (Erweiterung)</h2>
@@ -612,8 +624,8 @@ Die Hubhöhen sind <strong>fertig gerechnet</strong> – Fahrzeugmaße, Fahrzeug
 <tr><td><code>sensor/innentemperatur</code></td><td>in °C. <strong>Kein Thermometer:</strong> Der Chip erwärmt sich selbst. Für eine Frostwarnung reicht es, für eine Klimaregelung nicht.</td></tr>
 </table>
 
-<h3>Zielprofile</h3>
-<p>Ein einfaches Nivellierungssystem kennt ein Ziel: null. Dieses Gerät kennt drei Profile und richtet danach aus: <strong>Ausrichten</strong>, <strong>Schlafen</strong> (Kopfende etwas höher) und
+<h3>Profile (Zielprofile)</h3>
+<p>Eine einfache Wasserwaage kennt ein Ziel: null. <span class="lvl">Level</span> kennt drei Profile und richtet danach aus: <strong>Ausrichten</strong>, <strong>Schlafen</strong> (Kopfende etwas höher) und
 <strong>Ablassen</strong> (Boiler oder Tank laufen zu einem Punkt hin ab). Das Profil wirkt <em>nur</em> auf das Ausrichten; Schräglagenwarnung und Wächter rechnen weiter mit der echten Neigung.</p>
 <table>
 <tr><th>Thema (nach <code>camperminder/level/</code>)</th><th>Inhalt</th></tr>
@@ -625,7 +637,7 @@ Die Hubhöhen sind <strong>fertig gerechnet</strong> – Fahrzeugmaße, Fahrzeug
 <tr><td><code>sensor/ziel_laengs</code>, <code>sensor/ziel_quer</code></td><td>die geltende Zielneigung in cm – der bequeme Weg für ein anbindendes System</td></tr>
 </table>
 
-<h3>Kühlschrank-Zeitkonto</h3>
+<h3>Kühlschrank-Warnung</h3>
 <p><code>schraeglage</code> meldet den <strong>Winkel</strong>. Was einen Absorberkühlschrank beschädigt, ist aber der Winkel <strong>mal der Zeit</strong> – kurz schief beim Rangieren ist folgenlos.
 Wer eine Benachrichtigung schalten will, nimmt deshalb <code>kuehlschrank_warnung</code>.</p>
 <table>
@@ -674,14 +686,14 @@ Wer eine Benachrichtigung schalten will, nimmt deshalb <code>kuehlschrank_warnun
 <h2>12 · Wenn etwas nicht klappt</h2>
 <table>
 <tr><th style="width:52mm">Was</th><th>Was hilft</th></tr>
-<tr><td>Kein Netz <strong>CamperMinder</strong> in der Liste</td><td>Leuchtet die grüne Leuchte? Sonst fehlt Strom. Blinkt die rote kurz alle drei Sekunden, ist das Gerät in deinem WLAN, und das eigene Netz ist deshalb aus: siehe <em>Ins eigene WLAN</em>. Nach dem Einschalten bis zu 20 Sekunden warten.</td></tr>
+<tr><td>Kein WLAN <strong>CamperMinder</strong> in der Liste</td><td>Leuchtet die grüne Leuchte? Sonst fehlt Strom. Blinkt die rote kurz alle drei Sekunden, ist das Gerät in deinem WLAN, und das eigene Netz ist deshalb aus: siehe <em>Ins eigene WLAN</em>. Nach dem Einschalten bis zu 20 Sekunden warten.</td></tr>
 <tr><td>Die Kamera reagiert nicht auf die Codes</td><td>In den Einstellungen der Kamera das Scannen von QR-Codes einschalten, oder Google Lens nehmen. Sonst die Wege unter <em>Ohne Aufkleber</em>.</td></tr>
 <tr><td>Code 1 wird gelesen, aber das Handy tritt dem Netz nicht bei</td><td>Hat das eigene Netz ein Passwort bekommen (<em>Technik → Eigenes Netz</em>), passt Code 1 nicht mehr: Netz von Hand wählen und dein Passwort eingeben.</td></tr>
 <tr><td>Nach Code 1 öffnet sich nichts</td><td>Auf Android normal: Code 2 scannen. Auf Samsung geht auch <em>WLAN → Zahnrad bei CamperMinder → Router verwalten</em>.</td></tr>
-<tr><td>Code 2 öffnet nichts oder „Seite nicht erreichbar“</td><td>Das Handy ist nicht (mehr) im Netz CamperMinder. Erst Code 1, dann noch einmal Code 2.</td></tr>
+<tr><td>Code 2 öffnet nichts oder „Seite nicht erreichbar“</td><td>Das Handy ist nicht (mehr) im WLAN CamperMinder. Erst Code 1, dann noch einmal Code 2.</td></tr>
 <tr><td>Code 3 öffnet nichts</td><td>Code 3 gilt nur, wenn das Gerät in deinem WLAN ist und das Handy auch. Auf manchen Android-Handys geht <code>.local</code> gar nicht: dann das Symbol aus <em>Ins eigene WLAN</em>, Schritt 3, oder die Adresse aus dem Router.</td></tr>
-<tr><td>Das Handy springt aus dem Netz CamperMinder zurück</td><td>Es sucht Internet und nimmt lieber dein WLAN. <em>Verbunden bleiben</em> bestätigen; hilft das nicht, bei deinem WLAN <em>Automatisch verbinden</em> kurz ausschalten oder die mobilen Daten.</td></tr>
-<tr><td><code>192.168.4.1</code> lädt nicht</td><td>Vollständig eingeben: <code>http://192.168.4.1</code>. Manche Browser machen sonst eine Suche daraus. Das Handy muss im Netz CamperMinder sein.</td></tr>
+<tr><td>Das Handy springt aus dem WLAN CamperMinder zurück</td><td>Es sucht Internet und nimmt lieber dein WLAN. <em>Verbunden bleiben</em> bestätigen; hilft das nicht, bei deinem WLAN <em>Automatisch verbinden</em> kurz ausschalten oder die mobilen Daten.</td></tr>
+<tr><td><code>192.168.4.1</code> lädt nicht</td><td>Vollständig eingeben: <code>http://192.168.4.1</code>. Manche Browser machen sonst eine Suche daraus. Das Handy muss im WLAN CamperMinder sein.</td></tr>
 <tr><td>Längs und quer sind vertauscht</td><td>Das Gehäuse ist verdreht eingebaut. Der Pfeil muss nach vorn zeigen.</td></tr>
 <tr><td>Die Blase springt bei der kleinsten Bewegung von Rand zu Rand</td><td>Kopfüber eingebaut, aber die <em>Einbaulage</em> steht auf <em>Deckel oben</em>. Auf <em>Deckel unten</em> stellen und neu kalibrieren.</td></tr>
 <tr><td>Nach dem Eintragen des WLANs nicht mehr erreichbar</td><td><em>Wenn die Seite das Gerät nicht findet</em>, Abschnitt 7.</td></tr>

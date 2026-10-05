@@ -5,8 +5,13 @@ Je Fassung ein Paar aus Quelle und Ergebnissen (Liste FASSUNGEN):
     anleitung.html  ->  CamperMinder-Level-Anleitung.html / .pdf   (deutsch)
     manual.html     ->  CamperMinder-Level-Manual.html / .pdf      (englisch)
 
-Schritt 1: Alle Bilder werden als data-URI in die HTML eingebettet, so dass
-           die Ergebnis-HTML allein lesbar ist.
+Schritt 1: Alle Bilder und die Schrift fuer "Level" werden als data-URI in
+           die HTML eingebettet, so dass die Ergebnis-HTML allein lesbar ist.
+           Die Schrift (Alfphabet IV, SIL OFL 1.1) gehoert zur Webseite und
+           liegt nicht in diesem Repository. Den Ordner mit der Datei nennt die
+           Umgebungsvariable CAMPERMINDER_SCHRIFTEN; der Aufruf vom Webseiten-
+           Projekt aus setzt sie. Fehlt sie, bleibt die Anleitung lesbar,
+           "Level" steht dann in der Ersatzschrift.
 Schritt 2: Edge (headless) druckt daraus die PDF.
 Alle Ergebnisdateien sind erzeugt und werden nicht von Hand geaendert. Die
 englische Fassung ist eine Uebersetzung der deutschen: gleicher Aufbau, gleiche
@@ -28,7 +33,9 @@ FASSUNGEN = [
 ]
 EDGE = [r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe",
         r"C:\Program Files\Microsoft\Edge\Application\msedge.exe"]
-TYPEN = {".svg": "image/svg+xml", ".png": "image/png", ".jpg": "image/jpeg"}
+TYPEN = {".svg": "image/svg+xml", ".png": "image/png", ".jpg": "image/jpeg", ".ttf": "font/ttf"}
+SCHRIFTEN = os.environ.get("CAMPERMINDER_SCHRIFTEN", "")
+_schrift_fehlt = []
 
 
 def einbetten(treffer):
@@ -40,6 +47,20 @@ def einbetten(treffer):
     return "src=%sdata:%s;base64,%s%s" % (anf, typ, daten, anf)
 
 
+def schrift_einbetten(treffer):
+    """Die Schrift fuer "Level" wie die Bilder einbetten - aus CAMPERMINDER_SCHRIFTEN."""
+    pfad = os.path.join(SCHRIFTEN, os.path.basename(treffer.group(2)))
+    if not SCHRIFTEN or not os.path.exists(pfad):
+        if pfad not in _schrift_fehlt:
+            _schrift_fehlt.append(pfad)
+            print("HINWEIS  Schrift fehlt (CAMPERMINDER_SCHRIFTEN=%r), 'Level' steht in der Ersatzschrift" % SCHRIFTEN)
+        return treffer.group(0)
+    with open(pfad, "rb") as f:
+        daten = base64.b64encode(f.read()).decode("ascii")
+    typ = TYPEN[os.path.splitext(pfad)[1].lower()]
+    return "url(%sdata:%s;base64,%s%s)" % (treffer.group(1), typ, daten, treffer.group(1))
+
+
 def main():
     edge = next((e for e in EDGE if os.path.exists(e)), None)
     fehlt = []
@@ -49,6 +70,7 @@ def main():
         with io.open(os.path.join(ORDNER, quelle), encoding="utf-8", newline="") as f:
             text = f.read()
         text = re.sub(r"""src=(["'])(?!data:)([^"']+\.(?:svg|png|jpg))\1""", einbetten, text)
+        text = re.sub(r"""url\((["']?)(?!data:)(fonts/[^)"']+\.ttf)\1\)""", schrift_einbetten, text)
         with io.open(html, "w", encoding="utf-8", newline="") as f:
             f.write(text)
         print(html)

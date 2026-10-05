@@ -46,6 +46,13 @@
   .grid3 figure { margin: 0; }
   .keep { break-inside: avoid; }
   a { color: var(--teald); text-decoration: none; }
+  /* Schrift fuer "Level": Alfphabet IV, (c) 2007-2010 OSP (Pierre Huyghebaert, Ludivine Loiseau),
+     SIL Open Font License 1.1, http://scripts.sil.org/OFL . Die Datei wird von
+     tools/anleitung_pdf.py beim Erzeugen der PDF eingebettet. */
+  @font-face { font-family: "Alfphabet"; src: url("fonts/Alfphabet-IV.ttf") format("truetype"); font-weight: 400; font-style: normal; }
+  .lvl { font-family: "Alfphabet", "Segoe UI", Arial, sans-serif; font-weight: 400; font-synthesis: none; font-size: .88em; letter-spacing: .03em; }
+  .cover .marke { font-size: 13pt; letter-spacing: .14em; text-transform: uppercase; color: var(--teald); font-weight: 700; margin-bottom: 1mm; }
+  .cover h1.produkt { font-family: "Alfphabet", "Segoe UI", Arial, sans-serif; font-size: 66pt; font-weight: 400; font-synthesis: none; letter-spacing: .02em; margin: 0 0 4mm; line-height: 1; }
 </style>
 </head>
 <body>
@@ -53,19 +60,20 @@
 <!-- ============================ TITEL ============================ -->
 <section class="cover">
   <img class="logo" src="../../brand/camperminder-wordmark-light.svg" alt="CamperMinder">
-  <h1>CamperMinder Level</h1>
-  <div class="sub">Manual – from unboxing to the levelling display on your phone</div>
+  <div class="marke">CamperMinder</div>
+  <h1 class="produkt">Level</h1>
+  <div class="sub">Manual – from unboxing to the controls on your phone</div>
   <p style="max-width:120mm"><strong>No app, no account, no pairing.</strong> Everything that goes beyond the first minute
     is an optional extra that you add when you need it.</p>
   <ol style="margin-top:14mm">
-    <li>Your levelling display in one minute</li>
+    <li>Ready in one minute</li>
     <li>Installation</li>
     <li>Setting up, once</li>
     <li>Understanding the display</li>
     <li>What the lights say</li>
     <li>Language</li>
     <li>Joining your own Wi-Fi (optional extra)</li>
-    <li>Setting up the remote alert (optional extra)</li>
+    <li>Alarm on your phone: setting up the remote alert (optional extra)</li>
     <li>Software updates</li>
     <li>With Home Assistant (optional extra)</li>
     <li>MQTT – connecting to other systems (optional extra)</li>
@@ -75,14 +83,14 @@
 </section>
 
 <!-- ======================== 1 EINE MINUTE ======================== -->
-<h2 style="margin-top:0">1 · Your levelling display in one minute</h2>
+<h2 style="margin-top:0">1 · Ready in one minute</h2>
 
 <figure>
   <img src="../bilder/aufkleber-qr.svg" style="width:120mm" alt="Sticker with three QR codes">
   <figcaption>The sticker on the device. The codes in this manual work exactly like the ones on the device.</figcaption>
 </figure>
 
-<p>This sticker with three codes is on the device. You do not need to type anything: for the first start,
+<p>This sticker with three codes is on <span class="lvl">Level</span>. You do not need to type anything: for the first start,
 scan <strong>code 1 and then code 2</strong>. Code 3 only comes into play later, once the device is on your
 Wi-Fi.</p>
 
@@ -101,7 +109,7 @@ switched off in its settings.</p>
   <g fill="#fff" font-size="15" font-weight="700" text-anchor="middle"><text x="79" y="25">1</text><text x="259" y="25">2</text><text x="439" y="25">3</text><text x="619" y="25">4</text></g>
   <g fill="#1b2430" font-size="13" text-anchor="middle" font-weight="600">
     <text x="79" y="98">Connect</text><text x="79" y="116">power</text>
-    <text x="259" y="98">Scan code 1</text><text x="259" y="116">Join network</text>
+    <text x="259" y="98">Scan code 1</text><text x="259" y="116">Join Wi-Fi</text>
     <text x="439" y="98">Scan code 2</text><text x="439" y="116">Page opens</text>
     <text x="619" y="98">Control page</text><text x="619" y="116">is ready</text>
   </g>
@@ -118,47 +126,49 @@ switched off in its settings.</p>
 </figure>
 
 <ol>
-<li><strong>Connect power</strong>, in one of two ways:
+<li><strong>Connect power.</strong> <span class="lvl">Level</span> runs on <strong>5 to 36 volts</strong> and has two connections for this:
   <ul>
    <li><strong>USB-C</strong>, 5 V: to a USB socket in the vehicle, a USB power supply or a power bank.</li>
    <li><strong>Screw terminal</strong>, 7 to 36 V: <strong>VIN</strong> to plus, <strong>GND</strong> to minus of the
-     leisure battery, i.e. 12 or 24 V straight from the on-board electrics. If you connect it the wrong way round, nothing happens – it just does not work.</li>
+     leisure battery, i.e. straight onto the 12 or 24 volt on-board supply. Plus and minus the wrong way round? No problem: <span class="lvl">Level</span> is
+     protected against wrong connection, nothing gets damaged.</li>
   </ul>
   Both may be plugged in at the same time; the stronger source then supplies the power. The <span class="led g"></span><strong>green</strong> light
-  shows that power is on. After a few seconds the <strong>CamperMinder</strong> network is ready.</li>
-<li><strong>Scan code 1: connect your phone.</strong> The phone asks whether it should join the <strong>CamperMinder</strong> network:
-  confirm <strong>Connect</strong> or <strong>Join</strong>. This is the device’s own network, not your own Wi-Fi such as the router in the vehicle –
-  it needs no password from the factory.
-  <p style="margin-top:2mm">Because this network has no internet, every phone reacts a little differently:</p>
+  shows that power is on. After a few seconds the Wi-Fi network <strong>CamperMinder</strong> is ready.</li>
+<li><strong>Scan code 1: connect your phone.</strong> The phone asks whether it should join the Wi-Fi network <strong>CamperMinder</strong>:
+  confirm <strong>Connect</strong> or <strong>Join</strong>. <span class="lvl">Level</span> sends out this Wi-Fi itself; it is not your own Wi-Fi, such as the router in the vehicle.
+  It needs no password from the factory.
+  <p style="margin-top:2mm">Because this Wi-Fi has no internet, every phone reacts a little differently:</p>
   <ul>
    <li><strong>iPhone:</strong> Often the control page now opens <strong>by itself</strong>, in a window called <em>Log In</em>.
      Then you are done and do not need code 2. If you close the window, the iPhone asks how to continue:
      <strong>Use Without Internet.</strong> If nothing opens, carry on with code 2.</li>
-   <li><strong>Android:</strong> The control page usually does <strong>not</strong> open by itself. The phone may point out that the network
+   <li><strong>Android:</strong> The control page usually does <strong>not</strong> open by itself. The phone may point out that the Wi-Fi
      has no internet and ask whether to stay connected: <strong>Yes</strong> or <strong>Stay connected.</strong>
      Then carry on with code 2.</li>
   </ul></li>
-<li><strong>Scan code 2: open the control page.</strong> The page <code>192.168.4.1</code> opens in the browser, and your levelling display is ready.</li>
+<li><strong>Scan code 2: open the control page.</strong> The page <code>192.168.4.1</code> opens in the browser, and <span class="lvl">Level</span> is ready.</li>
 </ol>
 
-<p>Nothing more is needed for operation. The device needs no internet, and you can open the page again at any time in the same way:
-scan code 2 while on the CamperMinder network.</p>
+<p>Nothing more is needed for operation. <span class="lvl">Level</span> needs no internet, and you can open the page again at any time in the same way:
+scan code 2 while on the CamperMinder Wi-Fi.</p>
 
 <h3>Without the sticker, or if a code does not work</h3>
 <ul>
-<li><strong>Instead of code 1:</strong> In the Wi-Fi settings of your phone choose <strong>CamperMinder</strong>. From the factory this network has no
+<li><strong>Instead of code 1:</strong> In the Wi-Fi settings of your phone choose <strong>CamperMinder</strong>. From the factory this Wi-Fi has no
   password. If you have set one of your own under <em>System → Own network</em>, yours applies – then code 1 no longer fits, and you
   have to choose the network by hand.</li>
 <li><strong>Instead of code 2:</strong> Type <code>192.168.4.1</code> into the browser. Some browsers turn that into a search; then type the full
   <code>http://192.168.4.1</code>.</li>
-<li><strong>Shortcut on Samsung phones:</strong> <em>Settings → Connections → Wi-Fi</em>, tap the gear next to the connected network <strong>CamperMinder</strong>,
+<li><strong>Shortcut on Samsung phones:</strong> <em>Settings → Connections → Wi-Fi</em>, tap the gear next to the connected Wi-Fi <strong>CamperMinder</strong>,
   then <strong>Manage router</strong>. That also opens <code>192.168.4.1</code>.</li>
 </ul>
 
 <div class="tip"><p><strong>An icon like an app.</strong> Open the page for this in the right browser, not in the <em>Log In</em> window of the iPhone:
 on the iPhone call up <code>192.168.4.1</code> in Safari, then <em>Share → Add to Home Screen</em>; on Android in Chrome, then
 <em>⋮ → Add to Home screen</em>. Code 2 already opens the page in the right browser. The icon opens it full screen –
-where other devices need an app, here the page lives in the device itself, and every update brings it along.</p></div>
+where other devices need an app, <span class="lvl">Level</span> has the controls built in. New features arrive later as an update to the device;
+you never have to update an app.</p></div>
 
 <!-- ========================= 2 EINBAUEN ========================= -->
 <h2>2 · Installation</h2>
@@ -206,7 +216,7 @@ where other devices need an app, here the page lives in the device itself, and e
 <h2>3 · Setting up, once</h2>
 
 <h3>Step 1: Enter your vehicle</h3>
-<p><em>Display → Vehicle</em>: vehicle type, wheelbase and track width. From these dimensions the device works out how many centimetres each corner
+<p><em>Display → Vehicle</em>: vehicle type, wheelbase and track width. From these dimensions <span class="lvl">Level</span> works out how many centimetres each corner
 has to be raised.</p>
 
 <figure>
@@ -319,7 +329,7 @@ number for both axes. The switch is on the control page under <em>Vehicle</em>.<
 <table>
 <tr><th style="width:38mm">Light</th><th>Meaning</th></tr>
 <tr><td><span class="led g"></span><strong>green</strong>, on</td><td>Power is on</td></tr>
-<tr><td><span class="led r"></span><strong>red</strong>, long on, long off</td><td>The device’s own network is open: code 1, then code 2 – or connect to <strong>CamperMinder</strong> by hand and open <code>192.168.4.1</code></td></tr>
+<tr><td><span class="led r"></span><strong>red</strong>, long on, long off</td><td><span class="lvl">Level</span>’s own Wi-Fi is open: code 1, then code 2 – or connect to <strong>CamperMinder</strong> by hand and open <code>192.168.4.1</code></td></tr>
 <tr><td><span class="led r"></span><strong>red</strong>, one short flash every three seconds</td><td>The device is on your Wi-Fi</td></tr>
 <tr><td><span class="led r"></span><strong>red</strong>, steady at half-second intervals</td><td>The sensor is not responding. Please report it.</td></tr>
 <tr><td><span class="led r"></span><strong>red</strong>, frantic double flashing, plus three tones</td><td><strong>Guard alarm:</strong> The vehicle has changed its position</td></tr>
@@ -347,7 +357,7 @@ readings stay German, so that Home Assistant and MQTT keep matching up when the 
   <rect x="254" y="100" width="64" height="64" rx="9" fill="#2fb6c9"/><text x="286" y="184" text-anchor="middle" font-size="12">Device</text>
   <path d="M96 132 H248" stroke="#1c8797" stroke-width="2.4" stroke-dasharray="6 5"/>
   <path d="M150 118 a14 14 0 0 1 24 0 M155 125 a8 8 0 0 1 14 0" stroke="#1c8797" stroke-width="2" fill="none"/>
-  <text x="172" y="104" text-anchor="middle" font-size="12" font-weight="700" fill="#1c8797">Network “CamperMinder”</text>
+  <text x="172" y="104" text-anchor="middle" font-size="12" font-weight="700" fill="#1c8797">Wi-Fi “CamperMinder”</text>
   <text x="172" y="158" text-anchor="middle" font-size="12" fill="#1b2430">Address 192.168.4.1</text>
   <text x="172" y="222" text-anchor="middle" font-size="12" font-weight="700" fill="#1c8797">Code 1, then code 2</text>
   <!-- rechts -->
@@ -363,11 +373,11 @@ readings stay German, so that Home Assistant and MQTT keep matching up when the 
 </figure>
 
 <ol>
-<li>Connect the phone to the <strong>CamperMinder</strong> network (code 1) and open the page with <strong>code 2</strong> – code 2 opens it
+<li>Connect the phone to the Wi-Fi network <strong>CamperMinder</strong> (code 1) and open the page with <strong>code 2</strong> – code 2 opens it
   in the right browser. <strong>Do not work in the <em>Log In</em> window</strong> of the iPhone: it closes as soon as the phone switches networks,
   and then the page can no longer search for the device. There go to <em>System → Wi-Fi</em>, enter the name and password of your Wi-Fi, and tap
   <strong>Save and connect</strong>.</li>
-<li><strong>Stay on the page.</strong> The device restarts and logs on to your Wi-Fi. The CamperMinder network disappears, and your phone
+<li><strong>Stay on the page.</strong> The device restarts and logs on to your Wi-Fi. The CamperMinder Wi-Fi disappears, and your phone
   returns to your Wi-Fi by itself. The page then searches for the device there and, usually after less than a minute, shows:
   <em>Found: the device is reachable on your Wi-Fi at 192.168.178.45</em> (your number will be a different one).</li>
 <li>Tap <strong>Open on home network</strong> and add the icon to your home screen again from there.</li>
@@ -377,7 +387,7 @@ readings stay German, so that Home Assistant and MQTT keep matching up when the 
 the device opens its own network again after about 20 seconds, and <code>192.168.4.1</code> applies. The credentials stay saved.</p>
 
 <p><strong>Code 3 on the sticker</strong> opens the device on your Wi-Fi by its name, <code>camperminder-level.local</code>, no matter which
-address your router gives it. For this your phone must be on your Wi-Fi, not on the CamperMinder network. On the iPhone this works, on Android
+address your router gives it. For this your phone must be on your Wi-Fi, not on the CamperMinder Wi-Fi. On the iPhone this works, on Android
 not on every phone. If code 3 opens nothing there, use the icon you created in step 3.</p>
 
 <table>
@@ -386,7 +396,7 @@ not on every phone. If code 3 opens nothing there, use the icon you created in s
 <tr><td>the device is on your Wi-Fi</td><td><strong>3</strong></td></tr>
 </table>
 
-<p><strong>If the CamperMinder network comes back after half a minute,</strong> logging on did not work, usually because of a typo in the
+<p><strong>If the CamperMinder Wi-Fi comes back after half a minute,</strong> logging on did not work, usually because of a typo in the
 password. The page says so as well. Simply connect again, correct it, save.</p>
 
 <h3>If the page does not find the device</h3>
@@ -394,13 +404,13 @@ password. The page says so as well. Simply connect again, correct it, save.</p>
 <li><strong>Look in the router.</strong> In the device list of your router the device appears under its name, usually <strong>camperminder-level</strong>, on a
   FRITZ!Box under <em>Home Network → Network</em>. Open the address next to it in the browser. The page gives the exact name under <em>System</em> as <em>Network name</em>.</li>
 <li><strong>Scan code 3</strong> or type <code>camperminder-level.local</code> into the browser. On the iPhone this almost always works, on Android not on every phone.</li>
-<li><strong>Look it up next time.</strong> The device remembers its address. The next time you are on the CamperMinder network, it is shown at the top under
+<li><strong>Look it up next time.</strong> The device remembers its address. The next time you are on the CamperMinder Wi-Fi, it is shown at the top under
   <em>System → Wi-Fi</em>.</li>
 </ul>
 <p>The search finds nothing in guest Wi-Fis that isolate their devices from each other, and in unusually set-up networks. Then all that is left is a look in the router.</p>
 
 <!-- ======================= 8 FERNALARM ======================= -->
-<h2>8 · Setting up the remote alert (optional extra)</h2>
+<h2>8 · Alarm on your phone: setting up the remote alert (optional extra)</h2>
 
 <p>The guard reports a change of position to everyone who can reach the device – on its own network. If you are on the beach while the vehicle is being jacked up,
 you only find out when you get back. That is exactly what the remote alert is for: the device sends the message itself to a push service
@@ -497,19 +507,21 @@ radio range. <strong>If you use the remote alert, set a password under <em>Syste
 <h3>What the remote alert cannot do</h3>
 <ul>
 <li><strong>It needs internet at the vehicle.</strong> Without a Wi-Fi entered that has a connection to the outside, nothing goes out – on a pitch without reception
-  all that remains is the buzzer and the latched alert in the device.</li>
+  all that remains is the buzzer and the message in the device.</li>
 <li><strong>It does not know whether the message arrives.</strong> The device only learns from the service whether it accepted it. What happens after that is up to the service
   and your phone. That is why the test message.</li>
-<li><strong>One message per alarm.</strong> The alarm latches in the device and stays on until it is acknowledged – it is not sent repeatedly.</li>
+<li><strong>One message per alarm.</strong> The alarm stays on in the device until you confirm it with <em>Acknowledge alarm</em> – it is not sent repeatedly.</li>
 </ul>
 
 <!-- ======================= 9 UPDATES ======================= -->
 <h2>9 · Software updates</h2>
 
+<p>Updates bring new features and improvements to <span class="lvl">Level</span>. Nothing is installed until you confirm it.</p>
+
 <table>
 <tr><th>Situation</th><th>Way</th></tr>
 <tr><td>Device has internet</td><td>Tab <em>System</em> → <strong>Check for updates</strong></td></tr>
-<tr><td>Device on its own network</td><td>Tab <em>System</em> → upload the firmware file from your phone</td></tr>
+<tr><td>Device on its own network</td><td>Tab <em>System</em> → upload the update file from your phone</td></tr>
 </table>
 <p>The running version is shown in the same tab.</p>
 
@@ -527,7 +539,7 @@ radio range. <strong>If you use the remote alert, set a password under <em>Syste
 If there is a new version, a blue notice appears at the top of the page, on every tab: <em>“New version … available. Tap here to install.”</em>
 It is only installed when you tap and confirm – never on its own, so not while driving either.</p></div>
 
-<h3>Uploading firmware from your phone</h3>
+<h3>Uploading the update file from your phone</h3>
 <ol>
 <li>From the release on GitHub, download the file <strong><code>level-firmware.ota.bin</code></strong> to your phone. <strong>Not the <code>factory.bin</code></strong>: that one is for a blank board,
   and the device rejects it as an update.</li>
@@ -540,10 +552,10 @@ It is only installed when you tap and confirm – never on its own, so not while
 <!-- ======================= 10 HOME ASSISTANT ======================= -->
 <h2>10 · With Home Assistant (optional extra)</h2>
 <p>As soon as the device is on your Wi-Fi, Home Assistant finds it by itself via ESPHome. The <strong>CamperMinder</strong> integration comes through
-HACS and brings the control card with it; Home Assistant then reports firmware updates automatically.</p>
+HACS and brings the control card with it; Home Assistant then reports updates for the software in the device automatically.</p>
 
 <div class="tip"><p><strong>The entity names stay German.</strong> Home Assistant shows the entities of the device under their German names, for example <em>Wächter Alarm</em>.
-The firmware deliberately does not translate them, so that existing installations – automations, dashboards, MQTT – do not break when the language is switched.
+The software in the device deliberately does not translate them, so that existing installations – automations, dashboards, MQTT – do not break when the language is switched.
 Only the control page itself changes language.</p></div>
 
 <h3>Messages to your phone: the blueprints</h3>
@@ -555,7 +567,7 @@ Blueprints → Import blueprint</em>, then paste the address:</p>
 <li>Frost warning:<br><code>https://github.com/rcdev67/camperminder/blob/main/blueprints/automation/camperminder/frostwarnung.yaml</code></li>
 </ul>
 <p>Then <em>Create automation → Use a blueprint</em>, choose the device and enter under “Was soll passieren?” (“What should happen?” – the blueprints are in German) how you want to be notified.</p>
-<p>Both modes run on the same firmware. If you start small, you can switch at any time – no new software, no new device.</p>
+<p>Both modes run with the same software in the device. If you start small, you can switch at any time – no new software, no new device.</p>
 
 <!-- ======================= 11 MQTT ======================= -->
 <h2>11 · MQTT – connecting to other systems (optional extra)</h2>
@@ -564,7 +576,7 @@ that have no tilt sensor of their own – such as ioBroker, openHAB or Node-RED.
 <div class="tip"><p><strong>Not needed for Home Assistant.</strong> There everything runs through the built-in connection to the device. MQTT is the way to everything else.
 If you do not use MQTT, you will not notice it: with no address entered, the device does not open a connection.</p></div>
 <div class="tip"><p><strong>Names and values stay German.</strong> The topics below, the entity names and the text values they report (<em>aus</em>, <em>scharf in 45 s</em> …) are
-not translated by the firmware, so that existing installations do not break when the language of the control page is switched. English meanings follow in brackets.</p></div>
+not translated by the software in the device, so that existing installations do not break when the language of the control page is switched. English meanings follow in brackets.</p></div>
 
 <h3>Setting up</h3>
 <p>On the control page under <strong>System → MQTT</strong>: enter the broker address, port, user and password and save. After that the device restarts.
@@ -620,8 +632,8 @@ The lift heights are <strong>fully calculated</strong> – vehicle dimensions, v
 <tr><td><code>sensor/innentemperatur</code></td><td>in °C. <strong>Not a thermometer:</strong> The chip heats itself up. Good enough for a frost warning, not for climate control.</td></tr>
 </table>
 
-<h3>Target profiles</h3>
-<p>A simple levelling system knows one target: zero. This device knows three profiles and levels accordingly: <strong>Levelling</strong>, <strong>Sleeping</strong> (head end a little higher) and
+<h3>Profiles (target profiles)</h3>
+<p>A simple spirit level knows one target: zero. <span class="lvl">Level</span> knows three profiles and levels accordingly: <strong>Levelling</strong>, <strong>Sleeping</strong> (head end a little higher) and
 <strong>Draining</strong> (boiler or tank drain towards one point). The profile affects <em>only</em> the levelling; the tilt warning and the guard carry on calculating with the real tilt.</p>
 <table>
 <tr><th>Topic (after <code>camperminder/level/</code>)</th><th>Content</th></tr>
@@ -633,7 +645,7 @@ The lift heights are <strong>fully calculated</strong> – vehicle dimensions, v
 <tr><td><code>sensor/ziel_laengs</code>, <code>sensor/ziel_quer</code></td><td>the target tilt currently in force, in cm – the convenient way for a connected system</td></tr>
 </table>
 
-<h3>Fridge time account</h3>
+<h3>Fridge warning</h3>
 <p><code>schraeglage</code> reports the <strong>angle</strong>. What damages an absorption fridge, however, is the angle <strong>times the time</strong> – being briefly tilted while manoeuvring is harmless.
 If you want to trigger a notification, therefore use <code>kuehlschrank_warnung</code>.</p>
 <table>
@@ -682,14 +694,14 @@ If you want to trigger a notification, therefore use <code>kuehlschrank_warnung<
 <h2>12 · If something does not work</h2>
 <table>
 <tr><th style="width:52mm">Problem</th><th>What helps</th></tr>
-<tr><td>No <strong>CamperMinder</strong> network in the list</td><td>Is the green light on? If not, power is missing. If the red light flashes briefly every three seconds, the device is on your Wi-Fi, and its own network is therefore off: see <em>Joining your own Wi-Fi</em>. After switching on, wait up to 20 seconds.</td></tr>
+<tr><td>No Wi-Fi <strong>CamperMinder</strong> in the list</td><td>Is the green light on? If not, power is missing. If the red light flashes briefly every three seconds, the device is on your Wi-Fi, and its own network is therefore off: see <em>Joining your own Wi-Fi</em>. After switching on, wait up to 20 seconds.</td></tr>
 <tr><td>The camera does not react to the codes</td><td>In the camera settings switch on scanning of QR codes, or use Google Lens. Otherwise use the ways under <em>Without the sticker</em>.</td></tr>
 <tr><td>Code 1 is read, but the phone does not join the network</td><td>If the own network has been given a password (<em>System → Own network</em>), code 1 no longer fits: choose the network by hand and enter your password.</td></tr>
 <tr><td>Nothing opens after code 1</td><td>Normal on Android: scan code 2. On Samsung, <em>Wi-Fi → gear next to CamperMinder → Manage router</em> also works.</td></tr>
-<tr><td>Code 2 opens nothing, or “Page not reachable”</td><td>The phone is not (or no longer) on the CamperMinder network. First code 1, then code 2 again.</td></tr>
+<tr><td>Code 2 opens nothing, or “Page not reachable”</td><td>The phone is not (or no longer) on the CamperMinder Wi-Fi. First code 1, then code 2 again.</td></tr>
 <tr><td>Code 3 opens nothing</td><td>Code 3 only works if the device is on your Wi-Fi and the phone is, too. On some Android phones <code>.local</code> does not work at all: then use the icon from <em>Joining your own Wi-Fi</em>, step 3, or the address from the router.</td></tr>
-<tr><td>The phone jumps out of the CamperMinder network</td><td>It is looking for internet and prefers your Wi-Fi. Confirm <em>Stay connected</em>; if that does not help, briefly switch off <em>Auto-connect</em> for your Wi-Fi, or the mobile data.</td></tr>
-<tr><td><code>192.168.4.1</code> does not load</td><td>Type it in full: <code>http://192.168.4.1</code>. Some browsers otherwise turn it into a search. The phone must be on the CamperMinder network.</td></tr>
+<tr><td>The phone jumps out of the CamperMinder Wi-Fi</td><td>It is looking for internet and prefers your Wi-Fi. Confirm <em>Stay connected</em>; if that does not help, briefly switch off <em>Auto-connect</em> for your Wi-Fi, or the mobile data.</td></tr>
+<tr><td><code>192.168.4.1</code> does not load</td><td>Type it in full: <code>http://192.168.4.1</code>. Some browsers otherwise turn it into a search. The phone must be on the CamperMinder Wi-Fi.</td></tr>
 <tr><td>Lengthways and crossways are swapped</td><td>The housing is installed turned. The arrow must point forwards.</td></tr>
 <tr><td>The bubble jumps from edge to edge at the slightest movement</td><td>Installed upside down, but <em>Mounting</em> is set to <em>Lid facing up</em>. Set it to <em>Lid facing down</em> and calibrate again.</td></tr>
 <tr><td>No longer reachable after entering the Wi-Fi</td><td><em>If the page does not find the device</em>, section 7.</td></tr>
