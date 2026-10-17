@@ -29,14 +29,16 @@ blueprint:
     wetter:
       name: Wettervorhersage
       description: >-
-        Eine Wetter-Entität mit stündlicher Vorhersage. Zur Auswahl stehen nur
-        solche, die eine liefern.
+        Eine Wetter-Entität mit stündlicher Vorhersage. met.no, die Vorgabe
+        von Home Assistant, und OpenWeatherMap liefern eine.
+      # Bewusst ohne Filter auf supported_features: Home Assistant 2026.10
+      # schreibt den Filter beim Speichern als Zahl in die Datei und lehnt
+      # genau diese Zahl beim nächsten Laden ab. Der Blueprint wäre nach dem
+      # Import unbrauchbar (am 17.10.2026 im Hörnchen-HA so aufgetreten).
       selector:
         entity:
           filter:
             - domain: weather
-              supported_features:
-                - weather.WeatherEntityFeature.FORECAST_HOURLY
     markise:
       name: Markise ausgefahren
       description: >-

@@ -328,9 +328,10 @@ def test_markise_aufbau():
     assert eingaenge_im_rumpf(rumpf) == set(kopf["input"])
     assert kopf["input"]["benachrichtigung"]["selector"] == {"action": {}}
     assert schritte(b["action"], "choose")[0]["default"] == "benachrichtigung"
-    # Nur Wetter-Entitäten mit stündlicher Vorhersage, und die wird auch verlangt.
+    # Kein Filter auf supported_features: Home Assistant 2026.10 schreibt ihn
+    # beim Speichern als Zahl zurück und lehnt ihn beim Laden dann ab.
     (filter_,) = kopf["input"]["wetter"]["selector"]["entity"]["filter"]
-    assert filter_["supported_features"] == ["weather.WeatherEntityFeature.FORECAST_HOURLY"]
+    assert filter_ == {"domain": "weather"}
     (abfrage,) = schritte(b["action"], "response_variable")
     assert abfrage["action"] == "weather.get_forecasts"
     assert abfrage["data"] == {"type": "hourly"}
