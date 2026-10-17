@@ -91,7 +91,10 @@
           "heck": "Heck anheben",
           "front": "Front anheben"
         }
-      }
+      },
+      "sun": { "name": "Sonne" },
+      "dish": { "name": "Satellit" },
+      "starlink": { "name": "Starlink" }
     },
     "binary_sensor": {
       "level": { "name": "Steht eben" },
@@ -106,7 +109,8 @@
       "awning_gust": { "name": "Markise: Böen ab" },
       "awning_wind": { "name": "Markise: mittlerer Wind ab" },
       "awning_rain": { "name": "Markise: Regen ab" },
-      "awning_lead": { "name": "Markise: Vorlauf" }
+      "awning_lead": { "name": "Markise: Vorlauf" },
+      "vehicle_heading": { "name": "Front zeigt nach" }
     },
     "select": {
       "level_method": {
@@ -116,7 +120,32 @@
           "hebesystem": "Hydraulik oder Luftkissen"
         }
       },
-      "notify_target": { "name": "Ansageziel" }
+      "notify_target": { "name": "Ansageziel" },
+      "awning_side": {
+        "name": "Markise an Seite",
+        "state": {
+          "rechts": "Rechts",
+          "links": "Links",
+          "keine": "Keine"
+        }
+      },
+      "fridge_vent_side": {
+        "name": "Kühlschrank-Lüftung an Seite",
+        "state": {
+          "rechts": "Rechts",
+          "links": "Links",
+          "keine": "Keine Angabe"
+        }
+      },
+      "satellite": {
+        "name": "Satellit",
+        "state": {
+          "astra_19_2": "Astra 19,2° Ost",
+          "hotbird_13": "Hotbird 13° Ost",
+          "astra_23_5": "Astra 23,5° Ost",
+          "astra_28_2": "Astra 28,2° Ost"
+        }
+      }
     },
     "button": {
       "home_here": { "name": "Heimatort hierher" }

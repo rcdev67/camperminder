@@ -15,6 +15,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import (
+    CONF_HEADING,
     CONF_AWNING_GUST,
     CONF_AWNING_LEAD,
     CONF_AWNING_RAIN,
@@ -99,6 +100,21 @@ NUMBERS: tuple[CamperNumberDescription, ...] = (
 )
 
 
+# Wohin die Front des Fahrzeugs zeigt - von Hand, denn Level hat keinen
+# Kompass. Davon hängen Sonnenzeiten, Satellit und Starlink ab.
+HEADING = CamperNumberDescription(
+    key="vehicle_heading",
+    translation_key="vehicle_heading",
+    value_key=CONF_HEADING,
+    native_min_value=0,
+    native_max_value=359,
+    native_step=1,
+    native_unit_of_measurement="°",
+    mode=NumberMode.BOX,
+    icon="mdi:compass-outline",
+)
+
+
 # Die Regler des Wetterwächters. Es gibt sie nur mit Wetter-Entität; das
 # Gerät führt sie nicht, denn ohne Home Assistant gibt es kein Wetter.
 AWNING_NUMBERS: tuple[CamperNumberDescription, ...] = (
@@ -162,6 +178,7 @@ async def async_setup_entry(
         for description in NUMBERS
         if description.value_key not in coordinator.device_sources
     ]
+    entities.append(CamperHeadingNumber(coordinator, entry, HEADING))
     if (wetter := stored.get("wetter")) is not None:
         entities.extend(
             CamperAwningNumber(coordinator, entry, description, wetter)
@@ -213,3 +230,15 @@ class CamperAwningNumber(CamperNumber):
     async def async_set_native_value(self, value: float) -> None:
         await super().async_set_native_value(value)
         self._wetter.einstellungen_geaendert()
+
+
+class CamperHeadingNumber(CamperNumber):
+    """Die Richtung bleibt leer, bis sie eingetragen ist - kein geratenes 0°."""
+
+    @property
+    def native_value(self) -> float | None:
+        wert = self.coordinator.get_value(self.entity_description.value_key)
+        return None if wert is None else float(wert)
+
+    async def async_set_native_value(self, value: float) -> None:
+        self.coordinator.async_set_value(self.entity_description.value_key, float(value) % 360)

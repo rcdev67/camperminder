@@ -501,6 +501,27 @@ class CamperMinderCard extends HTMLElement {
           background: var(--card-background-color, #1b2029);
           color: var(--primary-text-color, #e8ecf1); }
 
+        /* Stellplatz: Sonne, Satellit, Starlink. Norden oben wie auf jeder
+           Karte; das Fahrzeug dreht sich, nicht die Welt. */
+        .stellplatz {
+          padding: 12px; border-radius: 16px;
+          background: var(--card-background-color, #1b2029);
+          border: 1px solid var(--divider-color, rgba(255,255,255,.08));
+        }
+        .stellplatz[hidden] { display: none; }
+        .stellplatz .titel { font-size: .8rem; letter-spacing: .18em; opacity: .65;
+          text-align: center; margin-bottom: 6px; }
+        .stellplatz svg { display: block; width: 100%; max-width: 300px; margin: 0 auto; }
+        .stellplatz .saetze { margin-top: 8px; display: flex; flex-direction: column; gap: 6px;
+          font-size: .86rem; line-height: 1.35; }
+        .stellplatz .saetze div::first-letter { font-weight: 700; }
+        .stellplatz .richtung { margin-top: 10px; display: flex; align-items: center;
+          justify-content: center; gap: 6px; flex-wrap: wrap; font-size: .86rem; }
+        .stellplatz .richtung .wert { font-weight: 800; min-width: 9em; text-align: center; }
+        .stellplatz .richtung button { border: 0; border-radius: 8px; padding: 7px 10px;
+          font-size: .82rem; font-weight: 800; cursor: pointer;
+          background: rgba(127,127,127,.18); color: inherit; }
+
         /* Fußzeile: bewusst zurückhaltend. Sie soll im Betrieb nicht
            auffallen, im Supportfall aber ohne Nachfragen die Version zeigen. */
         .foot { margin-top: 10px; padding-top: 8px;
@@ -563,6 +584,8 @@ class CamperMinderCard extends HTMLElement {
             <img id="imgRear" src="${STATIC}/camper_rear.svg" alt="">
           </div>
         </div>
+
+        <div class="stellplatz" id="stellplatz" hidden></div>
 
         <div class="controls" id="controls"></div>
 
@@ -912,6 +935,7 @@ class CamperMinderCard extends HTMLElement {
     this._renderVeraltet(root.getElementById("veraltet"), a);
     this._renderHinweis(root.getElementById("hinweis"), a);
     this._renderMarkise(root.getElementById("markise"), a);
+    this._renderStellplatz(root.getElementById("stellplatz"), hass);
     this._renderWache(root.getElementById("wache"), hass, a);
 
     if (this._config.show_controls) {
@@ -998,6 +1022,127 @@ class CamperMinderCard extends HTMLElement {
     node.dataset.signature = a.awning_text;
     node.hidden = false;
     node.textContent = `${stufe === "einfahren" ? "🌬️" : "🌧️"} ${a.awning_text}`;
+  }
+
+  /* Stellplatz: Sonne, Satellit und Starlink um das Fahrzeug.
+   *
+   * Gerechnet wird in der Integration (stellplatz.py); die Karte zeichnet nur.
+   * Die Richtung des Fahrzeugs kennt Level nicht - sie wird hier mit den
+   * Knöpfen eingestellt und landet im Regler "Front zeigt nach". */
+  _renderStellplatz(node, hass) {
+    if (!node) return;
+    const sonne = this._findRole(hass, "sun");
+    if (!sonne) { node.hidden = true; return; }
+    const sat = this._findRole(hass, "dish");
+    const star = this._findRole(hass, "starlink");
+    const richtung = this._findRole(hass, "vehicle_heading");
+    const sa = sonne.state.attributes;
+    const front = sa.front === null || sa.front === undefined ? null : Number(sa.front);
+
+    const signature = JSON.stringify([
+      sonne.state.state, sa.sonne_azimut, sa.sonne_hoehe, sa.bahn, front,
+      sat && sat.state.state, sat && sat.state.attributes.azimut,
+      star && star.state.state,
+    ]);
+    if (node.dataset.signature === signature) return;
+    node.dataset.signature = signature;
+    node.hidden = false;
+
+    const R = 104;
+    const punkt = (az, h) => {
+      const r = R * Math.max(0, 1 - Math.max(0, h) / 90);
+      const w = (az * Math.PI) / 180;
+      return [r * Math.sin(w), -r * Math.cos(w)];
+    };
+    const f = (n) => n.toFixed(1);
+    const teile = [];
+
+    // Starlink: Sektor um Norden (bzw. Süden), wo freier Himmel zählt.
+    if (star) {
+      const mitte = Number(star.state.attributes.azimut) || 0;
+      const [x1, y1] = punkt(mitte - 45, 0);
+      const [x2, y2] = punkt(mitte + 45, 0);
+      teile.push(`<path d="M0 0 L${f(x1)} ${f(y1)} A${R} ${R} 0 0 1 ${f(x2)} ${f(y2)} Z"
+        fill="rgba(80,160,255,.14)" stroke="none"/>`);
+      const [lx, ly] = punkt(mitte, 30);
+      teile.push(`<text x="${f(lx)}" y="${f(ly)}" font-size="10" text-anchor="middle"
+        fill="#7db8ff">Starlink</text>`);
+    }
+    // Horizont und Himmelsrichtungen.
+    teile.push(`<circle r="${R}" fill="none" stroke="rgba(127,127,127,.45)"/>`);
+    teile.push(`<circle r="${R * (1 - 45 / 90)}" fill="none" stroke="rgba(127,127,127,.18)" stroke-dasharray="3 4"/>`);
+    for (const [az, t] of [[0, "N"], [90, "O"], [180, "S"], [270, "W"]]) {
+      const w = (az * Math.PI) / 180;
+      teile.push(`<text x="${f(118 * Math.sin(w))}" y="${f(-118 * Math.cos(w) + 4)}" font-size="12"
+        text-anchor="middle" font-weight="${t === "N" ? 800 : 500}" fill="currentColor">${t}</text>`);
+    }
+    // Sonnenbogen des Tages mit Stunden.
+    const bahn = Array.isArray(sa.bahn) ? sa.bahn : [];
+    if (bahn.length > 1) {
+      const pts = bahn.map((b) => punkt(b.azimut, b.hoehe).map(f).join(",")).join(" ");
+      teile.push(`<polyline points="${pts}" fill="none" stroke="#ffb020" stroke-width="2"
+        stroke-dasharray="4 4" opacity=".8"/>`);
+      bahn.forEach((b, i) => {
+        if (i % 2) return;
+        const [x, y] = punkt(b.azimut, b.hoehe);
+        teile.push(`<text x="${f(x)}" y="${f(y - 5)}" font-size="9" text-anchor="middle"
+          fill="#ffb020">${b.zeit}</text>`);
+      });
+    }
+    // Satellit.
+    if (sat && Number(sat.state.attributes.hoehe) > 0) {
+      const [x, y] = punkt(Number(sat.state.attributes.azimut), Number(sat.state.attributes.hoehe));
+      teile.push(`<line x1="0" y1="0" x2="${f(x)}" y2="${f(y)}" stroke="#37d67a" stroke-width="2"/>`);
+      const name = String(sat.state.attributes.satellit || "Satellit").split(" ")[0];
+      teile.push(`<text x="${f(x)}" y="${f(y + 13)}" font-size="10" text-anchor="middle"
+        fill="#37d67a">${name}</text>`);
+    }
+    // Fahrzeug, gedreht nach der Front. Ohne Richtung grau und gestrichelt.
+    const farbe = front === null ? "rgba(127,127,127,.6)" : "var(--primary-text-color, #e8ecf1)";
+    teile.push(`<g transform="rotate(${front === null ? 0 : front})">
+      <rect x="-13" y="-28" width="26" height="56" rx="6" fill="rgba(127,127,127,.25)"
+        stroke="${farbe}" stroke-width="1.5" ${front === null ? 'stroke-dasharray="3 3"' : ""}/>
+      <path d="M-9 -20 L0 -32 L9 -20" fill="none" stroke="${farbe}" stroke-width="2"/>
+    </g>`);
+    if (front === null) {
+      teile.push(`<text x="0" y="5" font-size="16" text-anchor="middle" fill="${farbe}">?</text>`);
+    }
+    // Sonne jetzt.
+    if (Number(sa.sonne_hoehe) > 0) {
+      const [x, y] = punkt(Number(sa.sonne_azimut), Number(sa.sonne_hoehe));
+      teile.push(`<circle cx="${f(x)}" cy="${f(y)}" r="8" fill="#ffd34d" stroke="#ffb020"/>`);
+    }
+
+    const RICHTUNGEN = ["N", "NNO", "NO", "ONO", "O", "OSO", "SO", "SSO",
+      "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"];
+    const wort = (az) => RICHTUNGEN[Math.round((((az % 360) + 360) % 360) / 22.5) % 16];
+    const esc = (t) => String(t || "").replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
+
+    node.innerHTML = `
+      <div class="titel">STELLPLATZ</div>
+      <svg viewBox="-132 -132 264 264" aria-hidden="true">${teile.join("")}</svg>
+      <div class="saetze">
+        <div>☀️ ${esc(sonne.state.state)}</div>
+        ${sat ? `<div>📡 ${esc(sat.state.state)}</div>` : ""}
+        ${star ? `<div>🛰️ ${esc(star.state.state)}</div>` : ""}
+      </div>
+      <div class="richtung">
+        <button data-d="-15">−15°</button><button data-d="-5">−5°</button>
+        <span class="wert">Front: ${front === null ? "nicht eingestellt" : `${Math.round(front)}° ${wort(front)}`}</span>
+        <button data-d="5">+5°</button><button data-d="15">+15°</button>
+      </div>`;
+
+    if (richtung) {
+      node.querySelectorAll(".richtung button").forEach((knopf) => {
+        knopf.addEventListener("click", () => {
+          const jetzt = front === null ? 0 : front;
+          const neu = (((jetzt + Number(knopf.dataset.d)) % 360) + 360) % 360;
+          hass.callService("number", "set_value", { entity_id: richtung.entityId, value: neu });
+        });
+      });
+    } else {
+      node.querySelectorAll(".richtung button").forEach((knopf) => { knopf.disabled = true; });
+    }
   }
 
   /* Die Wächterleiste.

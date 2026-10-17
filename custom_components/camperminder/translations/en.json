@@ -91,7 +91,10 @@
           "heck": "Raise rear",
           "front": "Raise front"
         }
-      }
+      },
+      "sun": { "name": "Sun" },
+      "dish": { "name": "Satellite" },
+      "starlink": { "name": "Starlink" }
     },
     "binary_sensor": {
       "level": { "name": "Is level" },
@@ -106,7 +109,8 @@
       "awning_gust": { "name": "Awning: gusts from" },
       "awning_wind": { "name": "Awning: mean wind from" },
       "awning_rain": { "name": "Awning: rain from" },
-      "awning_lead": { "name": "Awning: look ahead" }
+      "awning_lead": { "name": "Awning: look ahead" },
+      "vehicle_heading": { "name": "Front points to" }
     },
     "select": {
       "level_method": {
@@ -116,7 +120,32 @@
           "hebesystem": "Hydraulic or air suspension"
         }
       },
-      "notify_target": { "name": "Announcement target" }
+      "notify_target": { "name": "Announcement target" },
+      "awning_side": {
+        "name": "Awning on side",
+        "state": {
+          "rechts": "Right",
+          "links": "Left",
+          "keine": "None"
+        }
+      },
+      "fridge_vent_side": {
+        "name": "Fridge vents on side",
+        "state": {
+          "rechts": "Right",
+          "links": "Left",
+          "keine": "Not specified"
+        }
+      },
+      "satellite": {
+        "name": "Satellite",
+        "state": {
+          "astra_19_2": "Astra 19.2° East",
+          "hotbird_13": "Hotbird 13° East",
+          "astra_23_5": "Astra 23.5° East",
+          "astra_28_2": "Astra 28.2° East"
+        }
+      }
     },
     "button": {
       "home_here": { "name": "Set home here" }

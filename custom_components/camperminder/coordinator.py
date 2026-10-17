@@ -17,12 +17,17 @@ from homeassistant.core import Event, EventStateChangedData, HomeAssistant, call
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.dispatcher import async_dispatcher_send
 from homeassistant.helpers.event import async_track_state_change_event
+from homeassistant.util import dt as dt_util
 
 from .const import (
     CONF_AWNING_GUST,
     CONF_AWNING_LEAD,
     CONF_AWNING_RAIN,
+    CONF_AWNING_SIDE,
     CONF_AWNING_WIND,
+    CONF_FRIDGE_VENT_SIDE,
+    CONF_HEADING,
+    CONF_SATELLITE,
     CONF_LEVEL_HOLD,
     CONF_LEVEL_METHOD,
     CONF_LEVEL_PITCH_DEVICE,
@@ -105,6 +110,9 @@ from .const import (
     WHEEL_REAR_RIGHT,
 )
 
+from .stellplatz import SATELLIT_VORGABE, SEITE_KEINE, SEITE_RECHTS, Stellplatz
+from .stellplatz import berechne as berechne_stellplatz
+
 _LOGGER = logging.getLogger(__name__)
 
 
@@ -132,6 +140,13 @@ VALUE_DEFAULTS: dict[str, float | bool | str | None] = {
     CONF_AWNING_WIND: DEFAULT_AWNING_WIND_KMH,
     CONF_AWNING_RAIN: DEFAULT_AWNING_RAIN_MM,
     CONF_AWNING_LEAD: DEFAULT_AWNING_LEAD_H,
+    # Stellplatz. Die Richtung bleibt leer, bis jemand sie einträgt -
+    # eine geratene Vorgabe hätte falsche Sonnenzeiten ergeben, die niemand
+    # als falsch erkennt.
+    CONF_HEADING: None,
+    CONF_AWNING_SIDE: SEITE_RECHTS,
+    CONF_FRIDGE_VENT_SIDE: SEITE_KEINE,
+    CONF_SATELLITE: SATELLIT_VORGABE,
 }
 
 # Diese Werte sind Zahlen, alle übrigen nicht.
@@ -147,6 +162,7 @@ NUMERIC_VALUES = (
     CONF_AWNING_WIND,
     CONF_AWNING_RAIN,
     CONF_AWNING_LEAD,
+    CONF_HEADING,
 )
 
 
@@ -231,6 +247,9 @@ class CamperCoordinator:
         # Gesetzt von async_setup_entry; die Karte liest seinen Befund über
         # den Phasensensor wie alles andere.
         self.wetter = None
+
+        # Sonne, Satellit und Starlink - siehe stellplatz().
+        self._stellplatz: tuple | None = None
 
     def _apply_config(self, config: dict) -> None:
         """Einstellbare Werte aus dem Config-Eintrag übernehmen."""
@@ -357,6 +376,38 @@ class CamperCoordinator:
     @property
     def config(self) -> dict:
         return self._config
+
+    def stellplatz(self) -> Stellplatz:
+        """Sonne, Satellit und Starlink für den Heimatort.
+
+        Höchstens einmal je Minute gerechnet: Drei Sensoren und die Karte
+        fragen danach, und der Tagesgang der Sonne braucht 144 Schritte.
+        """
+        jetzt = dt_util.utcnow()
+        front = self.get_value(CONF_HEADING)
+        schluessel = (
+            jetzt.strftime("%Y%m%d%H%M"),
+            front,
+            self.get_value(CONF_AWNING_SIDE),
+            self.get_value(CONF_FRIDGE_VENT_SIDE),
+            self.get_value(CONF_SATELLITE),
+            self.hass.config.latitude,
+            self.hass.config.longitude,
+        )
+        if self._stellplatz is not None and self._stellplatz[0] == schluessel:
+            return self._stellplatz[1]
+        ergebnis = berechne_stellplatz(
+            jetzt,
+            self.hass.config.latitude,
+            self.hass.config.longitude,
+            dt_util.DEFAULT_TIME_ZONE,
+            front=None if front is None else float(front),
+            markise=str(self.get_value(CONF_AWNING_SIDE)),
+            kuehlschrank=str(self.get_value(CONF_FRIDGE_VENT_SIDE)),
+            satellit=str(self.get_value(CONF_SATELLITE)),
+        )
+        self._stellplatz = (schluessel, ergebnis)
+        return ergebnis
 
     def get_value(self, key: str) -> float | bool | str | None:
         """Der geltende Wert - vom Gerät, wenn es ihn führt.

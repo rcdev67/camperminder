@@ -405,6 +405,31 @@ Restaurant, bleibt der Heimatort am Fahrzeug.
 Nur einschalten, wenn Home Assistant im Fahrzeug läuft. Bei einem Home
 Assistant zu Hause gehört der Heimatort nach Hause.
 
+### Stellplatz: Sonne, Satellit, Starlink
+
+Unten in der Karte zeigt ein Kompassbild, was beim Abstellen zählt: welche
+Seite des Fahrzeugs heute wann in der Sonne liegt, wohin die
+Satellitenschüssel muss und wo Norden ist — dorthin braucht Starlink freien
+Himmel.
+
+Dafür braucht es die Richtung des Fahrzeugs. Level hat keinen Kompass, also
+stellst du sie ein: Schau mit dem Handy-Kompass, wohin die Front zeigt, und
+dreh das Fahrzeug in der Karte mit **−15° / −5° / +5° / +15°**, bis es passt.
+Dasselbe steht als Regler **„Front zeigt nach“** am Gerät *CamperMinder*.
+
+Einmal einstellen, am Gerät *CamperMinder*:
+
+- **Markise an Seite** — rechts oder links in Fahrtrichtung. Dann sagt die
+  Karte, wann die Markise in der Sonne liegt.
+- **Kühlschrank-Lüftung an Seite** — wo die Lüftungsgitter des Kühlschranks
+  sitzen. Ein Absorberkühlschrank kühlt schlechter, wenn die Sonne auf die
+  Gitter scheint; stell das Fahrzeug so, dass sie im Schatten liegen.
+- **Satellit** — Astra 19,2° Ost (deutsches Fernsehen), Hotbird 13° Ost,
+  Astra 23,5° Ost oder Astra 28,2° Ost.
+
+Der Ort kommt aus dem Heimatort von Home Assistant. Folgt er dem Fahrzeug
+(siehe oben), stimmen die Angaben an jedem Stellplatz.
+
 Beide Betriebsarten laufen auf derselben Firmware. Wer klein anfängt, kann
 jederzeit umsteigen — ohne neue Software, ohne neues Gerät.
 

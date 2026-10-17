@@ -15,9 +15,18 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.restore_state import RestoreEntity
 
-from .const import CONF_LEVEL_METHOD, CONF_NOTIFY_SERVICE, DOMAIN, METHODS
+from .const import (
+    CONF_AWNING_SIDE,
+    CONF_FRIDGE_VENT_SIDE,
+    CONF_LEVEL_METHOD,
+    CONF_NOTIFY_SERVICE,
+    CONF_SATELLITE,
+    DOMAIN,
+    METHODS,
+)
 from .coordinator import CamperCoordinator
 from .entity import CamperEntity
+from .stellplatz import SATELLITEN, SEITEN
 
 # Ohne diesen Eintrag ließe sich das Ansageziel nur wechseln, nicht
 # abschalten - und wer keine Ansagen will, hätte keine Wahl.
@@ -34,6 +43,13 @@ async def async_setup_entry(
     # läuft - dann wäre ein zweites Auswahlfeld hier nur verwirrend.
     if CONF_LEVEL_METHOD not in coordinator.device_sources:
         entities.append(CamperMethodSelect(coordinator, entry))
+    # Stellplatz: Wo Markise und Kühlschrank-Lüftung sitzen, und welcher
+    # Satellit gemeint ist.
+    entities += [
+        CamperOptionSelect(coordinator, entry, CONF_AWNING_SIDE, SEITEN, "mdi:storefront-outline"),
+        CamperOptionSelect(coordinator, entry, CONF_FRIDGE_VENT_SIDE, SEITEN, "mdi:fridge-outline"),
+        CamperOptionSelect(coordinator, entry, CONF_SATELLITE, list(SATELLITEN), "mdi:satellite-variant"),
+    ]
     async_add_entities(entities)
 
 
@@ -108,3 +124,29 @@ class CamperNotifySelect(CamperEntity, SelectEntity, RestoreEntity):
     async def async_select_option(self, option: str) -> None:
         value = None if option == OPTION_OFF else f"notify.{option}"
         self.coordinator.async_set_value(CONF_NOTIFY_SERVICE, value)
+
+
+class CamperOptionSelect(CamperEntity, SelectEntity):
+    """Eine feste Auswahl, gespeichert im Config-Eintrag wie die Regler."""
+
+    def __init__(
+        self,
+        coordinator: CamperCoordinator,
+        entry: ConfigEntry,
+        key: str,
+        options: list[str],
+        icon: str,
+    ) -> None:
+        super().__init__(coordinator, entry, key)
+        self._key = key
+        self._attr_options = list(options)
+        self._attr_icon = icon
+
+    @property
+    def current_option(self) -> str | None:
+        wert = self.coordinator.get_value(self._key)
+        return wert if wert in self._attr_options else None
+
+    async def async_select_option(self, option: str) -> None:
+        if option in self._attr_options:
+            self.coordinator.async_set_value(self._key, option)

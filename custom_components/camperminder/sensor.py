@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from homeassistant.components.sensor import (
     SensorDeviceClass,
@@ -13,9 +13,11 @@ from homeassistant.components.sensor import (
     SensorStateClass,
 )
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant
+from homeassistant.const import EVENT_CORE_CONFIG_UPDATE
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.restore_state import RestoreEntity
+from homeassistant.helpers.event import async_track_time_interval
 from homeassistant.util import dt as dt_util
 
 from .const import (
@@ -91,6 +93,11 @@ async def async_setup_entry(
     ]
     entities.append(CamperPhaseSensor(coordinator, entry))
     entities.append(CamperCalibrationSensor(coordinator, entry))
+    entities += [
+        CamperSunSensor(coordinator, entry),
+        CamperSatelliteSensor(coordinator, entry),
+        CamperStarlinkSensor(coordinator, entry),
+    ]
     async_add_entities(entities)
 
 
@@ -257,3 +264,99 @@ class CamperCalibrationSensor(CamperEntity, SensorEntity, RestoreEntity):
     @property
     def native_value(self) -> datetime | None:
         return self.coordinator.last_calibration
+
+
+class CamperSiteSensor(CamperEntity, SensorEntity):
+    """Gemeinsame Basis für Sonne, Satellit und Starlink.
+
+    Die Sonne wandert, ohne dass sich an Level etwas ändert - deshalb ein
+    eigener Takt. Zieht der Heimatort um, wird sofort neu gerechnet.
+    Die Zahlenreihen stehen nicht in der Datenbank: Sie ändern sich jede
+    Minute und wären dort nur Ballast.
+    """
+
+    _unrecorded_attributes = frozenset(
+        {"bahn", "zeiten", "azimut", "hoehe", "sonne_azimut", "sonne_hoehe"}
+    )
+
+    async def async_added_to_hass(self) -> None:
+        await super().async_added_to_hass()
+
+        @callback
+        def _neu(*_args) -> None:
+            self.async_write_ha_state()
+
+        self.async_on_remove(
+            async_track_time_interval(self.hass, _neu, timedelta(minutes=5))
+        )
+        self.async_on_remove(self.hass.bus.async_listen(EVENT_CORE_CONFIG_UPDATE, _neu))
+
+
+class CamperSunSensor(CamperSiteSensor):
+    """Welche Seite des Fahrzeugs heute wann in der Sonne liegt."""
+
+    _attr_icon = "mdi:weather-sunny"
+
+    def __init__(self, coordinator: CamperCoordinator, entry: ConfigEntry) -> None:
+        super().__init__(coordinator, entry, "sun")
+
+    @property
+    def native_value(self) -> str:
+        return self.coordinator.stellplatz().satz_sonne[:255]
+
+    @property
+    def extra_state_attributes(self) -> dict[str, object]:
+        s = self.coordinator.stellplatz()
+        return {
+            **super().extra_state_attributes,
+            "front": s.front,
+            "sonne_azimut": s.sonne_azimut,
+            "sonne_hoehe": s.sonne_hoehe,
+            "bahn": s.sonnenbahn,
+            "zeiten": s.sonnenzeiten,
+        }
+
+
+class CamperSatelliteSensor(CamperSiteSensor):
+    """Wohin die Satellitenschüssel zeigen muss."""
+
+    _attr_icon = "mdi:satellite-uplink"
+
+    def __init__(self, coordinator: CamperCoordinator, entry: ConfigEntry) -> None:
+        # Rolle "dish", nicht "satellite": So heißt schon das Auswahlfeld,
+        # und die Karte fände sonst das Auswahlfeld statt dieses Sensors.
+        super().__init__(coordinator, entry, "dish")
+
+    @property
+    def native_value(self) -> str:
+        return self.coordinator.stellplatz().satz_satellit[:255]
+
+    @property
+    def extra_state_attributes(self) -> dict[str, object]:
+        s = self.coordinator.stellplatz()
+        return {
+            **super().extra_state_attributes,
+            "satellit": s.satellit,
+            "azimut": s.satellit_azimut,
+            "hoehe": s.satellit_hoehe,
+        }
+
+
+class CamperStarlinkSensor(CamperSiteSensor):
+    """Wohin Starlink freie Sicht braucht."""
+
+    _attr_icon = "mdi:satellite-variant"
+
+    def __init__(self, coordinator: CamperCoordinator, entry: ConfigEntry) -> None:
+        super().__init__(coordinator, entry, "starlink")
+
+    @property
+    def native_value(self) -> str:
+        return self.coordinator.stellplatz().satz_starlink[:255]
+
+    @property
+    def extra_state_attributes(self) -> dict[str, object]:
+        return {
+            **super().extra_state_attributes,
+            "azimut": self.coordinator.stellplatz().starlink_azimut,
+        }
