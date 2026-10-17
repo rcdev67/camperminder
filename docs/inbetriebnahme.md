@@ -371,6 +371,14 @@ Blueprints → Blueprint importieren*, dann die Adresse einfügen:
 - Frostwarnung:
   `https://github.com/rcdev67/camperminder/blob/main/blueprints/automation/camperminder/frostwarnung.yaml`
 
+Ein vierter passt auf die Markise auf und braucht dafür nur eine
+Wettervorhersage, nicht das Gerät: Er warnt vor Böen, Gewitter, Hagel, Schnee
+und Starkregen und erinnert bei Regen daran, die Markise auf einer Seite
+abzusenken.
+
+- Wetterwächter Markise:
+  `https://github.com/rcdev67/camperminder/blob/main/blueprints/automation/camperminder/markise_wetter.yaml`
+
 Danach *Automatisierung erstellen → Aus einem Blueprint*, das Gerät auswählen
 und unter „Was soll passieren?" eintragen, wie du benachrichtigt werden willst.
 Einzelheiten: [blueprints/README.md](../blueprints/README.md).

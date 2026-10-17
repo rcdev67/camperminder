@@ -1,17 +1,19 @@
 # Blueprints für Home Assistant
 
-Drei fertige Automatisierungen zum Importieren. Sie bringen die Meldungen des
-Geräts dorthin, wo man sie liest — auf das Handy, an eine Sirene, an ein Licht.
+Vier fertige Automatisierungen zum Importieren. Drei bringen die Meldungen
+des Geräts dorthin, wo man sie liest — auf das Handy, an eine Sirene, an ein
+Licht. Die vierte passt auf die Markise auf und braucht das Gerät nicht.
 
 | Blueprint | Meldet | Hängt an |
 |---|---|---|
 | [Kühlschrankwarnung](automation/camperminder/kuehlschrank_warnung.yaml) | Das Fahrzeug steht so lange schief, dass der Absorberkühlschrank leidet | `Kühlschrank Warnung` |
 | [Wächteralarm](automation/camperminder/waechter_alarm.yaml) | Das Fahrzeug hat seine Lage verlassen — angehoben, aufgebockt, abgeschleppt | `Wächter Alarm` |
 | [Frostwarnung](automation/camperminder/frostwarnung.yaml) | Es wird kalt im Fahrzeug | `Frostgefahr` |
+| [Wetterwächter Markise](automation/camperminder/markise_wetter.yaml) | Böen, Gewitter, Hagel, Schnee oder Starkregen sind angesagt — oder so viel Regen, dass die Markise eine Seite tiefer braucht | einer Wetter-Entität mit stündlicher Vorhersage |
 
 ## Warum an diesen Entitäten und nicht an den naheliegenden
 
-Das ist der eigentliche Wert dieser drei Dateien — die Wahl der Auslöser:
+Das ist der eigentliche Wert der drei Geräte-Blueprints — die Wahl der Auslöser:
 
 - **Kühlschrank:** nicht `Schräglage`, sondern `Kühlschrank Warnung`. Ein
   Absorberkühlschrank nimmt keinen Schaden vom Winkel, sondern vom Winkel
@@ -25,6 +27,40 @@ Das ist der eigentliche Wert dieser drei Dateien — die Wahl der Auslöser:
   bleibt stehen, bis er quittiert wird, und übersteht einen Stromausfall.
 - **Frost:** der Grenzwert steht im Gerät und gilt auch ohne Home Assistant.
   Der Blueprint bringt die Meldung nur weiter.
+
+## Wetterwächter Markise
+
+Halbstündlich liest er die stündliche Vorhersage der gewählten Wetter-Entität
+für die nächsten Stunden (*Vorlauf*, Vorgabe 3). Bei Böen, mittlerem Wind über
+der Grenze, Gewitter, Hagel, Schnee, Starkregen oder Unwetter heißt die
+Meldung *Markise einfahren*, mit Uhrzeit:
+
+> Markise einfahren: ab 15 Uhr Böen bis 55 km/h, ab 16 Uhr Gewitter.
+
+Ist nur Regen angesagt, aber genug davon (Vorgabe 5 mm im Vorlauf), kommt der
+Hinweis zum Absenken. Eine waagerechte Markise sammelt das Wasser in der
+Mitte, und an diesem Wassersack brechen die meisten:
+
+> 6,2 mm Regen in den nächsten 3 Stunden: Markise auf einer Seite absenken,
+> damit das Wasser abläuft.
+
+- **Zwei Windgrenzen, weil nicht jede Wetterquelle Böen meldet.** Die Vorgabe
+  von Home Assistant (met.no) liefert nur den mittleren Wind, OpenWeatherMap
+  auch Böen. Vorgaben: Böen 40 km/h, mittlerer Wind 25 km/h. Es reicht, dass
+  eine von beiden erreicht ist.
+- **Einheiten egal.** Wind in m/s, mph oder Knoten und Regen in Zoll werden
+  umgerechnet; die Grenzen gelten immer in km/h und mm.
+- **Mit Melder für die Markise** (freiwillig: ein Endschalter, ein
+  Markisenantrieb, notfalls ein Schalter-Helfer, den man selbst umlegt) kommt
+  die Warnung nur, solange sie ausgefahren ist, und beim Ausfahren wird sofort
+  nachgesehen. Ohne Melder kommt jede Warnung.
+- **Ruhezeit statt Dauerfeuer.** Nach einer Warnung kommt drei Stunden lang
+  keine weitere (einstellbar). Mit Melder endet die Ruhezeit, sobald die
+  Markise eingefahren ist. Ein Neustart von Home Assistant beendet sie
+  ebenfalls; dann kommt die Warnung lieber einmal zu oft.
+- **Die Vorhersage muss für den Stellplatz gelten.** Die Wetter-Entität
+  kennt nur den Ort ihrer Integration. Läuft Home Assistant zu Hause, ist das
+  ohne weitere Einrichtung das Wetter von zu Hause, nicht das am Stellplatz.
 
 ## Benachrichtigung ist frei wählbar
 
@@ -45,6 +81,7 @@ die richtige Meldung ist, weiß niemand außer ihm.
 - [Kühlschrankwarnung importieren](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Frcdev67%2Fcamperminder%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Fcamperminder%2Fkuehlschrank_warnung.yaml)
 - [Wächteralarm importieren](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Frcdev67%2Fcamperminder%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Fcamperminder%2Fwaechter_alarm.yaml)
 - [Frostwarnung importieren](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Frcdev67%2Fcamperminder%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Fcamperminder%2Ffrostwarnung.yaml)
+- [Wetterwächter Markise importieren](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Frcdev67%2Fcamperminder%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Fcamperminder%2Fmarkise_wetter.yaml)
 
 **Von Hand** — *Einstellungen → Automatisierungen und Szenen → Blueprints →
 Blueprint importieren*, dann die Adresse der gewünschten Datei aus diesem
