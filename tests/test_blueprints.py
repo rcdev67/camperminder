@@ -242,7 +242,7 @@ def test_kuehlschranksatz_mit_komma():
 
 # --- Wetterwächter Markise ---------------------------------------------------
 #
-# Die Rechnung steht seit 4.3.0 in der Integration (wetter.py, geprüft in
+# Die Rechnung steht seit 4.4.0 in der Integration (wetter.py, geprüft in
 # test_wetter.py). Der Blueprint meldet nur noch den Wechsel ihres Melders.
 
 MARKISE = "markise_wetter.yaml"
