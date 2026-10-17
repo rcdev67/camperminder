@@ -383,6 +383,27 @@ Danach *Automatisierung erstellen → Aus einem Blueprint*, das Gerät auswähle
 und unter „Was soll passieren?" eintragen, wie du benachrichtigt werden willst.
 Einzelheiten: [blueprints/README.md](../blueprints/README.md).
 
+### Heimatort folgt dem Fahrzeug
+
+Läuft Home Assistant im Fahrzeug, steht sein Heimatort meist noch dort, wo er
+eingerichtet wurde. Davon hängen Sonnenauf- und -untergang ab, das Wetter und
+die Frage, wer „zu Hause“ ist. Level kann den Heimatort mitnehmen.
+
+Unter *Einstellungen → Geräte & Dienste → CamperMinder → Konfigurieren*:
+
+- **GPS-Quelle des Fahrzeugs:** ein Tablet oder Handy, das im Fahrzeug
+  bleibt (die Home-Assistant-App meldet seinen Standort). Level selbst hat
+  kein GPS. Mit der Quelle gibt es den Knopf **„Heimatort hierher“**.
+- **Heimatort folgt dem Fahrzeug:** Steht das Fahrzeug nach einer Fahrt fünf
+  Minuten an einem Ort, der mehr als 500 m vom bisherigen entfernt ist, wird
+  er zum Heimatort.
+
+Als Fahrt zählt nur, was Level als Fahrt misst. Nimmst du das Tablet mit ins
+Restaurant, bleibt der Heimatort am Fahrzeug.
+
+Nur einschalten, wenn Home Assistant im Fahrzeug läuft. Bei einem Home
+Assistant zu Hause gehört der Heimatort nach Hause.
+
 Beide Betriebsarten laufen auf derselben Firmware. Wer klein anfängt, kann
 jederzeit umsteigen — ohne neue Software, ohne neues Gerät.
 

@@ -13,19 +13,24 @@
           "track": "Track width",
           "tolerance_cm": "Tolerance",
           "wedge_step": "Levelling ramp: height per step",
-          "notify_tts": "Read the text out loud"
+          "notify_tts": "Read the text out loud",
+          "location_source": "Vehicle GPS source",
+          "home_follow": "Home location follows the vehicle"
         },
         "data_description": {
           "motion_sensor": "Announcements only happen while this is on — otherwise the vehicle speaks up at night when temperature drift crosses the threshold.",
           "calibrate_button": "Checked after calibrating: if the readings are not back at zero, Home Assistant tells you.",
           "tolerance_cm": "How much height difference still feels fine. 5 cm is a good starting point — tyre pressure and suspension absorb small differences anyway.",
           "wedge_step": "Height gained per step of your levelling ramps. At 0 the distance is announced in centimetres. Irrelevant for hydraulic or air systems.",
-          "notify_tts": "For the Home Assistant app on Android: the text is spoken instead of shown. The announcement target itself is picked on the device page under \"Announcement target\"."
+          "notify_tts": "For the Home Assistant app on Android: the text is spoken instead of shown. The announcement target itself is picked on the device page under \"Announcement target\".",
+          "location_source": "A tablet or phone that stays in the vehicle (device_tracker of the Home Assistant app). Level has no GPS and takes its position from here. Also adds the “Set home here” button.",
+          "home_follow": "Only for a Home Assistant inside the vehicle. When the vehicle has stood at a new place for five minutes after a drive, that place becomes the home location. Sunrise and sunset, weather and “home” depend on it. Without a “moving” sensor, GPS decides alone."
         }
       }
     },
     "error": {
-      "device_unreachable": "The levelling device is not reachable right now. Wheelbase, track width, tolerance and ramp step are stored on the device – please switch it on and save again."
+      "device_unreachable": "The levelling device is not reachable right now. Wheelbase, track width, tolerance and ramp step are stored on the device – please switch it on and save again.",
+      "location_source_missing": "The home location can only follow the vehicle with a GPS source."
     },
     "abort": {
       "already_configured": "Levelling is already set up for this sensor."
@@ -45,12 +50,19 @@
           "track": "Track width",
           "tolerance_cm": "Tolerance",
           "wedge_step": "Levelling ramp: height per step",
-          "notify_tts": "Read the text out loud"
+          "notify_tts": "Read the text out loud",
+          "location_source": "Vehicle GPS source",
+          "home_follow": "Home location follows the vehicle"
+        },
+        "data_description": {
+          "location_source": "A tablet or phone that stays in the vehicle (device_tracker of the Home Assistant app). Level has no GPS and takes its position from here. Also adds the “Set home here” button.",
+          "home_follow": "Only for a Home Assistant inside the vehicle. When the vehicle has stood at a new place for five minutes after a drive, that place becomes the home location. Sunrise and sunset, weather and “home” depend on it. Without a “moving” sensor, GPS decides alone."
         }
       }
     },
     "error": {
-      "device_unreachable": "The levelling device is not reachable right now. Wheelbase, track width, tolerance and ramp step are stored on the device – please switch it on and save again."
+      "device_unreachable": "The levelling device is not reachable right now. Wheelbase, track width, tolerance and ramp step are stored on the device – please switch it on and save again.",
+      "location_source_missing": "The home location can only follow the vehicle with a GPS source."
     }
   },
   "entity": {
@@ -92,6 +104,9 @@
         }
       },
       "notify_target": { "name": "Announcement target" }
+    },
+    "button": {
+      "home_here": { "name": "Set home here" }
     },
     "switch": {
       "voice": { "name": "Voice announcements" },

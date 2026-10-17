@@ -25,6 +25,8 @@ from homeassistant.helpers import entity_registry as er, selector
 
 from .const import (
     CONF_CALIBRATE_BUTTON,
+    CONF_HOME_FOLLOW,
+    CONF_LOCATION_SOURCE,
     CONF_MOTION_SENSOR,
     CONF_NOTIFY_TTS,
     CONF_PITCH_SENSOR,
@@ -61,7 +63,7 @@ DIMENSION_DEFAULTS: dict[str, float] = {
 # Felder, die leer bleiben dürfen. Ein leergeräumtes Feld taucht im Ergebnis
 # des Formulars gar nicht auf - deshalb müssen sie beim Speichern ausdrücklich
 # auf None gesetzt werden, sonst überlebt der alte Wert aus entry.data.
-CLEARABLE_KEYS = (CONF_MOTION_SENSOR, CONF_CALIBRATE_BUTTON)
+CLEARABLE_KEYS = (CONF_MOTION_SENSOR, CONF_CALIBRATE_BUTTON, CONF_LOCATION_SOURCE)
 
 # Die Namen, die die mitgelieferte Firmware vergibt. Gesucht wird nicht über
 # die Entity-ID, sondern über den ursprünglichen Namen aus der
@@ -199,6 +201,13 @@ async def _async_write_to_device(
     return {}
 
 
+def _check_home_follow(user_input: dict[str, Any]) -> dict[str, str]:
+    """Ohne GPS-Quelle kann der Heimatort nicht folgen."""
+    if user_input.get(CONF_HOME_FOLLOW) and not user_input.get(CONF_LOCATION_SOURCE):
+        return {"base": "location_source_missing"}
+    return {}
+
+
 def _schema(hass: HomeAssistant, defaults: dict[str, Any]) -> vol.Schema:
     """Formular für Einrichtung und spätere Änderungen.
 
@@ -272,6 +281,16 @@ def _schema(hass: HomeAssistant, defaults: dict[str, Any]) -> vol.Schema:
             vol.Required(
                 CONF_NOTIFY_TTS, default=defaults.get(CONF_NOTIFY_TTS, True)
             ): selector.BooleanSelector(),
+            # Freiwillig und standardmäßig aus: Bei einem Home Assistant zu
+            # Hause wäre es falsch, den Heimatort dem Fahrzeug folgen zu lassen.
+            vol.Optional(
+                CONF_LOCATION_SOURCE, default=default(CONF_LOCATION_SOURCE)
+            ): selector.EntitySelector(
+                selector.EntitySelectorConfig(domain=["device_tracker", "person"])
+            ),
+            vol.Required(
+                CONF_HOME_FOLLOW, default=defaults.get(CONF_HOME_FOLLOW, False)
+            ): selector.BooleanSelector(),
         }
     )
 
@@ -294,7 +313,9 @@ class CamperConfigFlow(ConfigFlow, domain=DOMAIN):
             # Ein Neigungssensor gehört genau einmal eingerichtet.
             await self.async_set_unique_id(user_input[CONF_PITCH_SENSOR])
             self._abort_if_unique_id_configured()
-            errors = await _async_write_to_device(self.hass, user_input, self._shown)
+            errors = _check_home_follow(user_input) or await _async_write_to_device(
+                self.hass, user_input, self._shown
+            )
             if not errors:
                 return self.async_create_entry(title=DEFAULT_TITLE, data=user_input)
         else:
@@ -325,7 +346,9 @@ class CamperOptionsFlow(OptionsFlow):
     ) -> ConfigFlowResult:
         errors: dict[str, str] = {}
         if user_input is not None:
-            errors = await _async_write_to_device(self.hass, user_input, self._shown)
+            errors = _check_home_follow(user_input) or await _async_write_to_device(
+                self.hass, user_input, self._shown
+            )
             if not errors:
                 # Die Optionen überschreiben die ursprünglichen Daten nur
                 # dort, wo ein Schlüssel vorhanden ist. Ein geleertes Feld

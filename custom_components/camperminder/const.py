@@ -13,6 +13,9 @@ CONF_MOTION_SENSOR: Final = "motion_sensor"
 CONF_CALIBRATE_BUTTON: Final = "calibrate_button"
 CONF_NOTIFY_SERVICE: Final = "notify_service"
 CONF_NOTIFY_TTS: Final = "notify_tts"
+# Heimatort folgt dem Fahrzeug - siehe heimatort.py.
+CONF_LOCATION_SOURCE: Final = "location_source"
+CONF_HOME_FOLLOW: Final = "home_follow"
 
 CONF_WHEELBASE: Final = "wheelbase"
 CONF_TRACK: Final = "track"
@@ -354,6 +357,38 @@ MIN_TOLERANCE_DEG: Final = 0.05
 # Prozentangabe. Wie ruhig eine Anzeige sein soll, ist Geschmack und gehört
 # deshalb nicht in eine Konstante - siehe CONF_LEVEL_HOLD.
 LEVEL_RELEASE: Final = 1.25
+
+# --- Heimatort folgt dem Fahrzeug ---------------------------------------------
+# Ein Home Assistant im Fahrzeug steht jede Woche woanders, sein Heimatort
+# aber bleibt, wo er eingetragen wurde - im Zweifel auf dem Standard von Home
+# Assistant in Amsterdam. Davon hängen Sonnenauf- und -untergang ab, jede
+# Wettervorhersage, die dem Heimatort folgt, und die Frage, wer "zu Hause" ist.
+#
+# Verschoben wird nur, wenn das Fahrzeug wirklich woanders steht. Eine
+# GPS-Quelle allein kann das nicht sagen: Wer das Tablet aus dem Fahrzeug mit
+# ins Restaurant nimmt, hätte sonst dort sein Zuhause. Deshalb zählt die
+# Bewegung, die Level misst - nur eine Fahrt ändert den Ort des Fahrzeugs.
+
+# Schlechtere GPS-Meldungen werden verworfen. Ein Handy im Fahrzeug meldet
+# draußen 4-30 m; 100 m lässt Raum für den Stand unter Bäumen.
+HOME_MAX_ACCURACY_M: Final = 100.0
+# So weit darf die Quelle wandern und gilt trotzdem als stehend. Im Stand
+# springt das GPS um einige zehn Meter (gemessen am 11.10.2026: 7-57 m).
+HOME_STANDSTILL_RADIUS_M: Final = 100.0
+# So lange muss sie stehen, bevor der Ort übernommen wird. Ein Stopp an der
+# Ampel oder im Stau soll den Heimatort nicht verschieben.
+HOME_STANDSTILL_SECONDS: Final = 300
+# Erst ab diesem Abstand zum bisherigen Heimatort wird verschoben. Darunter
+# ist es derselbe Stellplatz, und jedes Verschieben bewegt auch die Zone, an
+# der Automationen hängen.
+HOME_MIN_DISTANCE_M: Final = 500.0
+# So lange muss Level ununterbrochen Bewegung melden, damit es als Fahrt
+# zählt. Jemand, der im Fahrzeug umhergeht, löst kürzere Bewegungen aus.
+# Am echten Board nachzuprüfen.
+HOME_DRIVE_SECONDS: Final = 120
+# Wie oft geprüft wird, ob die Quelle lange genug steht. Das Tablet meldet
+# sich im Stand oft gar nicht mehr; ohne eigenen Takt würde nie geprüft.
+HOME_CHECK_INTERVAL_SECONDS: Final = 60
 
 SIGNAL_UPDATE: Final = f"{DOMAIN}_update_{{}}"
 

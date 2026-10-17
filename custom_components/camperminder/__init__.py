@@ -19,6 +19,8 @@ from .announce import CamperAnnouncer
 from .const import (
     CARD_URL,
     CONF_CALIBRATE_BUTTON,
+    CONF_HOME_FOLLOW,
+    CONF_LOCATION_SOURCE,
     CONF_MOTION_SENSOR,
     CONF_NOTIFY_TTS,
     CONF_PITCH_SENSOR,
@@ -28,6 +30,7 @@ from .const import (
     STATIC_URL,
 )
 from .coordinator import CamperCoordinator
+from .heimatort import HeimatortFolger
 
 # Änderungen an diesen Schlüsseln erfordern ein Neuaufsetzen: die Quell-
 # Entitäten werden beim Start abonniert, die Vorleseeinstellung liest der
@@ -38,12 +41,17 @@ STRUCTURAL_KEYS = (
     CONF_MOTION_SENSOR,
     CONF_CALIBRATE_BUTTON,
     CONF_NOTIFY_TTS,
+    # Der Heimatort-Folger abonniert seine Quelle beim Start, und der Knopf
+    # "Heimatort hierher" gibt es nur mit Quelle.
+    CONF_LOCATION_SOURCE,
+    CONF_HOME_FOLLOW,
 )
 
 _LOGGER = logging.getLogger(__name__)
 
 PLATFORMS: list[Platform] = [
     Platform.BINARY_SENSOR,
+    Platform.BUTTON,
     Platform.NUMBER,
     Platform.SELECT,
     Platform.SENSOR,
@@ -238,9 +246,15 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     coordinator.async_start()
     announcer.async_start()
 
+    heimatort: HeimatortFolger | None = None
+    if config.get(CONF_LOCATION_SOURCE):
+        heimatort = HeimatortFolger(hass, config)
+        heimatort.async_start()
+
     hass.data.setdefault(DOMAIN, {})[entry.entry_id] = {
         "coordinator": coordinator,
         "announcer": announcer,
+        "heimatort": heimatort,
     }
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
@@ -280,4 +294,6 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         stored = hass.data[DOMAIN].pop(entry.entry_id)
         stored["announcer"].async_stop()
         stored["coordinator"].async_stop()
+        if stored["heimatort"] is not None:
+            stored["heimatort"].async_stop()
     return unloaded

@@ -112,7 +112,7 @@ _platzhalter(
     STATE_UNAVAILABLE="unavailable",
     STATE_UNKNOWN="unknown",
     Platform=SimpleNamespace(
-        BINARY_SENSOR="binary_sensor", NUMBER="number", SELECT="select",
+        BINARY_SENSOR="binary_sensor", BUTTON="button", NUMBER="number", SELECT="select",
         SENSOR="sensor", SWITCH="switch",
     ),
 )

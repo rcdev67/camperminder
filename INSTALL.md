@@ -42,6 +42,10 @@ mitgelieferte Firmware läuft.
 - ✔ Fahrzeugmaße, Ausrichtart und Präzisionsmodus erscheinen **nicht**
   doppelt — die liest die Integration vom Gerät. Die Karte bedient dann den
   Schalter des Geräts.
+- Läuft Home Assistant im Fahrzeug: unter *Konfigurieren* eine GPS-Quelle
+  wählen (Tablet oder Handy im Fahrzeug) und „Heimatort folgt dem Fahrzeug“
+  einschalten. Einzelheiten in [docs/inbetriebnahme.md](docs/inbetriebnahme.md),
+  Abschnitt „Heimatort folgt dem Fahrzeug“.
 
 ## 5. Karte aufs Dashboard
 
