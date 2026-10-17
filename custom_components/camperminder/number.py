@@ -15,6 +15,10 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import (
+    CONF_AWNING_GUST,
+    CONF_AWNING_LEAD,
+    CONF_AWNING_RAIN,
+    CONF_AWNING_WIND,
     CONF_TOLERANCE_CM,
     CONF_TOLERANCE_DEG,
     CONF_TRACK,
@@ -95,18 +99,75 @@ NUMBERS: tuple[CamperNumberDescription, ...] = (
 )
 
 
+# Die Regler des Wetterwächters. Es gibt sie nur mit Wetter-Entität; das
+# Gerät führt sie nicht, denn ohne Home Assistant gibt es kein Wetter.
+AWNING_NUMBERS: tuple[CamperNumberDescription, ...] = (
+    CamperNumberDescription(
+        key="awning_gust",
+        translation_key="awning_gust",
+        value_key=CONF_AWNING_GUST,
+        native_min_value=20,
+        native_max_value=100,
+        native_step=5,
+        native_unit_of_measurement="km/h",
+        mode=NumberMode.BOX,
+        icon="mdi:weather-windy",
+    ),
+    CamperNumberDescription(
+        key="awning_wind",
+        translation_key="awning_wind",
+        value_key=CONF_AWNING_WIND,
+        native_min_value=10,
+        native_max_value=80,
+        native_step=5,
+        native_unit_of_measurement="km/h",
+        mode=NumberMode.BOX,
+        icon="mdi:weather-windy-variant",
+    ),
+    CamperNumberDescription(
+        key="awning_rain",
+        translation_key="awning_rain",
+        value_key=CONF_AWNING_RAIN,
+        native_min_value=1,
+        native_max_value=30,
+        native_step=1,
+        native_unit_of_measurement="mm",
+        mode=NumberMode.BOX,
+        icon="mdi:weather-pouring",
+    ),
+    CamperNumberDescription(
+        key="awning_lead",
+        translation_key="awning_lead",
+        value_key=CONF_AWNING_LEAD,
+        native_min_value=1,
+        native_max_value=12,
+        native_step=1,
+        native_unit_of_measurement="h",
+        mode=NumberMode.BOX,
+        icon="mdi:clock-fast",
+    ),
+)
+
+
 async def async_setup_entry(
     hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback
 ) -> None:
-    coordinator: CamperCoordinator = hass.data[DOMAIN][entry.entry_id]["coordinator"]
+    stored = hass.data[DOMAIN][entry.entry_id]
+    coordinator: CamperCoordinator = stored["coordinator"]
     # Werte, die das Gerät selbst führt, bekommen hier keinen zweiten Regler.
     # Sonst gäbe es sie doppelt - und der Nutzer hätte keine Chance zu
     # erkennen, welcher der beiden gilt.
-    async_add_entities(
+    entities: list[CamperNumber] = [
         CamperNumber(coordinator, entry, description)
         for description in NUMBERS
         if description.value_key not in coordinator.device_sources
-    )
+    ]
+    if (wetter := stored.get("wetter")) is not None:
+        entities.extend(
+            CamperAwningNumber(coordinator, entry, description, wetter)
+            for description in AWNING_NUMBERS
+        )
+    async_add_entities(entities)
 
 
 class CamperNumber(CamperEntity, RestoreNumber):
@@ -140,3 +201,15 @@ class CamperNumber(CamperEntity, RestoreNumber):
 
     async def async_set_native_value(self, value: float) -> None:
         self.coordinator.async_set_value(self.entity_description.value_key, value)
+
+
+class CamperAwningNumber(CamperNumber):
+    """Regler des Wetterwächters - wer ihn verstellt, sieht sofort das Ergebnis."""
+
+    def __init__(self, coordinator, entry, description, wetter) -> None:
+        super().__init__(coordinator, entry, description)
+        self._wetter = wetter
+
+    async def async_set_native_value(self, value: float) -> None:
+        await super().async_set_native_value(value)
+        self._wetter.einstellungen_geaendert()

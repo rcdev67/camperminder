@@ -15,7 +15,9 @@
           "wedge_step": "Levelling ramp: height per step",
           "notify_tts": "Read the text out loud",
           "location_source": "Vehicle GPS source",
-          "home_follow": "Home location follows the vehicle"
+          "home_follow": "Home location follows the vehicle",
+          "weather_entity": "Weather forecast for the awning",
+          "awning_entity": "Awning extended"
         },
         "data_description": {
           "motion_sensor": "Announcements only happen while this is on — otherwise the vehicle speaks up at night when temperature drift crosses the threshold.",
@@ -24,7 +26,9 @@
           "wedge_step": "Height gained per step of your levelling ramps. At 0 the distance is announced in centimetres. Irrelevant for hydraulic or air systems.",
           "notify_tts": "For the Home Assistant app on Android: the text is spoken instead of shown. The announcement target itself is picked on the device page under \"Announcement target\".",
           "location_source": "A tablet or phone that stays in the vehicle (device_tracker of the Home Assistant app). Level has no GPS and takes its position from here. Also adds the “Set home here” button.",
-          "home_follow": "Only for a Home Assistant inside the vehicle. When the vehicle has stood at a new place for five minutes after a drive, that place becomes the home location. Sunrise and sunset, weather and “home” depend on it. Without a “moving” sensor, GPS decides alone."
+          "home_follow": "Only for a Home Assistant inside the vehicle. When the vehicle has stood at a new place for five minutes after a drive, that place becomes the home location. Sunrise and sunset, weather and “home” depend on it. Without a “moving” sensor, GPS decides alone.",
+          "weather_entity": "Optional. A weather entity with an hourly forecast, ideally Open-Meteo with the “Home” zone: it follows the home location and provides gusts. Adds the “Awning warning” sensor and its controls.",
+          "awning_entity": "Optional. A sensor that is “on” or “open” while the awning is out. Warnings are then only given while it really is extended."
         }
       }
     },
@@ -52,11 +56,15 @@
           "wedge_step": "Levelling ramp: height per step",
           "notify_tts": "Read the text out loud",
           "location_source": "Vehicle GPS source",
-          "home_follow": "Home location follows the vehicle"
+          "home_follow": "Home location follows the vehicle",
+          "weather_entity": "Weather forecast for the awning",
+          "awning_entity": "Awning extended"
         },
         "data_description": {
           "location_source": "A tablet or phone that stays in the vehicle (device_tracker of the Home Assistant app). Level has no GPS and takes its position from here. Also adds the “Set home here” button.",
-          "home_follow": "Only for a Home Assistant inside the vehicle. When the vehicle has stood at a new place for five minutes after a drive, that place becomes the home location. Sunrise and sunset, weather and “home” depend on it. Without a “moving” sensor, GPS decides alone."
+          "home_follow": "Only for a Home Assistant inside the vehicle. When the vehicle has stood at a new place for five minutes after a drive, that place becomes the home location. Sunrise and sunset, weather and “home” depend on it. Without a “moving” sensor, GPS decides alone.",
+          "weather_entity": "Optional. A weather entity with an hourly forecast, ideally Open-Meteo with the “Home” zone: it follows the home location and provides gusts. Adds the “Awning warning” sensor and its controls.",
+          "awning_entity": "Optional. A sensor that is “on” or “open” while the awning is out. Warnings are then only given while it really is extended."
         }
       }
     },
@@ -86,14 +94,19 @@
       }
     },
     "binary_sensor": {
-      "level": { "name": "Is level" }
+      "level": { "name": "Is level" },
+      "awning_warning": { "name": "Awning warning" }
     },
     "number": {
       "wheelbase": { "name": "Wheelbase" },
       "track": { "name": "Track width" },
       "tolerance_cm": { "name": "Tolerance" },
       "wedge_step": { "name": "Ramp: height per step" },
-      "tolerance_deg": { "name": "Exact tolerance" }
+      "tolerance_deg": { "name": "Exact tolerance" },
+      "awning_gust": { "name": "Awning: gusts from" },
+      "awning_wind": { "name": "Awning: mean wind from" },
+      "awning_rain": { "name": "Awning: rain from" },
+      "awning_lead": { "name": "Awning: look ahead" }
     },
     "select": {
       "level_method": {

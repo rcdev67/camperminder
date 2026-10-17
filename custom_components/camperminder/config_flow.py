@@ -24,6 +24,7 @@ from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import entity_registry as er, selector
 
 from .const import (
+    CONF_AWNING_ENTITY,
     CONF_CALIBRATE_BUTTON,
     CONF_HOME_FOLLOW,
     CONF_LOCATION_SOURCE,
@@ -33,6 +34,7 @@ from .const import (
     CONF_ROLL_SENSOR,
     CONF_TOLERANCE_CM,
     CONF_TRACK,
+    CONF_WEATHER_ENTITY,
     CONF_WEDGE_STEP,
     CONF_WHEELBASE,
     DEFAULT_TOLERANCE_CM,
@@ -63,7 +65,13 @@ DIMENSION_DEFAULTS: dict[str, float] = {
 # Felder, die leer bleiben dürfen. Ein leergeräumtes Feld taucht im Ergebnis
 # des Formulars gar nicht auf - deshalb müssen sie beim Speichern ausdrücklich
 # auf None gesetzt werden, sonst überlebt der alte Wert aus entry.data.
-CLEARABLE_KEYS = (CONF_MOTION_SENSOR, CONF_CALIBRATE_BUTTON, CONF_LOCATION_SOURCE)
+CLEARABLE_KEYS = (
+    CONF_MOTION_SENSOR,
+    CONF_CALIBRATE_BUTTON,
+    CONF_LOCATION_SOURCE,
+    CONF_WEATHER_ENTITY,
+    CONF_AWNING_ENTITY,
+)
 
 # Die Namen, die die mitgelieferte Firmware vergibt. Gesucht wird nicht über
 # die Entity-ID, sondern über den ursprünglichen Namen aus der
@@ -291,6 +299,18 @@ def _schema(hass: HomeAssistant, defaults: dict[str, Any]) -> vol.Schema:
             vol.Required(
                 CONF_HOME_FOLLOW, default=defaults.get(CONF_HOME_FOLLOW, False)
             ): selector.BooleanSelector(),
+            # Wetterwächter für die Markise. Freiwillig; ohne Wetter-Entität
+            # gibt es weder Melder noch Regler.
+            vol.Optional(
+                CONF_WEATHER_ENTITY, default=default(CONF_WEATHER_ENTITY)
+            ): selector.EntitySelector(selector.EntitySelectorConfig(domain="weather")),
+            vol.Optional(
+                CONF_AWNING_ENTITY, default=default(CONF_AWNING_ENTITY)
+            ): selector.EntitySelector(
+                selector.EntitySelectorConfig(
+                    domain=["binary_sensor", "cover", "input_boolean", "switch"]
+                )
+            ),
         }
     )
 

@@ -16,6 +16,13 @@ CONF_NOTIFY_TTS: Final = "notify_tts"
 # Heimatort folgt dem Fahrzeug - siehe heimatort.py.
 CONF_LOCATION_SOURCE: Final = "location_source"
 CONF_HOME_FOLLOW: Final = "home_follow"
+# Wetterwächter für die Markise - siehe wetter.py.
+CONF_WEATHER_ENTITY: Final = "weather_entity"
+CONF_AWNING_ENTITY: Final = "awning_entity"
+CONF_AWNING_GUST: Final = "awning_gust_kmh"
+CONF_AWNING_WIND: Final = "awning_wind_kmh"
+CONF_AWNING_RAIN: Final = "awning_rain_mm"
+CONF_AWNING_LEAD: Final = "awning_lead_h"
 
 CONF_WHEELBASE: Final = "wheelbase"
 CONF_TRACK: Final = "track"
@@ -389,6 +396,23 @@ HOME_DRIVE_SECONDS: Final = 120
 # Wie oft geprüft wird, ob die Quelle lange genug steht. Das Tablet meldet
 # sich im Stand oft gar nicht mehr; ohne eigenen Takt würde nie geprüft.
 HOME_CHECK_INTERVAL_SECONDS: Final = 60
+
+# --- Wetterwächter für die Markise ------------------------------------------
+# Vorgaben der Regler. Viele Hersteller raten, die Markise ab Windstärke 5
+# bis 6 einzufahren, auch abgespannt: Böen um 40 km/h. Böen liegen beim
+# Anderthalb- bis Zweifachen des mittleren Winds, daher 25 km/h für Quellen
+# ohne Böen (met.no). 5 mm Regen im Vorlauf reichen für einen Wassersack.
+DEFAULT_AWNING_GUST_KMH: Final = 40.0
+DEFAULT_AWNING_WIND_KMH: Final = 25.0
+DEFAULT_AWNING_RAIN_MM: Final = 5.0
+DEFAULT_AWNING_LEAD_H: Final = 3.0
+# Die Vorhersage liegt in Home Assistant bereit; sie halbstündlich zu lesen
+# kostet keine Abfrage beim Wetterdienst.
+AWNING_CHECK_MINUTES: Final = 30
+# So lange bleibt eine Warnung stehen, nachdem die Vorhersage sie nicht mehr
+# trägt. Ohne das kippt sie bei Werten an der Grenze mit jeder neuen
+# Vorhersage hin und her, und jedes Kippen wäre eine neue Meldung.
+AWNING_HOLD_MINUTES: Final = 60
 
 SIGNAL_UPDATE: Final = f"{DOMAIN}_update_{{}}"
 

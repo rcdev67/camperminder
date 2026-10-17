@@ -1,15 +1,15 @@
 # Blueprints für Home Assistant
 
-Vier fertige Automatisierungen zum Importieren. Drei bringen die Meldungen
-des Geräts dorthin, wo man sie liest — auf das Handy, an eine Sirene, an ein
-Licht. Die vierte passt auf die Markise auf und braucht das Gerät nicht.
+Vier fertige Automatisierungen zum Importieren. Sie bringen Meldungen dorthin,
+wo man sie liest — auf das Handy, an eine Sirene, an ein Licht. Drei kommen
+vom Gerät, die vierte von der Integration: der Wetterwächter für die Markise.
 
 | Blueprint | Meldet | Hängt an |
 |---|---|---|
 | [Kühlschrankwarnung](automation/camperminder/kuehlschrank_warnung.yaml) | Das Fahrzeug steht so lange schief, dass der Absorberkühlschrank leidet | `Kühlschrank Warnung` |
 | [Wächteralarm](automation/camperminder/waechter_alarm.yaml) | Das Fahrzeug hat seine Lage verlassen — angehoben, aufgebockt, abgeschleppt | `Wächter Alarm` |
 | [Frostwarnung](automation/camperminder/frostwarnung.yaml) | Es wird kalt im Fahrzeug | `Frostgefahr` |
-| [Wetterwächter Markise](automation/camperminder/markise_wetter.yaml) | Böen, Gewitter, Hagel, Schnee oder Starkregen sind angesagt — oder so viel Regen, dass die Markise eine Seite tiefer braucht | einer Wetter-Entität mit stündlicher Vorhersage |
+| [Wetterwächter Markise](automation/camperminder/markise_wetter.yaml) | Böen, Gewitter, Hagel, Schnee oder Starkregen sind angesagt — oder so viel Regen, dass die Markise eine Seite tiefer braucht | `Markise Warnung` |
 
 ## Warum an diesen Entitäten und nicht an den naheliegenden
 
@@ -30,10 +30,18 @@ Das ist der eigentliche Wert der drei Geräte-Blueprints — die Wahl der Auslö
 
 ## Wetterwächter Markise
 
-Halbstündlich liest er die stündliche Vorhersage der gewählten Wetter-Entität
-für die nächsten Stunden (*Vorlauf*, Vorgabe 3). Bei Böen, mittlerem Wind über
-der Grenze, Gewitter, Hagel, Schnee, Starkregen oder Unwetter heißt die
-Meldung *Markise einfahren*, mit Uhrzeit:
+Die Vorhersage bewertet die Integration, nicht der Blueprint. Dafür unter
+*Einstellungen → Geräte & Dienste → CamperMinder → Konfigurieren* eine
+Wetter-Entität wählen, am besten **Open-Meteo mit der Zone „Zuhause“**: Sie
+folgt dem Heimatort (siehe „Heimatort folgt dem Fahrzeug“ in der Anleitung)
+und liefert Böen. Dann gibt es am Gerät *CamperMinder* den Melder
+`Markise Warnung` und vier Regler: Böen ab, mittlerer Wind ab, Regen ab,
+Vorlauf. Dieselbe Warnung zeigt die Karte als gelbe Leiste.
+
+Halbstündlich liest die Integration die stündliche Vorhersage für die
+nächsten Stunden (*Vorlauf*, Vorgabe 3). Bei Böen, mittlerem Wind über der
+Grenze, Gewitter, Hagel, Schnee, Starkregen oder Unwetter heißt die Meldung
+*Markise einfahren*, mit Uhrzeit:
 
 > Markise einfahren: ab 15 Uhr Böen bis 55 km/h, ab 16 Uhr Gewitter.
 
@@ -50,14 +58,16 @@ Mitte, und an diesem Wassersack brechen die meisten:
   eine von beiden erreicht ist.
 - **Einheiten egal.** Wind in m/s, mph oder Knoten und Regen in Zoll werden
   umgerechnet; die Grenzen gelten immer in km/h und mm.
-- **Mit Melder für die Markise** (freiwillig: ein Endschalter, ein
-  Markisenantrieb, notfalls ein Schalter-Helfer, den man selbst umlegt) kommt
-  die Warnung nur, solange sie ausgefahren ist, und beim Ausfahren wird sofort
-  nachgesehen. Ohne Melder kommt jede Warnung.
-- **Ruhezeit statt Dauerfeuer.** Nach einer Warnung kommt drei Stunden lang
-  keine weitere (einstellbar). Mit Melder endet die Ruhezeit, sobald die
-  Markise eingefahren ist. Ein Neustart von Home Assistant beendet sie
-  ebenfalls; dann kommt die Warnung lieber einmal zu oft.
+- **Mit Melder für die Markise** (freiwillig, ebenfalls unter
+  *Konfigurieren*: ein Endschalter, ein Markisenantrieb, notfalls ein
+  Schalter-Helfer, den man selbst umlegt) gibt es die Warnung nur, solange sie
+  ausgefahren ist, und beim Ausfahren wird sofort nachgesehen. Ohne Melder gilt
+  jede Warnung.
+- **Eine Meldung je Wetterlage.** Der Melder bleibt an, solange die Gefahr
+  angesagt ist, und der Blueprint meldet nur den Wechsel auf „an“. Fällt die
+  Gefahr aus der Vorhersage, bleibt die Warnung noch eine Stunde stehen, damit
+  Werte an der Grenze nicht bei jeder neuen Vorhersage eine neue Meldung
+  auslösen. Wer einen Regler verstellt, sieht das Ergebnis sofort.
 - **Die Vorhersage muss für den Stellplatz gelten.** Die Wetter-Entität
   kennt nur den Ort ihrer Integration. Läuft Home Assistant zu Hause, ist das
   ohne weitere Einrichtung das Wetter von zu Hause, nicht das am Stellplatz.

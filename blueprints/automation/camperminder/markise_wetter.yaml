@@ -1,115 +1,32 @@
 blueprint:
   name: CamperMinder - Wetterwächter Markise
   description: >-
-    Warnt mit Vorlauf, bevor das Wetter der Markise schadet: Böen, Gewitter,
-    Hagel, Schnee, Starkregen. Bei gewöhnlichem Regen kommt der Hinweis, die
-    Markise auf einer Seite abzusenken. Steht sie waagerecht, sammelt sich
-    das Wasser in der Mitte, und an diesem Wassersack brechen die meisten
-    Markisen.
+    Meldet, bevor das Wetter der Markise schadet: Böen, Gewitter, Hagel,
+    Schnee, Starkregen. Bei gewöhnlichem Regen kommt der Hinweis, die Markise
+    auf einer Seite abzusenken. Steht sie waagerecht, sammelt sich das Wasser
+    in der Mitte, und an diesem Wassersack brechen die meisten Markisen.
 
 
-    **Die Vorhersage muss für den Stellplatz gelten.** Die Automatisierung
-    liest die Wetter-Entität, die du auswählst, und die gilt für den Ort, den
-    ihre Integration kennt. Läuft Home Assistant im Fahrzeug, ist das meist
-    der Stellplatz. Läuft es zu Hause, bekommst du ohne weitere Einrichtung
-    das Wetter von zu Hause.
+    Die Vorhersage bewertet die Integration CamperMinder. Dort unter
+    *Konfigurieren* eine Wetter-Entität wählen, am besten Open-Meteo mit der
+    Zone „Zuhause“: Die folgt dem Heimatort und liefert Böen. Die Grenzen für
+    Böen, Wind, Regen und den Vorlauf stehen als Regler am Gerät
+    *CamperMinder*. Dieselbe Warnung zeigt auch die Karte.
 
 
-    **Böen meldet nicht jede Wetterquelle.** Die Vorgabe von Home Assistant
-    (met.no) liefert nur den mittleren Wind, OpenWeatherMap auch Böen. Deshalb
-    gibt es zwei Grenzen. Gewarnt wird, sobald eine von beiden erreicht ist.
-
-
-    Die Geräte von CamperMinder braucht dieser Blueprint nicht. Er gehört
-    trotzdem dazu, weil die Markise beim Abstellen genauso wichtig ist wie die
-    Lage.
+    Diese Automatisierung bringt die Meldung nur dorthin, wo du sie liest.
+    Sie meldet, wenn der Melder auf „an“ springt. Solange die Gefahr bleibt,
+    bleibt er an, und es kommt keine zweite Meldung.
   domain: automation
   source_url: https://github.com/rcdev67/camperminder/blob/main/blueprints/automation/camperminder/markise_wetter.yaml
   input:
-    wetter:
-      name: Wettervorhersage
-      description: >-
-        Eine Wetter-Entität mit stündlicher Vorhersage. met.no, die Vorgabe
-        von Home Assistant, und OpenWeatherMap liefern eine.
-      # Bewusst ohne Filter auf supported_features: Home Assistant 2026.10
-      # schreibt den Filter beim Speichern als Zahl in die Datei und lehnt
-      # genau diese Zahl beim nächsten Laden ab. Der Blueprint wäre nach dem
-      # Import unbrauchbar (am 17.10.2026 im Hörnchen-HA so aufgetreten).
+    warnung:
+      name: Markise Warnung
+      description: Der Melder der Integration (`binary_sensor`, endet auf „Markise Warnung“).
       selector:
         entity:
           filter:
-            - domain: weather
-    markise:
-      name: Markise ausgefahren
-      description: >-
-        Freiwillig. Ein Melder, der „an“ oder „offen“ zeigt, solange die
-        Markise draußen ist. Mit ihm wird nur gewarnt, wenn sie wirklich
-        ausgefahren ist, und gleich beim Ausfahren einmal nachgesehen. Ohne
-        ihn kommt jede Warnung, auch bei eingefahrener Markise.
-      default: ""
-      selector:
-        entity:
-          filter:
-            - domain:
-                - binary_sensor
-                - cover
-                - input_boolean
-                - switch
-    vorlauf:
-      name: Vorlauf
-      description: Wie viele Stunden voraus geschaut wird.
-      default: 3
-      selector:
-        number:
-          min: 1
-          max: 12
-          unit_of_measurement: h
-    boeen:
-      name: Böen ab
-      description: >-
-        Viele Hersteller raten, die Markise ab Windstärke 5 bis 6 einzufahren,
-        auch wenn sie abgespannt ist. Das sind Böen um 40 km/h.
-      default: 40
-      selector:
-        number:
-          min: 20
-          max: 100
-          step: 5
-          unit_of_measurement: km/h
-    wind:
-      name: Mittlerer Wind ab
-      description: >-
-        Für Wetterquellen ohne Böen. Böen liegen meist beim Anderthalb- bis
-        Zweifachen des mittleren Winds, 25 km/h passt deshalb zu 40 km/h
-        Böen.
-      default: 25
-      selector:
-        number:
-          min: 10
-          max: 80
-          step: 5
-          unit_of_measurement: km/h
-    regen:
-      name: Regen ab
-      description: >-
-        Ab dieser Menge im Vorlauf kommt der Hinweis zum Absenken.
-      default: 5
-      selector:
-        number:
-          min: 1
-          max: 30
-          unit_of_measurement: mm
-    ruhezeit:
-      name: Ruhezeit
-      description: >-
-        So lange kommt nach einer Warnung keine weitere. Mit einem Melder für
-        die Markise endet die Ruhezeit, sobald sie eingefahren ist.
-      default: 3
-      selector:
-        number:
-          min: 1
-          max: 12
-          unit_of_measurement: h
+            - domain: binary_sensor
     benachrichtigung:
       name: Was soll passieren?
       description: >-
@@ -118,131 +35,37 @@ blueprint:
       selector:
         action: {}
 
-# Nach einer Warnung wartet die Automatisierung die Ruhezeit ab. Was in dieser
-# Zeit auslöst, verfällt still. So kommt dieselbe Warnung nicht alle halbe
-# Stunde, ohne dass sie sich irgendwo merken müsste, was sie schon gemeldet
-# hat. Ein Neustart von Home Assistant beendet die Ruhezeit, dann kommt die
-# Warnung lieber einmal zu oft.
 mode: single
 max_exceeded: silent
 
-trigger_variables:
-  markise_tv: !input markise
+variables:
+  warnung_entitaet: !input warnung
 
 trigger:
-  # Die Vorhersage liegt in Home Assistant schon bereit. Sie halbstündlich zu
-  # lesen kostet keine Abfrage beim Wetterdienst.
-  - platform: time_pattern
-    minutes: "/30"
-  # Beim Ausfahren gleich einmal nachsehen, statt bis zur nächsten halben
-  # Stunde zu warten. Eine Vorlage statt eines Zustandsauslösers, weil der
-  # Melder freiwillig ist und ein leerer Zustandsauslöser die Automatisierung
-  # ungültig machte.
-  - platform: template
-    value_template: >-
-      {{ markise_tv | length > 0
-         and states(markise_tv) in ['on', 'open', 'opening'] }}
-
-variables:
-  wetter_entitaet: !input wetter
-  markise_entitaet: !input markise
-  vorlauf: !input vorlauf
-  grenze_boeen: !input boeen
-  grenze_wind: !input wind
-  grenze_regen: !input regen
+  - platform: state
+    entity_id: !input warnung
+    to: "on"
 
 condition:
-  - condition: not
-    conditions:
-      - condition: state
-        entity_id: !input wetter
-        state:
-          - unavailable
-          - unknown
+  # Nach einem Neustart von Home Assistant springt der Melder von "nicht
+  # verfügbar" auf "an". Das ist keine neue Lage: Wurde sie in den letzten
+  # zwölf Stunden schon gemeldet, nicht noch einmal. Ein echter Wechsel von
+  # "aus" auf "an" meldet immer.
   - condition: template
     value_template: >-
-      {{ markise_entitaet | length == 0
-         or states(markise_entitaet) in ['on', 'open', 'opening'] }}
+      {{ trigger.from_state is none
+         or trigger.from_state.state == 'off'
+         or this.attributes.last_triggered is none
+         or now() - this.attributes.last_triggered > timedelta(hours=12) }}
 
 action:
-  - action: weather.get_forecasts
-    target:
-      entity_id: !input wetter
-    data:
-      type: hourly
-    response_variable: vorhersage
-  # Die Vorhersage kommt in den Einheiten der Wetter-Entität. Gerechnet wird
-  # in km/h und mm, damit die Grenzen oben für jede Wetterquelle gelten.
-  # Ein Eintrag gilt für die Stunde ab seiner Zeit; der laufende zählt mit.
-  # Felder, die nicht jede Wetterquelle liefert, über get(): Ein fehlender
-  # Schlüssel ergäbe sonst einen Fehler in der Vorlage, nicht eine Null.
   - variables:
       meldung: >-
-        {%- set eintraege = vorhersage[wetter_entitaet].forecast
-              if wetter_entitaet in vorhersage else [] -%}
-        {%- set kmh = {'km/h': 1, 'm/s': 3.6, 'mph': 1.609344, 'kn': 1.852,
-              'ft/s': 1.09728}.get(state_attr(wetter_entitaet, 'wind_speed_unit'), 1) -%}
-        {%- set mm = 25.4 if state_attr(wetter_entitaet, 'precipitation_unit') == 'in' else 1 -%}
-        {%- set ns = namespace(wind_ab=none, boe=0, mittel=0, boeen_da=false, regen=0,
-              gewitter=none, hagel=none, schnee=none, starkregen=none,
-              unwetter=none, windig=none) -%}
-        {%- for e in eintraege -%}
-          {%- set t = as_datetime(e.datetime) -%}
-          {%- if t > now() - timedelta(hours=1) and t < now() + timedelta(hours=vorlauf) -%}
-            {%- set ab = 'jetzt' if t <= now() else 'ab ' ~ as_local(t).hour ~ ' Uhr' -%}
-            {%- set boe = (e.get('wind_gust_speed') | float(0)) * kmh -%}
-            {%- set mittel = (e.get('wind_speed') | float(0)) * kmh -%}
-            {%- if e.get('wind_gust_speed') is not none -%}
-              {%- set ns.boeen_da = true -%}
-            {%- endif -%}
-            {%- if ns.wind_ab is none and (boe >= grenze_boeen or mittel >= grenze_wind) -%}
-              {%- set ns.wind_ab = ab -%}
-            {%- endif -%}
-            {%- set ns.boe = [ns.boe, boe] | max -%}
-            {%- set ns.mittel = [ns.mittel, mittel] | max -%}
-            {%- set ns.regen = ns.regen + (e.get('precipitation') | float(0)) * mm -%}
-            {%- set c = e.get('condition') -%}
-            {%- if ns.gewitter is none and c in ['lightning', 'lightning-rainy'] -%}{%- set ns.gewitter = ab -%}{%- endif -%}
-            {%- if ns.hagel is none and c == 'hail' -%}{%- set ns.hagel = ab -%}{%- endif -%}
-            {%- if ns.schnee is none and c in ['snowy', 'snowy-rainy'] -%}{%- set ns.schnee = ab -%}{%- endif -%}
-            {%- if ns.starkregen is none and c == 'pouring' -%}{%- set ns.starkregen = ab -%}{%- endif -%}
-            {%- if ns.unwetter is none and c == 'exceptional' -%}{%- set ns.unwetter = ab -%}{%- endif -%}
-            {%- if ns.windig is none and c in ['windy', 'windy-variant'] -%}{%- set ns.windig = ab -%}{%- endif -%}
-          {%- endif -%}
-        {%- endfor -%}
-        {%- set wind = '' -%}
-        {%- if ns.wind_ab is not none -%}
-          {%- set wind = ns.wind_ab ~ (' Böen bis ' ~ (ns.boe | round | int) if ns.boeen_da
-                else ' Wind bis ' ~ (ns.mittel | round | int)) ~ ' km/h' -%}
-        {%- elif ns.windig is not none -%}
-          {%- set wind = ns.windig ~ ' windig' -%}
-        {%- endif -%}
-        {%- set gruende = [
-              wind,
-              ns.gewitter ~ ' Gewitter' if ns.gewitter is not none else '',
-              ns.hagel ~ ' Hagel' if ns.hagel is not none else '',
-              ns.schnee ~ ' Schnee' if ns.schnee is not none else '',
-              ns.starkregen ~ ' Starkregen' if ns.starkregen is not none else '',
-              ns.unwetter ~ ' Unwetter' if ns.unwetter is not none else '',
-            ] | select | list -%}
-        {%- set zeitraum = 'in der nächsten Stunde' if vorlauf | float(0) <= 1
-              else 'in den nächsten ' ~ (vorlauf | int) ~ ' Stunden' -%}
-        {%- if gruende | count > 0 -%}
-          Markise einfahren: {{ gruende | join(', ') }}.
-        {%- elif ns.regen >= grenze_regen -%}
-          {{ ns.regen | round(1) | string | replace('.', ',') }} mm Regen {{ zeitraum }}: Markise auf einer Seite absenken, damit das Wasser abläuft.
-        {%- endif -%}
-  - condition: template
-    value_template: "{{ meldung | trim | length > 0 }}"
+        {% set satz = state_attr(warnung_entitaet, 'meldung') %}
+        {% if satz is string and satz | length > 0 %}
+          {{ satz }}
+        {% else %}
+          Wetterwarnung für die Markise - bitte die Vorhersage prüfen.
+        {% endif %}
   - choose: []
     default: !input benachrichtigung
-  # Ruhezeit. Mit einem Melder für die Markise endet sie, sobald die Markise
-  # eingefahren ist; wird sie danach wieder ausgefahren, wird neu geprüft.
-  - wait_for_trigger:
-      - platform: template
-        value_template: >-
-          {{ markise_entitaet | length > 0
-             and states(markise_entitaet) not in ['on', 'open', 'opening'] }}
-    timeout:
-      hours: !input ruhezeit
-    continue_on_timeout: true

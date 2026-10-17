@@ -515,6 +515,7 @@ class CamperMinderCard extends HTMLElement {
       <ha-card>
         <div class="wache hinweis" id="veraltet" hidden></div>
         <div class="wache hinweis" id="hinweis" hidden></div>
+        <div class="wache hinweis" id="markise" hidden></div>
         <div class="wache" id="wache" hidden></div>
 
         <div class="bar" id="barRoll">
@@ -910,6 +911,7 @@ class CamperMinderCard extends HTMLElement {
 
     this._renderVeraltet(root.getElementById("veraltet"), a);
     this._renderHinweis(root.getElementById("hinweis"), a);
+    this._renderMarkise(root.getElementById("markise"), a);
     this._renderWache(root.getElementById("wache"), hass, a);
 
     if (this._config.show_controls) {
@@ -976,6 +978,26 @@ class CamperMinderCard extends HTMLElement {
     node.dataset.signature = text;
     node.hidden = false;
     node.textContent = `⚠️ ${text}`;
+  }
+
+  /* Der Wetterwächter für die Markise.
+   *
+   * Der Satz kommt fertig aus der Integration, dieselbe Formulierung wie in
+   * der Handymeldung des Blueprints. Gelb wie die Selbstüberwachung, nicht
+   * rot: Rot bleibt dem Wächteralarm vorbehalten. Ohne Wetter-Entität oder
+   * bei ruhigem Wetter bleibt die Leiste unsichtbar. */
+  _renderMarkise(node, a) {
+    if (!node) return;
+    const stufe = a.awning_level;
+    if (!stufe || stufe === "ruhig" || !a.awning_text) {
+      node.hidden = true;
+      node.dataset.signature = "";
+      return;
+    }
+    if (node.dataset.signature === a.awning_text) return;
+    node.dataset.signature = a.awning_text;
+    node.hidden = false;
+    node.textContent = `${stufe === "einfahren" ? "🌬️" : "🌧️"} ${a.awning_text}`;
   }
 
   /* Die Wächterleiste.

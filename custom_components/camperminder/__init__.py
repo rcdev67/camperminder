@@ -25,12 +25,15 @@ from .const import (
     CONF_NOTIFY_TTS,
     CONF_PITCH_SENSOR,
     CONF_ROLL_SENSOR,
+    CONF_AWNING_ENTITY,
+    CONF_WEATHER_ENTITY,
     DOMAIN,
     LEGACY_CARD_URL,
     STATIC_URL,
 )
 from .coordinator import CamperCoordinator
 from .heimatort import HeimatortFolger
+from .wetter import WetterWaechter
 
 # Änderungen an diesen Schlüsseln erfordern ein Neuaufsetzen: die Quell-
 # Entitäten werden beim Start abonniert, die Vorleseeinstellung liest der
@@ -45,6 +48,10 @@ STRUCTURAL_KEYS = (
     # "Heimatort hierher" gibt es nur mit Quelle.
     CONF_LOCATION_SOURCE,
     CONF_HOME_FOLLOW,
+    # Der Wetterwächter abonniert Wetter und Markise beim Start, und seine
+    # Regler und sein Melder gibt es nur mit Wetter-Entität.
+    CONF_WEATHER_ENTITY,
+    CONF_AWNING_ENTITY,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -251,10 +258,23 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         heimatort = HeimatortFolger(hass, config)
         heimatort.async_start()
 
+    wetter: WetterWaechter | None = None
+    if config.get(CONF_WEATHER_ENTITY):
+        wetter = WetterWaechter(
+            hass,
+            config,
+            lambda key: float(coordinator.get_value(key)),
+            # Zur Laufzeit nachschlagen: async_notify ist oben umgebogen.
+            lambda: coordinator.async_notify(),
+        )
+        coordinator.wetter = wetter
+        wetter.async_start()
+
     hass.data.setdefault(DOMAIN, {})[entry.entry_id] = {
         "coordinator": coordinator,
         "announcer": announcer,
         "heimatort": heimatort,
+        "wetter": wetter,
     }
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
@@ -296,4 +316,6 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         stored["coordinator"].async_stop()
         if stored["heimatort"] is not None:
             stored["heimatort"].async_stop()
+        if stored["wetter"] is not None:
+            stored["wetter"].async_stop()
     return unloaded

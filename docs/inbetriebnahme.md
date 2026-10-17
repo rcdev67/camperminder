@@ -371,10 +371,11 @@ Blueprints → Blueprint importieren*, dann die Adresse einfügen:
 - Frostwarnung:
   `https://github.com/rcdev67/camperminder/blob/main/blueprints/automation/camperminder/frostwarnung.yaml`
 
-Ein vierter passt auf die Markise auf und braucht dafür nur eine
-Wettervorhersage, nicht das Gerät: Er warnt vor Böen, Gewitter, Hagel, Schnee
-und Starkregen und erinnert bei Regen daran, die Markise auf einer Seite
-abzusenken.
+Ein vierter passt auf die Markise auf: Er warnt vor Böen, Gewitter, Hagel,
+Schnee und Starkregen und erinnert bei Regen daran, die Markise auf einer
+Seite abzusenken. Dafür unter *Einstellungen → Geräte & Dienste → CamperMinder
+→ Konfigurieren* eine Wettervorhersage wählen, am besten Open-Meteo mit der
+Zone „Zuhause“. Dieselbe Warnung zeigt auch die Karte.
 
 - Wetterwächter Markise:
   `https://github.com/rcdev67/camperminder/blob/main/blueprints/automation/camperminder/markise_wetter.yaml`

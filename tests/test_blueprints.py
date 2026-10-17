@@ -22,8 +22,8 @@ ORDNER = WURZEL / "blueprints" / "automation" / "camperminder"
 HARDWARE = (WURZEL / "esphome" / "level" / "hardware.yaml").read_text(encoding="utf-8")
 README = (WURZEL / "blueprints" / "README.md").read_text(encoding="utf-8")
 DATEIEN = sorted(p.name for p in ORDNER.glob("*.yaml"))
-# Die drei, die an einem Melder des Geräts hängen. Der Wetterwächter für die
-# Markise braucht das Gerät nicht und hat seine eigenen Prüfungen.
+# Die drei, die an einem Melder des Geräts hängen. Der vierte hängt am Melder
+# der Integration (Wetterwächter für die Markise).
 GERAETE = ["frostwarnung.yaml", "kuehlschrank_warnung.yaml", "waechter_alarm.yaml"]
 
 
@@ -70,7 +70,7 @@ def test_vier_blueprints():
     assert DATEIEN == sorted(GERAETE + ["markise_wetter.yaml"])
 
 
-@pytest.mark.parametrize("name", GERAETE)
+@pytest.mark.parametrize("name", DATEIEN)
 def test_aufbau(name):
     b = laden(name)
     kopf = b["blueprint"]
@@ -150,7 +150,8 @@ def test_pause_laenger_als_der_takt_des_satzes(name, text):
     assert "meldung" in b["action"][1 if "variables" in b["action"][1] else 2]["variables"]
 
 
-@pytest.mark.parametrize("name", ["kuehlschrank_warnung.yaml", "frostwarnung.yaml"])
+@pytest.mark.parametrize("name", ["kuehlschrank_warnung.yaml", "frostwarnung.yaml",
+                                  "markise_wetter.yaml"])
 def test_kein_doppel_nach_neustart(name):
     (bedingung,) = laden(name)["condition"]
     vorlage = bedingung["value_template"]
@@ -241,177 +242,42 @@ def test_kuehlschranksatz_mit_komma():
 
 # --- Wetterwächter Markise ---------------------------------------------------
 #
-# Die Einträge unten sind wörtlich aus weather.get_forecasts (type: hourly)
-# eines echten Home Assistant vom 17.10.2026 übernommen: met.no ohne Böen,
-# OpenWeatherMap mit. Die Vorlage wird an der Schreibweise geprüft, in der
-# Home Assistant die Vorhersage tatsächlich liefert, nicht an einer
-# ausgedachten. Für die Fälle mit Unwetter sind einzelne Werte geändert;
-# welche, steht jeweils dabei.
+# Die Rechnung steht nach 4.2.4 in der Integration (wetter.py, geprüft in
+# test_wetter.py). Der Blueprint meldet nur noch den Wechsel ihres Melders.
 
 MARKISE = "markise_wetter.yaml"
-JETZT = datetime(2026, 10, 18, 20, 30, tzinfo=timezone.utc)  # 22:30 Uhr in Berlin
-SOMMERZEIT = timezone(timedelta(hours=2))
-
-MET_NO = [
-    {"condition": "cloudy", "datetime": "2026-10-18T20:00:00+00:00", "wind_bearing": 66.1,
-     "cloud_coverage": 100, "uv_index": 0, "temperature": 10.9, "wind_speed": 13.3,
-     "precipitation": 0, "humidity": 88},
-    {"condition": "cloudy", "datetime": "2026-10-18T21:00:00+00:00", "wind_bearing": 72.1,
-     "cloud_coverage": 100, "uv_index": 0, "temperature": 11.1, "wind_speed": 15.8,
-     "precipitation": 0, "humidity": 87},
-    {"condition": "cloudy", "datetime": "2026-10-18T22:00:00+00:00", "wind_bearing": 69.3,
-     "cloud_coverage": 100, "uv_index": 0, "temperature": 11, "wind_speed": 16.9,
-     "precipitation": 0, "humidity": 87},
-    {"condition": "cloudy", "datetime": "2026-10-18T23:00:00+00:00", "wind_bearing": 76.3,
-     "cloud_coverage": 100, "uv_index": 0, "temperature": 11, "wind_speed": 16.6,
-     "precipitation": 0, "humidity": 87},
-]
-
-OWM = [
-    {"datetime": "2026-10-18T19:00:00+00:00", "condition": "cloudy", "temperature": 13.1,
-     "pressure": 1026, "cloud_coverage": 100, "wind_speed": 10.98, "wind_bearing": 40,
-     "uv_index": 0, "precipitation_probability": 46, "precipitation": 0,
-     "apparent_temperature": 12.7, "dew_point": 8.9, "wind_gust_speed": 20.81, "humidity": 87},
-    {"datetime": "2026-10-18T20:00:00+00:00", "condition": "cloudy", "temperature": 12.8,
-     "pressure": 1026, "cloud_coverage": 100, "wind_speed": 11.16, "wind_bearing": 63,
-     "uv_index": 0, "precipitation_probability": 47, "precipitation": 0,
-     "apparent_temperature": 12.4, "dew_point": 9.3, "wind_gust_speed": 21.17, "humidity": 88},
-    {"datetime": "2026-10-18T21:00:00+00:00", "condition": "rainy", "temperature": 12.2,
-     "pressure": 1026, "cloud_coverage": 99, "wind_speed": 14.26, "wind_bearing": 70,
-     "uv_index": 0, "precipitation_probability": 51, "precipitation": 0.82,
-     "apparent_temperature": 11.8, "dew_point": 9.9, "wind_gust_speed": 26.35, "humidity": 92},
-    {"datetime": "2026-10-18T22:00:00+00:00", "condition": "cloudy", "temperature": 12.1,
-     "pressure": 1026, "cloud_coverage": 100, "wind_speed": 16.24, "wind_bearing": 71,
-     "uv_index": 0, "precipitation_probability": 0, "precipitation": 0,
-     "apparent_temperature": 11.8, "dew_point": 9.9, "wind_gust_speed": 30.53, "humidity": 92},
-    {"datetime": "2026-10-18T23:00:00+00:00", "condition": "cloudy", "temperature": 10.9,
-     "pressure": 1026, "cloud_coverage": 99, "wind_speed": 13.5, "wind_bearing": 83,
-     "uv_index": 0, "precipitation_probability": 0, "precipitation": 0,
-     "apparent_temperature": 10.4, "dew_point": 9.6, "wind_gust_speed": 24.91, "humidity": 90},
-    {"datetime": "2026-10-19T00:00:00+00:00", "condition": "cloudy", "temperature": 10.6,
-     "pressure": 1027, "cloud_coverage": 94, "wind_speed": 12.38, "wind_bearing": 79,
-     "uv_index": 0, "precipitation_probability": 0, "precipitation": 0,
-     "apparent_temperature": 10.1, "dew_point": 9.2, "wind_gust_speed": 23.08, "humidity": 90},
-]
 
 
-def _geaendert(eintraege, stunde, **werte):
-    """Kopie, in der der Eintrag zur angegebenen UTC-Stunde geändert ist."""
-    return [dict(e, **werte) if e["datetime"][11:13] == f"{stunde:02d}" else dict(e)
-            for e in eintraege]
+def test_markise_haengt_am_melder_der_integration():
+    import json
+
+    texte = json.loads((WURZEL / "custom_components" / "camperminder" / "strings.json")
+                       .read_text(encoding="utf-8"))
+    name = texte["entity"]["binary_sensor"]["awning_warning"]["name"]
+    assert name == "Markise Warnung"
+    inhalt = (ORDNER / MARKISE).read_text(encoding="utf-8")
+    assert f"„{name}“" in inhalt
+    # Der Satz kommt aus dem Attribut "meldung" - so heißt es im Melder.
+    melder = (WURZEL / "custom_components" / "camperminder" / "binary_sensor.py")
+    assert '"meldung": wetter.befund.satz' in melder.read_text(encoding="utf-8")
+    assert "'meldung'" in inhalt
 
 
-def _markise_meldung(eintraege, *, entitaet="weather.ort", einheiten=None,
-                     vorlauf=3, boeen=40, wind=25, regen=5) -> str:
-    attribute = {"wind_speed_unit": "km/h", "precipitation_unit": "mm", **(einheiten or {})}
+def test_markise_keine_eigene_rechnung_mehr():
+    b = laden(MARKISE)
+    assert not schritte(b["action"], "response_variable")
+    assert "time_pattern" not in (ORDNER / MARKISE).read_text(encoding="utf-8")
+
+
+def test_markise_meldung_vom_melder_oder_allgemein():
+    vorlage = _meldung(MARKISE)
     umgebung = jinja2.Environment()
-    umgebung.globals.update(
-        now=lambda: JETZT,
-        timedelta=timedelta,
-        as_datetime=datetime.fromisoformat,
-        as_local=lambda t: t.astimezone(SOMMERZEIT),
-        state_attr=lambda e, a: attribute.get(a) if e == "weather.ort" else None,
-    )
-    return " ".join(umgebung.from_string(_meldung(MARKISE)).render(
-        vorhersage={entitaet: {"forecast": eintraege}},
-        wetter_entitaet="weather.ort",
-        vorlauf=vorlauf, grenze_boeen=boeen, grenze_wind=wind, grenze_regen=regen,
-    ).split())
-
-
-def test_markise_aufbau():
-    b = laden(MARKISE)
-    kopf = b["blueprint"]
-    assert kopf["domain"] == "automation"
-    assert kopf["source_url"].endswith("/blueprints/automation/camperminder/" + MARKISE)
-    rumpf = {k: v for k, v in b.items() if k != "blueprint"}
-    assert eingaenge_im_rumpf(rumpf) == set(kopf["input"])
-    assert kopf["input"]["benachrichtigung"]["selector"] == {"action": {}}
-    assert schritte(b["action"], "choose")[0]["default"] == "benachrichtigung"
-    # Kein Filter auf supported_features: Home Assistant 2026.10 schreibt ihn
-    # beim Speichern als Zahl zurück und lehnt ihn beim Laden dann ab.
-    (filter_,) = kopf["input"]["wetter"]["selector"]["entity"]["filter"]
-    assert filter_ == {"domain": "weather"}
-    (abfrage,) = schritte(b["action"], "response_variable")
-    assert abfrage["action"] == "weather.get_forecasts"
-    assert abfrage["data"] == {"type": "hourly"}
-    # Der Markisen-Melder ist freiwillig. Ein Zustandsauslöser mit leerer
-    # entity_id machte die Automatisierung ungültig.
-    assert kopf["input"]["markise"]["default"] == ""
-    assert all(a["platform"] != "state" for a in b["trigger"])
-
-
-def test_markise_ruhezeit_statt_gedaechtnis():
-    b = laden(MARKISE)
-    # Was während der Ruhezeit auslöst, verfällt still.
-    assert b["mode"] == "single" and b["max_exceeded"] == "silent"
-    warten = b["action"][-1]
-    assert warten["timeout"] == {"hours": "ruhezeit"}
-    assert warten["continue_on_timeout"] is True
-    # Die Benachrichtigung kommt vor der Ruhezeit, nicht danach.
-    assert "choose" in b["action"][-2]
-
-
-def test_markise_ruhiges_wetter_meldet_nichts():
-    assert _markise_meldung(MET_NO) == ""
-    assert _markise_meldung(OWM) == ""
-
-
-def test_markise_boeen_aus_openweathermap():
-    # Echte Werte: Böen 26 km/h um 21 Uhr UTC (23 Uhr Berlin), höchstens 31.
-    assert _markise_meldung(OWM, boeen=25) == "Markise einfahren: ab 23 Uhr Böen bis 31 km/h."
-
-
-def test_markise_ohne_boeen_zaehlt_der_mittlere_wind():
-    # met.no liefert keine Böen. Gemeldet wird dann der mittlere Wind, und
-    # nicht "Böen bis 0".
-    assert _markise_meldung(MET_NO, wind=15) == "Markise einfahren: ab 23 Uhr Wind bis 17 km/h."
-
-
-def test_markise_laufende_stunde_heisst_jetzt():
-    # Der Eintrag von 20 Uhr UTC gilt bis 21 Uhr, um 20:30 also jetzt.
-    assert _markise_meldung(MET_NO, wind=13) == "Markise einfahren: jetzt Wind bis 17 km/h."
-
-
-def test_markise_rechnet_die_einheit_um():
-    # 16,9 m/s sind 61 km/h - in km/h gelesen bliebe es unter der Grenze.
-    assert _markise_meldung(MET_NO, einheiten={"wind_speed_unit": "m/s"}) \
-        == "Markise einfahren: jetzt Wind bis 61 km/h."
-    regen = _geaendert(MET_NO, 21, precipitation=0.3)
-    assert _markise_meldung(regen, einheiten={"precipitation_unit": "in"}).startswith("7,6 mm Regen")
-
-
-def test_markise_nur_im_vorlauf():
-    # Der Eintrag von 19 Uhr UTC ist vorbei, der von 0 Uhr liegt hinter drei
-    # Stunden Vorlauf. Geändert: Gewitter in beiden.
-    daneben = _geaendert(_geaendert(OWM, 19, condition="lightning"), 0, condition="lightning")
-    assert _markise_meldung(daneben) == ""
-    assert _markise_meldung(daneben, vorlauf=4) == "Markise einfahren: ab 2 Uhr Gewitter."
-
-
-def test_markise_mehrere_gruende_in_einem_satz():
-    # Geändert: Gewitter mit Sturmböen um 22 Uhr UTC, Hagel um 23 Uhr UTC.
-    unwetter = _geaendert(OWM, 22, condition="lightning-rainy", wind_gust_speed=72.4)
-    unwetter = _geaendert(unwetter, 23, condition="hail")
-    assert _markise_meldung(unwetter) \
-        == "Markise einfahren: ab 0 Uhr Böen bis 72 km/h, ab 0 Uhr Gewitter, ab 1 Uhr Hagel."
-
-
-def test_markise_regen_heisst_absenken():
-    # Geändert: 4,4 mm um 21 Uhr UTC statt 0,82.
-    regen = _geaendert(OWM, 21, precipitation=4.4)
-    assert _markise_meldung(regen) == ""
-    assert _markise_meldung(_geaendert(regen, 22, precipitation=1.8)) == (
-        "6,2 mm Regen in den nächsten 3 Stunden: "
-        "Markise auf einer Seite absenken, damit das Wasser abläuft.")
-    assert "in der nächsten Stunde" in _markise_meldung(
-        _geaendert(MET_NO, 20, precipitation=5.5), vorlauf=1)
-
-
-def test_markise_einfahren_geht_vor_absenken():
-    viel = _geaendert(_geaendert(OWM, 21, precipitation=9.0), 22, condition="pouring")
-    assert _markise_meldung(viel) == "Markise einfahren: ab 0 Uhr Starkregen."
-
-
-def test_markise_andere_wetter_entitaet_in_der_antwort():
-    assert _markise_meldung(OWM, entitaet="weather.anderswo", boeen=25) == ""
+    attribute = {}
+    umgebung.globals["state_attr"] = lambda e, a: attribute.get(a)
+    satz = "Markise einfahren: ab 15 Uhr Böen bis 55 km/h."
+    attribute["meldung"] = satz
+    text = " ".join(umgebung.from_string(vorlage).render(warnung_entitaet="b.m").split())
+    assert text == satz
+    attribute["meldung"] = ""
+    text = " ".join(umgebung.from_string(vorlage).render(warnung_entitaet="b.m").split())
+    assert "Markise" in text and "Vorhersage" in text

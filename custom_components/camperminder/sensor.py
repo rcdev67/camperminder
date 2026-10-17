@@ -227,6 +227,10 @@ class CamperPhaseSensor(CamperEntity, SensorEntity):
             "frost": coordinator.frost,
             "indoor_temp": coordinator.indoor_temp,
             "sensors_available": coordinator.available,
+            # Wetterwächter für die Markise - None, wenn keine Wetter-Entität
+            # eingerichtet ist. Dann zeigt die Karte nichts davon.
+            "awning_level": coordinator.wetter.befund.stufe if coordinator.wetter else None,
+            "awning_text": coordinator.wetter.befund.satz if coordinator.wetter else None,
         }
 
 

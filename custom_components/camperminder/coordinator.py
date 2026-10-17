@@ -19,6 +19,10 @@ from homeassistant.helpers.dispatcher import async_dispatcher_send
 from homeassistant.helpers.event import async_track_state_change_event
 
 from .const import (
+    CONF_AWNING_GUST,
+    CONF_AWNING_LEAD,
+    CONF_AWNING_RAIN,
+    CONF_AWNING_WIND,
     CONF_LEVEL_HOLD,
     CONF_LEVEL_METHOD,
     CONF_LEVEL_PITCH_DEVICE,
@@ -53,6 +57,10 @@ from .const import (
     CONF_VEHICLE_TYPE,
     CONF_WEDGE_STEP,
     CONF_WHEELBASE,
+    DEFAULT_AWNING_GUST_KMH,
+    DEFAULT_AWNING_LEAD_H,
+    DEFAULT_AWNING_RAIN_MM,
+    DEFAULT_AWNING_WIND_KMH,
     DEFAULT_LEVEL_METHOD,
     DEFAULT_TOLERANCE_CM,
     DEFAULT_TILT_LIMIT_DEG,
@@ -118,6 +126,12 @@ VALUE_DEFAULTS: dict[str, float | bool | str | None] = {
     "voice": False,  # Sprachansage - neue Verhaltenserweiterungen starten aus
     CONF_PRECISE: False,  # Präzisionsmodus, sofern das Gerät ihn nicht führt
     CONF_POSITION_CHANGED: False,  # nur, wenn das Gerät sie meldet
+    # Wetterwächter für die Markise - Regler nur, wenn eine Wetter-Entität
+    # eingerichtet ist.
+    CONF_AWNING_GUST: DEFAULT_AWNING_GUST_KMH,
+    CONF_AWNING_WIND: DEFAULT_AWNING_WIND_KMH,
+    CONF_AWNING_RAIN: DEFAULT_AWNING_RAIN_MM,
+    CONF_AWNING_LEAD: DEFAULT_AWNING_LEAD_H,
 }
 
 # Diese Werte sind Zahlen, alle übrigen nicht.
@@ -129,6 +143,10 @@ NUMERIC_VALUES = (
     CONF_TOLERANCE_DEG,
     CONF_LEVEL_HOLD,
     CONF_TILT_LIMIT,
+    CONF_AWNING_GUST,
+    CONF_AWNING_WIND,
+    CONF_AWNING_RAIN,
+    CONF_AWNING_LEAD,
 )
 
 
@@ -208,6 +226,11 @@ class CamperCoordinator:
         # befragt werden kann.
         self._device_sources: dict[str, str] = {}
         self._unsub = None
+
+        # Der Wetterwächter, sofern eine Wetter-Entität eingerichtet ist.
+        # Gesetzt von async_setup_entry; die Karte liest seinen Befund über
+        # den Phasensensor wie alles andere.
+        self.wetter = None
 
     def _apply_config(self, config: dict) -> None:
         """Einstellbare Werte aus dem Config-Eintrag übernehmen."""
