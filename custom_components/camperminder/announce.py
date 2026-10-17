@@ -172,6 +172,10 @@ class CamperAnnouncer:
             text += f", danach {names.get(instruction['then'], instruction['then'])}"
         return text + "."
 
+    async def async_sagen(self, text: str) -> None:
+        """Für andere Teile der Integration, etwa den Abfahrtscheck."""
+        await self._async_speak(text)
+
     async def _async_speak(self, text: str) -> None:
         # Aus dem Rechenkern, nicht aus der Einrichtung: das Ziel ist eine
         # Entität und darf sich im laufenden Betrieb ändern.

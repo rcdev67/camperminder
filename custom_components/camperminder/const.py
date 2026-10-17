@@ -19,6 +19,8 @@ CONF_HOME_FOLLOW: Final = "home_follow"
 # Wetterwächter für die Markise - siehe wetter.py.
 CONF_WEATHER_ENTITY: Final = "weather_entity"
 CONF_AWNING_ENTITY: Final = "awning_entity"
+# Abfahrtscheck - siehe abfahrt.py.
+CONF_DEPARTURE_ENTITIES: Final = "departure_entities"
 CONF_AWNING_GUST: Final = "awning_gust_kmh"
 CONF_AWNING_WIND: Final = "awning_wind_kmh"
 CONF_AWNING_RAIN: Final = "awning_rain_mm"

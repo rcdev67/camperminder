@@ -17,7 +17,8 @@
           "location_source": "Vehicle GPS source",
           "home_follow": "Home location follows the vehicle",
           "weather_entity": "Weather forecast for the awning",
-          "awning_entity": "Awning extended"
+          "awning_entity": "Awning extended",
+          "departure_entities": "Departure check: must not be open when driving off"
         },
         "data_description": {
           "motion_sensor": "Announcements only happen while this is on — otherwise the vehicle speaks up at night when temperature drift crosses the threshold.",
@@ -28,7 +29,8 @@
           "location_source": "A tablet or phone that stays in the vehicle (device_tracker of the Home Assistant app). Level has no GPS and takes its position from here. Also adds the “Set home here” button.",
           "home_follow": "Only for a Home Assistant inside the vehicle. When the vehicle has stood at a new place for five minutes after a drive, that place becomes the home location. Sunrise and sunset, weather and “home” depend on it. Without a “moving” sensor, GPS decides alone.",
           "weather_entity": "Optional. A weather entity with an hourly forecast, ideally Open-Meteo with the “Home” zone: it follows the home location and provides gusts. Adds the “Awning warning” sensor and its controls.",
-          "awning_entity": "Optional. A sensor that is “on” or “open” while the awning is out. Warnings are then only given while it really is extended."
+          "awning_entity": "Optional. A sensor that is “on” or “open” while the awning is out. Warnings are then only given while it really is extended.",
+          "departure_entities": "Optional. Doors, roof vents, step, locks – anything that must not be open when the vehicle starts rolling. The awning above is included automatically. As soon as “in motion” turns on while something here is still open, the “Departure warning” sensor turns on and an announcement is made."
         }
       }
     },
@@ -58,13 +60,15 @@
           "location_source": "Vehicle GPS source",
           "home_follow": "Home location follows the vehicle",
           "weather_entity": "Weather forecast for the awning",
-          "awning_entity": "Awning extended"
+          "awning_entity": "Awning extended",
+          "departure_entities": "Departure check: must not be open when driving off"
         },
         "data_description": {
           "location_source": "A tablet or phone that stays in the vehicle (device_tracker of the Home Assistant app). Level has no GPS and takes its position from here. Also adds the “Set home here” button.",
           "home_follow": "Only for a Home Assistant inside the vehicle. When the vehicle has stood at a new place for five minutes after a drive, that place becomes the home location. Sunrise and sunset, weather and “home” depend on it. Without a “moving” sensor, GPS decides alone.",
           "weather_entity": "Optional. A weather entity with an hourly forecast, ideally Open-Meteo with the “Home” zone: it follows the home location and provides gusts. Adds the “Awning warning” sensor and its controls.",
-          "awning_entity": "Optional. A sensor that is “on” or “open” while the awning is out. Warnings are then only given while it really is extended."
+          "awning_entity": "Optional. A sensor that is “on” or “open” while the awning is out. Warnings are then only given while it really is extended.",
+          "departure_entities": "Optional. Doors, roof vents, step, locks – anything that must not be open when the vehicle starts rolling. The awning above is included automatically. As soon as “in motion” turns on while something here is still open, the “Departure warning” sensor turns on and an announcement is made."
         }
       }
     },
@@ -94,11 +98,13 @@
       },
       "sun": { "name": "Sun" },
       "dish": { "name": "Satellite" },
-      "starlink": { "name": "Starlink" }
+      "starlink": { "name": "Starlink" },
+      "site_memory": { "name": "Last time here" }
     },
     "binary_sensor": {
       "level": { "name": "Is level" },
-      "awning_warning": { "name": "Awning warning" }
+      "awning_warning": { "name": "Awning warning" },
+      "departure_warning": { "name": "Departure warning" }
     },
     "number": {
       "wheelbase": { "name": "Wheelbase" },

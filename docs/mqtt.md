@@ -78,6 +78,8 @@ orange, die Abweichung grau.
 | `camperminder/level/binary_sensor/schraeglage/state` | `ON` = über dem Grenzwert, Vorgabe 3° (Absorberkühlschrank) |
 | `camperminder/level/binary_sensor/lageaenderung/state` | `ON` = Fahrzeug hat seine Ruhelage verlassen |
 | `camperminder/level/binary_sensor/in_bewegung/state` | `ON` = Erschütterung, also Anwesenheit |
+| `camperminder/level/sensor/unruhe/state` | Wie stark das Fahrzeug schaukelt: Effektivwert der Drehrate der letzten Minute in °/s |
+| `camperminder/level/sensor/unruhe_spitze/state` | Größter Einzelwert der Drehrate der letzten Minute in °/s |
 | `camperminder/level/text_sensor/eigenes_netz/state` | `offen` oder `mit Passwort` |
 | `camperminder/level/text_sensor/firmware_version/state` | z. B. `3.2.0` |
 | `camperminder/level/text_sensor/heimnetz_adresse/state` | zuletzt im Heimnetz vergebene Adresse, z. B. `192.168.178.45`; leer, solange das Gerät nie im Heimnetz war |
@@ -87,6 +89,10 @@ orange, die Abweichung grau.
 **`in_bewegung` ist kein Alarm.** Es meldet, dass jemand einsteigt, der Wind
 drückt oder der Nachbar rangiert. Der Alarm ist `lageaenderung` — das Fahrzeug
 hat seine Lage verlassen und ist nicht zurückgekommen.
+
+**`unruhe` misst Wind am stehenden Fahrzeug** — oder wer sich darin bewegt.
+Einmal je Minute, während der Fahrt groß und bedeutungslos. Grenzen dafür gibt
+es noch keine: Sie werden erst aus Messreihen bei bekanntem Wind festgelegt.
 
 ### Selbstüberwachung
 
@@ -182,6 +188,14 @@ quittiert wird.
 | `camperminder/level/text_sensor/letzte_bewegung/state` | `gerade jetzt`, `22.08. um 21:40`, `vor 3 h 12 min` |
 | `camperminder/level/switch/waechter/…` | `ON` / `OFF` — scharf schalten |
 | `camperminder/level/number/waechter_karenzzeit/…` | 0 – 600 s |
+| `camperminder/level/binary_sensor/erschuetterung/state` | `ON` = scharf und ein Stoß über dem Grenzwert, bis eine Minute nach dem letzten |
+| `camperminder/level/number/erschuetterung_grenzwert/…` | 0,2 – 10 °/s, Vorgabe 1,5 (vorläufig) |
+
+`erschuetterung` ist die eigene Meldung des Wächters für einen kurzen Stoß:
+Jemand rüttelt am Fahrzeug, ohne dass sich die Lage bleibend ändert. Sie
+rastet **nicht** ein und löst keinen Wächteralarm aus, denn auch ein Windstoß
+kann sie auslösen. Wie hoch der Grenzwert stehen muss, damit Wind darunter
+bleibt, zeigt `unruhe` über einige stürmische Tage.
 
 Der Alarm übersteht einen Stromausfall: Wer die Versorgung kappt, löscht ihn
 damit nicht. Fehlte beim Auslösen eine gültige Uhr — auf einem Stellplatz ohne
@@ -228,6 +242,8 @@ Diese Themen nehmen auch Befehle entgegen (`…/command`):
 | `camperminder/level/number/schraeglage_grenzwert/…` | 1 – 10 Grad |
 | `camperminder/level/number/lageaenderung_grenzwert/…` | 0,2 – 5 Grad |
 | `camperminder/level/number/waechter_karenzzeit/…` | 0 – 600 Sekunden |
+| `camperminder/level/number/erschuetterung_grenzwert/…` | 0,2 – 10 °/s |
+| `camperminder/level/button/hinweiston/command` | `PRESS` — kurzes Piepen, etwa für einen eigenen Abfahrtscheck |
 | `camperminder/level/switch/praezisionsmodus/…` | `ON` / `OFF` |
 | `camperminder/level/switch/waechter/…` | `ON` / `OFF` |
 | `camperminder/level/switch/status_led/…` | `ON` / `OFF` — die Leuchte am Gerät |

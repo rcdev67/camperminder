@@ -877,6 +877,32 @@ globals:
     type: bool
     initial_value: "false"
 
+  # --- Unruhe und Erschütterung ---------------------------------------------
+  #
+  # Dieselbe Drehrate wie für "In Bewegung", aber feiner ausgewertet: Wie
+  # stark schaukelt das STEHENDE Fahrzeug? Wind rüttelt einen Aufbau, lange
+  # bevor die Bewegungsgrenze von ${motion_deg_s} Grad/s erreicht ist.
+  #
+  # Je Minute: Summe der Quadrate und Zahl der Proben für den Effektivwert,
+  # dazu die Spitze. Je Sekunde: die Spitze für die Erschütterung.
+  # Alles ohne restore_value - es sind Messwerte der laufenden Minute.
+  - id: unruhe_quadrate
+    type: float
+    initial_value: "0.0"
+  - id: unruhe_proben
+    type: uint32_t
+    initial_value: "0"
+  - id: unruhe_spitze_min
+    type: float
+    initial_value: "0.0"
+  - id: stoss_spitze
+    type: float
+    initial_value: "0.0"
+  # Laufzeit in Sekunden des letzten Stoßes bei scharfem Wächter, 0 = keiner.
+  - id: erschuetterung_lauf
+    type: uint32_t
+    initial_value: "0"
+
   # --- Wächtermodus ---------------------------------------------------------
   #
   # Der Alarm RASTET EIN. Das ist der ganze Sinn: Wer nachts schläft, verpasst
@@ -1483,6 +1509,28 @@ number:
     optimistic: true
     mode: box
 
+  # Ab welcher Drehrate ein Stoß bei scharfem Wächter als Erschütterung gilt.
+  #
+  # VORLÄUFIG: Unterhalb der Bewegungsgrenze (${motion_deg_s} Grad/s), damit
+  # schon ein vorsichtiger Einstieg auffällt. Wie hoch Wind ein stehendes
+  # Fahrzeug treibt, zeigt erst der Messwert "Unruhe" über einige stürmische
+  # Tage; danach wird die Vorgabe festgelegt.
+  - platform: template
+    name: "Erschütterung Grenzwert"
+    id: stoss_grenz
+    state_topic: camperminder/level/number/erschuetterung_grenzwert/state
+    command_topic: camperminder/level/number/erschuetterung_grenzwert/command
+    unit_of_measurement: "°/s"
+    icon: mdi:vibrate
+    entity_category: config
+    min_value: 0.2
+    max_value: 10
+    step: 0.1
+    initial_value: 1.5
+    restore_value: true
+    optimistic: true
+    mode: box
+
   # 0 bedeutet: in Zentimetern rechnen statt in Stufen. Wer Hydraulik hat,
   # lässt den Wert ohnehin auf 0.
   - platform: template
@@ -1771,6 +1819,7 @@ switch:
       # hat ihn gesehen - ein zweiter Handgriff wäre reine Schikane.
       - lambda: |-
           id(wache_alarm) = false;
+          id(erschuetterung_lauf) = 0;
           ESP_LOGI("wache", "Unscharf.");
 
 sensor:
@@ -1841,6 +1890,27 @@ sensor:
     lambda: |-
       if (id(schraeg_seit) == 0) return 0.0f;
       return (millis() / 1000 - id(schraeg_seit)) / 60.0f;
+
+  # Wie stark das Fahrzeug schaukelt - Effektivwert und Spitze der Drehrate
+  # je Minute. Gefüllt im Minutentakt unter interval (Unruhe).
+  - platform: template
+    name: "Unruhe"
+    id: unruhe
+    state_topic: camperminder/level/sensor/unruhe/state
+    unit_of_measurement: "°/s"
+    icon: mdi:waves
+    accuracy_decimals: 2
+    state_class: measurement
+    update_interval: never
+  - platform: template
+    name: "Unruhe Spitze"
+    id: unruhe_spitze
+    state_topic: camperminder/level/sensor/unruhe_spitze/state
+    unit_of_measurement: "°/s"
+    icon: mdi:waves-arrow-up
+    accuracy_decimals: 2
+    state_class: measurement
+    update_interval: never
 
   - platform: wifi_signal
     name: "WLAN Signal"
@@ -2409,6 +2479,44 @@ interval:
                          + fabsf(gz - id(gyro_null_z));
           id(bewegt_roh) = ab > ${motion_deg_s};
 
+          /* Unruhe: Betrag der Drehrate ohne Versatz. Hier der echte Betrag
+           * (Wurzel der Quadratsumme) statt der Summe oben - die Summe ist
+           * für eine Schwelle gut genug, als Messwert wäre sie je nach
+           * Schaukelrichtung bis zu 1,7-mal zu groß. */
+          const float dx = gx - id(gyro_null_x);
+          const float dy = gy - id(gyro_null_y);
+          const float dz = gz - id(gyro_null_z);
+          const float betrag = sqrtf(dx * dx + dy * dy + dz * dz);
+          id(unruhe_quadrate) += betrag * betrag;
+          id(unruhe_proben)++;
+          if (betrag > id(unruhe_spitze_min)) id(unruhe_spitze_min) = betrag;
+          if (betrag > id(stoss_spitze)) id(stoss_spitze) = betrag;
+
+  # --- Unruhe: einmal je Minute --------------------------------------------
+  #
+  # Effektivwert und Spitze der letzten Minute. Effektivwert für das
+  # gleichmäßige Schaukeln bei Wind, Spitze für Böen und Stöße. Schwellen
+  # gibt es dafür bewusst noch nicht: Erst Messreihen bei bekanntem Wind,
+  # dann Grenzen - eine geratene Windwarnung wäre schlechter als keine.
+  #
+  # Während der Fahrt sind die Werte groß und bedeutungslos; wer auswertet,
+  # nimmt nur Minuten, in denen "In Bewegung" aus war.
+  - interval: 60s
+    then:
+      - lambda: |-
+          const uint32_t n = id(unruhe_proben);
+          if (n < 100) {
+            // Weniger als zehn Sekunden Messwerte - lieber nichts als Unsinn.
+            id(unruhe).publish_state(NAN);
+            id(unruhe_spitze).publish_state(NAN);
+          } else {
+            id(unruhe).publish_state(sqrtf(id(unruhe_quadrate) / n));
+            id(unruhe_spitze).publish_state(id(unruhe_spitze_min));
+          }
+          id(unruhe_quadrate) = 0.0f;
+          id(unruhe_proben) = 0;
+          id(unruhe_spitze_min) = 0.0f;
+
   - interval: 1s
     then:
       - lambda: |-
@@ -2735,6 +2843,11 @@ interval:
           const uint32_t jetzt = millis() / 1000;
           const bool uhr_gilt = id(uhr).now().is_valid();
 
+          // Spitze dieser Sekunde abholen - auch unscharf, sonst stünde beim
+          // Scharfschalten ein alter Stoß von vorhin darin.
+          const float stoss = id(stoss_spitze);
+          id(stoss_spitze) = 0.0f;
+
           /* Anwesenheit mitschreiben - unabhängig vom Wächter. Die Frage "war
            * jemand am Fahrzeug?" stellt sich auch, wenn man nicht scharf
            * geschaltet hatte. */
@@ -2769,6 +2882,19 @@ interval:
               id(ruhe_takte) = 0;
             }
             return;
+          }
+
+          /* Erschütterung: ein kurzer Stoß, eine eigene Meldung. Rastet NICHT
+           * ein und löst keinen Wächteralarm aus - der bleibt der Lage
+           * vorbehalten. Ein Einbruchsversuch rüttelt, ohne dass sich die Lage
+           * bleibend ändert; das soll man sehen, aber ein Windstoß darf nicht
+           * den Alarm auslösen, der bis zum Quittieren steht. */
+          const float stoss_g = id(stoss_grenz).state;
+          if (!isnan(stoss_g) && stoss > stoss_g) {
+            if (id(erschuetterung_lauf) == 0 || jetzt - id(erschuetterung_lauf) >= 60) {
+              ESP_LOGW("wache", "Erschuetterung: %.2f Grad/s (Grenze %.2f).", stoss, stoss_g);
+            }
+            id(erschuetterung_lauf) = jetzt;
           }
 
           // Rastet ein und bleibt. Ein zweiter Alarm überschreibt den ersten
@@ -3221,6 +3347,23 @@ binary_sensor:
     device_class: safety
     icon: mdi:shield-alert
     lambda: 'return id(wache_alarm);'
+
+  # --- Erschütterung ---------------------------------------------------------
+  #
+  # Die eigene Meldung des Wächters für einen kurzen Stoß (Grenzwert unter
+  # number). Nur scharf und nach der Karenzzeit; eine Minute nach dem letzten
+  # Stoß geht sie wieder aus. Anders als "In Bewegung", das immer läuft und
+  # erst ab ${motion_deg_s} Grad/s anspringt, ist sie empfindlicher und gilt
+  # nur, wenn niemand am Fahrzeug sein sollte.
+  - platform: template
+    name: "Erschütterung"
+    id: erschuetterung
+    state_topic: camperminder/level/binary_sensor/erschuetterung/state
+    device_class: vibration
+    icon: mdi:vibrate
+    lambda: |-
+      if (!id(wache).state || id(erschuetterung_lauf) == 0) return false;
+      return millis() / 1000 - id(erschuetterung_lauf) < 60;
 
 text_sensor:
   # Unsere eigene Fassung, nicht die von ESPHome. Muss mit der Version in
@@ -3787,6 +3930,21 @@ text:
     optimistic: true
 
 button:
+  # --- Hinweiston -------------------------------------------------------------
+  #
+  # Für Home Assistant: Der Abfahrtscheck der Integration piept damit, wenn das
+  # Fahrzeug anrollt und noch etwas offen ist. Anders als der Alarm ein kurzes
+  # Muster in tieferer Lage, damit man beides am Ton unterscheidet. Ein
+  # laufender Alarm geht vor.
+  - platform: template
+    name: "Hinweiston"
+    id: hinweiston
+    icon: mdi:bell-ring-outline
+    on_press:
+      - lambda: |-
+          if (id(wache_alarm)) return;
+          id(summer).play("hinweis:d=8,o=6,b=200:c,p,c,p,c,p,c");
+
   # --- Alarm quittieren ------------------------------------------------------
   #
   # Löscht den eingerasteten Alarm, OHNE den Wächter abzuschalten. Der Fall,

@@ -22,8 +22,8 @@ ORDNER = WURZEL / "blueprints" / "automation" / "camperminder"
 HARDWARE = (WURZEL / "esphome" / "level" / "hardware.yaml").read_text(encoding="utf-8")
 README = (WURZEL / "blueprints" / "README.md").read_text(encoding="utf-8")
 DATEIEN = sorted(p.name for p in ORDNER.glob("*.yaml"))
-# Die drei, die an einem Melder des Geräts hängen. Der vierte hängt am Melder
-# der Integration (Wetterwächter für die Markise).
+# Die drei, die an einem Melder des Geräts hängen. Die anderen hängen an
+# Meldern der Integration (Wetterwächter Markise, Abfahrtscheck).
 GERAETE = ["frostwarnung.yaml", "kuehlschrank_warnung.yaml", "waechter_alarm.yaml"]
 
 
@@ -66,8 +66,8 @@ def schritte(knoten, art: str) -> list:
     return gefunden
 
 
-def test_vier_blueprints():
-    assert DATEIEN == sorted(GERAETE + ["markise_wetter.yaml"])
+def test_fuenf_blueprints():
+    assert DATEIEN == sorted(GERAETE + ["markise_wetter.yaml", "abfahrt.yaml"])
 
 
 @pytest.mark.parametrize("name", DATEIEN)
@@ -281,3 +281,38 @@ def test_markise_meldung_vom_melder_oder_allgemein():
     attribute["meldung"] = ""
     text = " ".join(umgebung.from_string(vorlage).render(warnung_entitaet="b.m").split())
     assert "Markise" in text and "Vorhersage" in text
+
+
+# --- Abfahrtscheck -------------------------------------------------------------
+
+ABFAHRT = "abfahrt.yaml"
+
+
+def test_abfahrt_haengt_am_melder_der_integration():
+    import json
+
+    texte = json.loads((WURZEL / "custom_components" / "camperminder" / "strings.json")
+                       .read_text(encoding="utf-8"))
+    name = texte["entity"]["binary_sensor"]["departure_warning"]["name"]
+    inhalt = (ORDNER / ABFAHRT).read_text(encoding="utf-8")
+    assert f"„{name}“" in inhalt
+    melder = (WURZEL / "custom_components" / "camperminder" / "binary_sensor.py")
+    assert '"meldung": self._abfahrt.befund.satz' in melder.read_text(encoding="utf-8")
+
+
+def test_abfahrt_nur_beim_echten_wechsel():
+    (ausloeser,) = laden(ABFAHRT)["trigger"]
+    assert ausloeser["from"] == "off" and ausloeser["to"] == "on"
+    assert "condition" not in laden(ABFAHRT)
+
+
+def test_abfahrt_meldung_vom_melder_oder_allgemein():
+    vorlage = _meldung(ABFAHRT)
+    umgebung = jinja2.Environment()
+    attribute = {"meldung": "Abfahrt - noch offen: Markise, Trittstufe."}
+    umgebung.globals["state_attr"] = lambda e, a: attribute.get(a)
+    text = " ".join(umgebung.from_string(vorlage).render(warnung_entitaet="b.a").split())
+    assert text == attribute["meldung"]
+    attribute["meldung"] = None
+    text = " ".join(umgebung.from_string(vorlage).render(warnung_entitaet="b.a").split())
+    assert "offen" in text

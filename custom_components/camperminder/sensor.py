@@ -30,6 +30,7 @@ from .const import (
 )
 from .coordinator import CamperCoordinator
 from .entity import CamperEntity
+from .gedaechtnis import GedaechtnisFolger
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -98,6 +99,8 @@ async def async_setup_entry(
         CamperSatelliteSensor(coordinator, entry),
         CamperStarlinkSensor(coordinator, entry),
     ]
+    if (gedaechtnis := hass.data[DOMAIN][entry.entry_id].get("gedaechtnis")) is not None:
+        entities.append(CamperSiteMemorySensor(coordinator, entry, gedaechtnis))
     async_add_entities(entities)
 
 
@@ -359,4 +362,30 @@ class CamperStarlinkSensor(CamperSiteSensor):
         return {
             **super().extra_state_attributes,
             "azimut": self.coordinator.stellplatz().starlink_azimut,
+        }
+
+
+class CamperSiteMemorySensor(CamperEntity, SensorEntity):
+    """Was es beim letzten Besuch dieses Stellplatzes zum Ausrichten brauchte."""
+
+    _attr_icon = "mdi:map-marker-radius"
+    _unrecorded_attributes = frozenset({"vorher"})
+
+    def __init__(
+        self, coordinator: CamperCoordinator, entry: ConfigEntry, folger: GedaechtnisFolger
+    ) -> None:
+        super().__init__(coordinator, entry, "site_memory")
+        self._folger = folger
+
+    @property
+    def native_value(self) -> str:
+        return self._folger.gedaechtnis.satz()[:255]
+
+    @property
+    def extra_state_attributes(self) -> dict[str, object]:
+        g = self._folger.gedaechtnis
+        return {
+            **super().extra_state_attributes,
+            "vorher": g.vorher,
+            "plaetze": len(g.plaetze),
         }

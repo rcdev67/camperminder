@@ -534,9 +534,11 @@ class CamperMinderCard extends HTMLElement {
       </style>
 
       <ha-card>
+        <div class="wache alarm" id="abfahrt" hidden></div>
         <div class="wache hinweis" id="veraltet" hidden></div>
         <div class="wache hinweis" id="hinweis" hidden></div>
         <div class="wache hinweis" id="markise" hidden></div>
+        <div class="wache" id="gedaechtnis" hidden></div>
         <div class="wache" id="wache" hidden></div>
 
         <div class="bar" id="barRoll">
@@ -932,9 +934,11 @@ class CamperMinderCard extends HTMLElement {
       levelRoll,
     });
 
+    this._renderAbfahrt(root.getElementById("abfahrt"), hass);
     this._renderVeraltet(root.getElementById("veraltet"), a);
     this._renderHinweis(root.getElementById("hinweis"), a);
     this._renderMarkise(root.getElementById("markise"), a);
+    this._renderGedaechtnis(root.getElementById("gedaechtnis"), hass, source);
     this._renderStellplatz(root.getElementById("stellplatz"), hass);
     this._renderWache(root.getElementById("wache"), hass, a);
 
@@ -1022,6 +1026,46 @@ class CamperMinderCard extends HTMLElement {
     node.dataset.signature = a.awning_text;
     node.hidden = false;
     node.textContent = `${stufe === "einfahren" ? "🌬️" : "🌧️"} ${a.awning_text}`;
+  }
+
+  /* Abfahrtscheck: Das Fahrzeug rollt, und etwas ist noch offen.
+   *
+   * Rot und ganz oben: Das ist der eine Moment, in dem gleich etwas kaputt
+   * geht. Der Satz kommt fertig aus der Integration (abfahrt.py). */
+  _renderAbfahrt(node, hass) {
+    if (!node) return;
+    const w = this._findRole(hass, "departure_warning");
+    const text = w && w.state.state === "on" ? w.state.attributes.meldung : "";
+    if (!text) {
+      node.hidden = true;
+      node.dataset.signature = "";
+      return;
+    }
+    if (node.dataset.signature === text) return;
+    node.dataset.signature = text;
+    node.hidden = false;
+    node.textContent = `⛔ ${text}`;
+  }
+
+  /* Stellplatz-Gedächtnis: "Hier am 11.10.2026: vorne links 2,5 cm".
+   *
+   * Nur solange das Fahrzeug noch nicht eben steht - danach ist der Satz
+   * erledigt und wäre nur Dauerrauschen. Ohne früheren Besuch bleibt die
+   * Leiste leer; dass ein neuer Platz gemerkt wird, muss niemand lesen. */
+  _renderGedaechtnis(node, hass, source) {
+    if (!node) return;
+    const g = this._findRole(hass, "site_memory");
+    const eben = source && source.state === "eben";
+    if (!g || !g.state.attributes.vorher || eben) {
+      node.hidden = true;
+      node.dataset.signature = "";
+      return;
+    }
+    const text = g.state.state;
+    if (node.dataset.signature === text) return;
+    node.dataset.signature = text;
+    node.hidden = false;
+    node.textContent = `📍 ${text}`;
   }
 
   /* Stellplatz: Sonne, Satellit und Starlink um das Fahrzeug.

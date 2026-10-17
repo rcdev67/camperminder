@@ -58,8 +58,8 @@ Die Integration legt den Eintrag beim Start selbst an.
 ## 6. Blueprints importieren (Erweiterung)
 
 Drei fertige Automatisierungen, die die Meldungen des Geräts aufs Handy oder
-an eine Sirene bringen, und eine, die bei Sturm, Gewitter und Regen an die
-Markise erinnert. Einstellungen → Automatisierungen & Szenen →
+an eine Sirene bringen, eine, die bei Sturm, Gewitter und Regen an die
+Markise erinnert, und eine, die beim Anrollen meldet, was noch offen ist. Einstellungen → Automatisierungen & Szenen →
 Blueprints → *Blueprint importieren*, dann die Adresse einfügen:
 
 | Blueprint | Adresse |
@@ -68,6 +68,7 @@ Blueprints → *Blueprint importieren*, dann die Adresse einfügen:
 | Wächteralarm | `https://github.com/rcdev67/camperminder/blob/main/blueprints/automation/camperminder/waechter_alarm.yaml` |
 | Frostwarnung | `https://github.com/rcdev67/camperminder/blob/main/blueprints/automation/camperminder/frostwarnung.yaml` |
 | Wetterwächter Markise | `https://github.com/rcdev67/camperminder/blob/main/blueprints/automation/camperminder/markise_wetter.yaml` |
+| Abfahrtscheck | `https://github.com/rcdev67/camperminder/blob/main/blueprints/automation/camperminder/abfahrt.yaml` |
 
 Danach *Automatisierung erstellen → Aus einem Blueprint*. Mehr dazu, auch der
 Import per Klick und ohne Internet, in [blueprints/README.md](blueprints/README.md).

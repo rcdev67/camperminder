@@ -25,6 +25,7 @@ from homeassistant.helpers import entity_registry as er, selector
 
 from .const import (
     CONF_AWNING_ENTITY,
+    CONF_DEPARTURE_ENTITIES,
     CONF_CALIBRATE_BUTTON,
     CONF_HOME_FOLLOW,
     CONF_LOCATION_SOURCE,
@@ -71,6 +72,7 @@ CLEARABLE_KEYS = (
     CONF_LOCATION_SOURCE,
     CONF_WEATHER_ENTITY,
     CONF_AWNING_ENTITY,
+    CONF_DEPARTURE_ENTITIES,
 )
 
 # Die Namen, die die mitgelieferte Firmware vergibt. Gesucht wird nicht über
@@ -309,6 +311,16 @@ def _schema(hass: HomeAssistant, defaults: dict[str, Any]) -> vol.Schema:
             ): selector.EntitySelector(
                 selector.EntitySelectorConfig(
                     domain=["binary_sensor", "cover", "input_boolean", "switch"]
+                )
+            ),
+            # Abfahrtscheck: Was beim Anrollen nicht offen sein darf. Die
+            # Markise von oben zählt von selbst dazu.
+            vol.Optional(
+                CONF_DEPARTURE_ENTITIES, default=default(CONF_DEPARTURE_ENTITIES)
+            ): selector.EntitySelector(
+                selector.EntitySelectorConfig(
+                    domain=["binary_sensor", "cover", "lock", "input_boolean", "switch"],
+                    multiple=True,
                 )
             ),
         }

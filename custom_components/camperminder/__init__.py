@@ -26,12 +26,15 @@ from .const import (
     CONF_PITCH_SENSOR,
     CONF_ROLL_SENSOR,
     CONF_AWNING_ENTITY,
+    CONF_DEPARTURE_ENTITIES,
     CONF_WEATHER_ENTITY,
     DOMAIN,
     LEGACY_CARD_URL,
     STATIC_URL,
 )
 from .coordinator import CamperCoordinator
+from .abfahrt import AbfahrtsWaechter
+from .gedaechtnis import GedaechtnisFolger
 from .heimatort import HeimatortFolger
 from .wetter import WetterWaechter
 
@@ -52,6 +55,8 @@ STRUCTURAL_KEYS = (
     # Regler und sein Melder gibt es nur mit Wetter-Entität.
     CONF_WEATHER_ENTITY,
     CONF_AWNING_ENTITY,
+    # Der Abfahrtscheck abonniert seine Auswahl beim Start.
+    CONF_DEPARTURE_ENTITIES,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -254,9 +259,19 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     announcer.async_start()
 
     heimatort: HeimatortFolger | None = None
+    gedaechtnis: GedaechtnisFolger | None = None
     if config.get(CONF_LOCATION_SOURCE):
         heimatort = HeimatortFolger(hass, config)
         heimatort.async_start()
+        gedaechtnis = GedaechtnisFolger(
+            hass,
+            entry.entry_id,
+            config,
+            lambda: coordinator.wheel_plan,
+            lambda: coordinator.vehicle_type,
+            lambda: coordinator.async_notify(),
+        )
+        await gedaechtnis.async_start()
 
     wetter: WetterWaechter | None = None
     if config.get(CONF_WEATHER_ENTITY):
@@ -270,10 +285,23 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         coordinator.wetter = wetter
         wetter.async_start()
 
+    # Abfahrtscheck: braucht "In Bewegung" und mindestens eine Sache, die
+    # offen sein kann.
+    abfahrt: AbfahrtsWaechter | None = None
+    if config.get(CONF_MOTION_SENSOR) and (
+        config.get(CONF_DEPARTURE_ENTITIES) or config.get(CONF_AWNING_ENTITY)
+    ):
+        abfahrt = AbfahrtsWaechter(
+            hass, config, lambda: coordinator.async_notify(), announcer.async_sagen
+        )
+        abfahrt.async_start()
+
     hass.data.setdefault(DOMAIN, {})[entry.entry_id] = {
         "coordinator": coordinator,
         "announcer": announcer,
         "heimatort": heimatort,
+        "gedaechtnis": gedaechtnis,
+        "abfahrt": abfahrt,
         "wetter": wetter,
     }
 
@@ -318,4 +346,8 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             stored["heimatort"].async_stop()
         if stored["wetter"] is not None:
             stored["wetter"].async_stop()
+        if stored.get("gedaechtnis") is not None:
+            stored["gedaechtnis"].async_stop()
+        if stored.get("abfahrt") is not None:
+            stored["abfahrt"].async_stop()
     return unloaded

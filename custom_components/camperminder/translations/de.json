@@ -17,7 +17,8 @@
           "location_source": "GPS-Quelle des Fahrzeugs",
           "home_follow": "Heimatort folgt dem Fahrzeug",
           "weather_entity": "Wettervorhersage für die Markise",
-          "awning_entity": "Markise ausgefahren"
+          "awning_entity": "Markise ausgefahren",
+          "departure_entities": "Abfahrtscheck: darf beim Losfahren nicht offen sein"
         },
         "data_description": {
           "motion_sensor": "Angesagt wird nur, solange dieser an ist – sonst meldet sich das Fahrzeug auch nachts bei Temperaturdrift.",
@@ -28,7 +29,8 @@
           "location_source": "Ein Tablet oder Handy, das im Fahrzeug bleibt (device_tracker der Home-Assistant-App). Level hat kein GPS und nimmt den Ort von hier. Bringt auch den Knopf „Heimatort hierher“.",
           "home_follow": "Nur für ein Home Assistant im Fahrzeug. Steht das Fahrzeug nach einer Fahrt fünf Minuten an einem neuen Ort, wird dieser zum Heimatort. Davon hängen Sonnenauf- und -untergang, Wetter und „zu Hause“ ab. Ohne Sensor „in Bewegung“ entscheidet das GPS allein.",
           "weather_entity": "Freiwillig. Eine Wetter-Entität mit stündlicher Vorhersage, am besten Open-Meteo mit der Zone „Zuhause“: Die folgt dem Heimatort und liefert Böen. Damit gibt es den Melder „Markise Warnung“ und seine Regler.",
-          "awning_entity": "Freiwillig. Ein Melder, der „an“ oder „offen“ zeigt, solange die Markise draußen ist. Dann wird nur gewarnt, wenn sie wirklich ausgefahren ist."
+          "awning_entity": "Freiwillig. Ein Melder, der „an“ oder „offen“ zeigt, solange die Markise draußen ist. Dann wird nur gewarnt, wenn sie wirklich ausgefahren ist.",
+          "departure_entities": "Freiwillig. Türen, Dachluken, Trittstufe, Schlösser – alles, was beim Anrollen nicht offen sein darf. Die Markise von oben zählt von selbst dazu. Sobald „in Bewegung“ angeht und hier noch etwas offen ist, springt der Melder „Abfahrt Warnung“ an und es kommt eine Ansage."
         }
       }
     },
@@ -58,13 +60,15 @@
           "location_source": "GPS-Quelle des Fahrzeugs",
           "home_follow": "Heimatort folgt dem Fahrzeug",
           "weather_entity": "Wettervorhersage für die Markise",
-          "awning_entity": "Markise ausgefahren"
+          "awning_entity": "Markise ausgefahren",
+          "departure_entities": "Abfahrtscheck: darf beim Losfahren nicht offen sein"
         },
         "data_description": {
           "location_source": "Ein Tablet oder Handy, das im Fahrzeug bleibt (device_tracker der Home-Assistant-App). Level hat kein GPS und nimmt den Ort von hier. Bringt auch den Knopf „Heimatort hierher“.",
           "home_follow": "Nur für ein Home Assistant im Fahrzeug. Steht das Fahrzeug nach einer Fahrt fünf Minuten an einem neuen Ort, wird dieser zum Heimatort. Davon hängen Sonnenauf- und -untergang, Wetter und „zu Hause“ ab. Ohne Sensor „in Bewegung“ entscheidet das GPS allein.",
           "weather_entity": "Freiwillig. Eine Wetter-Entität mit stündlicher Vorhersage, am besten Open-Meteo mit der Zone „Zuhause“: Die folgt dem Heimatort und liefert Böen. Damit gibt es den Melder „Markise Warnung“ und seine Regler.",
-          "awning_entity": "Freiwillig. Ein Melder, der „an“ oder „offen“ zeigt, solange die Markise draußen ist. Dann wird nur gewarnt, wenn sie wirklich ausgefahren ist."
+          "awning_entity": "Freiwillig. Ein Melder, der „an“ oder „offen“ zeigt, solange die Markise draußen ist. Dann wird nur gewarnt, wenn sie wirklich ausgefahren ist.",
+          "departure_entities": "Freiwillig. Türen, Dachluken, Trittstufe, Schlösser – alles, was beim Anrollen nicht offen sein darf. Die Markise von oben zählt von selbst dazu. Sobald „in Bewegung“ angeht und hier noch etwas offen ist, springt der Melder „Abfahrt Warnung“ an und es kommt eine Ansage."
         }
       }
     },
@@ -94,11 +98,13 @@
       },
       "sun": { "name": "Sonne" },
       "dish": { "name": "Satellit" },
-      "starlink": { "name": "Starlink" }
+      "starlink": { "name": "Starlink" },
+      "site_memory": { "name": "Letztes Mal hier" }
     },
     "binary_sensor": {
       "level": { "name": "Steht eben" },
-      "awning_warning": { "name": "Markise Warnung" }
+      "awning_warning": { "name": "Markise Warnung" },
+      "departure_warning": { "name": "Abfahrt Warnung" }
     },
     "number": {
       "wheelbase": { "name": "Radstand" },

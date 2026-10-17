@@ -1,8 +1,9 @@
 # Blueprints für Home Assistant
 
-Vier fertige Automatisierungen zum Importieren. Sie bringen Meldungen dorthin,
+Fünf fertige Automatisierungen zum Importieren. Sie bringen Meldungen dorthin,
 wo man sie liest — auf das Handy, an eine Sirene, an ein Licht. Drei kommen
-vom Gerät, die vierte von der Integration: der Wetterwächter für die Markise.
+vom Gerät, zwei von der Integration: der Wetterwächter für die Markise und der
+Abfahrtscheck.
 
 | Blueprint | Meldet | Hängt an |
 |---|---|---|
@@ -10,6 +11,7 @@ vom Gerät, die vierte von der Integration: der Wetterwächter für die Markise.
 | [Wächteralarm](automation/camperminder/waechter_alarm.yaml) | Das Fahrzeug hat seine Lage verlassen — angehoben, aufgebockt, abgeschleppt | `Wächter Alarm` |
 | [Frostwarnung](automation/camperminder/frostwarnung.yaml) | Es wird kalt im Fahrzeug | `Frostgefahr` |
 | [Wetterwächter Markise](automation/camperminder/markise_wetter.yaml) | Böen, Gewitter, Hagel, Schnee oder Starkregen sind angesagt — oder so viel Regen, dass die Markise eine Seite tiefer braucht | `Markise Warnung` |
+| [Abfahrtscheck](automation/camperminder/abfahrt.yaml) | Das Fahrzeug rollt an, und Markise, Trittstufe, Dachluke oder Tür sind noch offen | `Abfahrt Warnung` |
 
 ## Warum an diesen Entitäten und nicht an den naheliegenden
 
@@ -72,6 +74,28 @@ Mitte, und an diesem Wassersack brechen die meisten:
   kennt nur den Ort ihrer Integration. Läuft Home Assistant zu Hause, ist das
   ohne weitere Einrichtung das Wetter von zu Hause, nicht das am Stellplatz.
 
+## Abfahrtscheck
+
+Was beim Anrollen nicht offen sein darf, wählt man unter *Einstellungen →
+Geräte & Dienste → CamperMinder → Konfigurieren* im Feld „Abfahrtscheck“:
+Türkontakte, Dachluken, eine Trittstufe, Schlösser, notfalls einen
+Schalter-Helfer. Die Markise des Wetterwächters zählt von selbst dazu. Dann
+gibt es am Gerät *CamperMinder* den Melder `Abfahrt Warnung`; die Karte zeigt
+dieselbe Warnung als rote Leiste.
+
+- **Sofort beim Anrollen**, sobald „In Bewegung“ angeht — nicht erst nach
+  einer Strecke. Auch beim Rangieren auf die Keile hat eine ausgefahrene Stufe
+  draußen nichts zu suchen. Wer beim Einweisen die Tür offen lässt, nimmt die
+  Tür nicht in die Auswahl.
+- **Nicht verfügbar zählt nicht als offen.** Sonst warnte ein Türkontakt mit
+  leerer Batterie bei jeder Fahrt.
+- **Mit Ansageziel** (am Gerät unter „Ansageziel“) sagt die Integration es
+  zusätzlich an, und zwar nur, was neu offen ist.
+- **Das Gerät piept** über seinen Knopf „Hinweiston“ (ab Firmware 4.5.0) —
+  das hört man auch, wenn das Handy in der Tasche steckt.
+
+> Abfahrt - noch offen: Markise, Trittstufe.
+
 ## Benachrichtigung ist frei wählbar
 
 Jeder Blueprint hat das Feld **„Was soll passieren?"**. Dort trägt man ein,
@@ -92,6 +116,7 @@ die richtige Meldung ist, weiß niemand außer ihm.
 - [Wächteralarm importieren](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Frcdev67%2Fcamperminder%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Fcamperminder%2Fwaechter_alarm.yaml)
 - [Frostwarnung importieren](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Frcdev67%2Fcamperminder%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Fcamperminder%2Ffrostwarnung.yaml)
 - [Wetterwächter Markise importieren](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Frcdev67%2Fcamperminder%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Fcamperminder%2Fmarkise_wetter.yaml)
+- [Abfahrtscheck importieren](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Frcdev67%2Fcamperminder%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Fcamperminder%2Fabfahrt.yaml)
 
 **Von Hand** — *Einstellungen → Automatisierungen und Szenen → Blueprints →
 Blueprint importieren*, dann die Adresse der gewünschten Datei aus diesem

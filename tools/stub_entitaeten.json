@@ -30,6 +30,20 @@
       "wert": 0.0
     },
     {
+      "kennung": "sensor/Unruhe",
+      "name": "Unruhe",
+      "bereich": "sensor",
+      "zustand": "0.0",
+      "wert": 0.0
+    },
+    {
+      "kennung": "sensor/Unruhe Spitze",
+      "name": "Unruhe Spitze",
+      "bereich": "sensor",
+      "zustand": "0.0",
+      "wert": 0.0
+    },
+    {
       "kennung": "sensor/WLAN Signal",
       "name": "WLAN Signal",
       "bereich": "sensor",
@@ -282,6 +296,13 @@
       "wert": false
     },
     {
+      "kennung": "binary_sensor/Erschütterung",
+      "name": "Erschütterung",
+      "bereich": "binary_sensor",
+      "zustand": "OFF",
+      "wert": false
+    },
+    {
       "kennung": "text_sensor/Firmware Version",
       "name": "Firmware Version",
       "bereich": "text_sensor",
@@ -506,6 +527,13 @@
       "wert": 120.0
     },
     {
+      "kennung": "number/Erschütterung Grenzwert",
+      "name": "Erschütterung Grenzwert",
+      "bereich": "number",
+      "zustand": "1.5",
+      "wert": 1.5
+    },
+    {
       "kennung": "number/Keilstufe",
       "name": "Keilstufe",
       "bereich": "number",
@@ -588,6 +616,13 @@
       "bereich": "switch",
       "zustand": "OFF",
       "wert": false
+    },
+    {
+      "kennung": "button/Hinweiston",
+      "name": "Hinweiston",
+      "bereich": "button",
+      "zustand": "",
+      "wert": null
     },
     {
       "kennung": "button/Alarm quittieren",

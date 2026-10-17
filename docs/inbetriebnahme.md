@@ -380,6 +380,12 @@ Zone „Zuhause“. Dieselbe Warnung zeigt auch die Karte.
 - Wetterwächter Markise:
   `https://github.com/rcdev67/camperminder/blob/main/blueprints/automation/camperminder/markise_wetter.yaml`
 
+Der fünfte meldet, wenn das Fahrzeug anrollt und noch etwas offen ist (siehe
+„Abfahrtscheck“ unten):
+
+- Abfahrtscheck:
+  `https://github.com/rcdev67/camperminder/blob/main/blueprints/automation/camperminder/abfahrt.yaml`
+
 Danach *Automatisierung erstellen → Aus einem Blueprint*, das Gerät auswählen
 und unter „Was soll passieren?" eintragen, wie du benachrichtigt werden willst.
 Einzelheiten: [blueprints/README.md](../blueprints/README.md).
@@ -429,6 +435,32 @@ Einmal einstellen, am Gerät *CamperMinder*:
 
 Der Ort kommt aus dem Heimatort von Home Assistant. Folgt er dem Fahrzeug
 (siehe oben), stimmen die Angaben an jedem Stellplatz.
+
+### Letztes Mal hier: das Stellplatz-Gedächtnis
+
+Mit einer GPS-Quelle (siehe oben) merkt sich Level an jedem Stellplatz, was
+es beim Ankommen zum Ausrichten brauchte. Fährst du denselben Platz wieder an,
+steht oben in der Karte zum Beispiel:
+
+> 📍 Hier am 11.10.2026: vorne links 2,5 cm (1 Stufe).
+
+Dann liegen die Keile schon richtig, bevor du aussteigst. Gemerkt wird, was
+eine Minute nach dem Anhalten nötig ist, nicht der ausgerichtete Zustand
+danach. Als derselbe Platz gilt, was höchstens 60 m vom letzten Mal entfernt
+ist. Je Platz bleiben die letzten fünf Besuche gespeichert, nur im eigenen
+Home Assistant. Dasselbe steht im Sensor **„Letztes Mal hier“**.
+
+### Abfahrtscheck
+
+Markise draußen, Trittstufe ausgefahren, Dachluke offen: Level merkt als
+Erstes, dass das Fahrzeug rollt. Unter *Konfigurieren* wählst du im Feld
+„Abfahrtscheck“, was beim Losfahren zu sein muss: Türkontakte, Dachluken, die
+Trittstufe, Schlösser. Die Markise des Wetterwächters gehört von selbst dazu.
+
+Sobald „In Bewegung“ angeht und davon noch etwas offen ist, zeigt die Karte
+eine rote Leiste, der Melder **„Abfahrt Warnung“** geht an, das Gerät piept,
+und mit Ansageziel wird es angesagt. Aufs Handy kommt es mit dem Blueprint
+Abfahrtscheck (oben).
 
 Beide Betriebsarten laufen auf derselben Firmware. Wer klein anfängt, kann
 jederzeit umsteigen — ohne neue Software, ohne neues Gerät.

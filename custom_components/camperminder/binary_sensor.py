@@ -13,6 +13,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from .const import DOMAIN
 from .coordinator import CamperCoordinator
 from .entity import CamperEntity
+from .abfahrt import AbfahrtsWaechter
 from .wetter import WetterWaechter
 
 
@@ -24,6 +25,8 @@ async def async_setup_entry(
     entities: list[BinarySensorEntity] = [CamperLevelBinarySensor(coordinator, entry)]
     if (wetter := stored.get("wetter")) is not None:
         entities.append(CamperAwningWarning(coordinator, entry, wetter))
+    if (abfahrt := stored.get("abfahrt")) is not None:
+        entities.append(CamperDepartureWarning(coordinator, entry, abfahrt))
     async_add_entities(entities)
 
 
@@ -77,4 +80,35 @@ class CamperAwningWarning(CamperEntity, BinarySensorEntity):
             "wetter_entitaet": wetter.wetter,
             "markise_draussen": wetter.markise_draussen,
             "geprueft": wetter.geprueft.isoformat() if wetter.geprueft else None,
+        }
+
+
+class CamperDepartureWarning(CamperEntity, BinarySensorEntity):
+    """An, solange das Fahrzeug rollt und noch etwas offen ist.
+
+    Der Melder für den Blueprint "Abfahrtscheck"; den Satz liest er aus dem
+    Attribut "meldung".
+    """
+
+    _attr_device_class = BinarySensorDeviceClass.SAFETY
+    _attr_icon = "mdi:car-door"
+
+    def __init__(
+        self, coordinator: CamperCoordinator, entry: ConfigEntry, abfahrt: AbfahrtsWaechter
+    ) -> None:
+        super().__init__(coordinator, entry, "departure_warning")
+        self._abfahrt = abfahrt
+
+    @property
+    def is_on(self) -> bool:
+        return self._abfahrt.warnung
+
+    @property
+    def extra_state_attributes(self) -> dict[str, object]:
+        return {
+            **super().extra_state_attributes,
+            "meldung": self._abfahrt.befund.satz,
+            "offen": list(self._abfahrt.befund.offen),
+            "geprueft_wird": self._abfahrt.auswahl,
+            "hinweiston": self._abfahrt.ton,
         }

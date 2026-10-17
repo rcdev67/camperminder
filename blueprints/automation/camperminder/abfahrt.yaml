@@ -1,0 +1,59 @@
+blueprint:
+  name: CamperMinder - Abfahrtscheck
+  description: >-
+    Meldet, wenn das Fahrzeug anrollt und noch etwas offen ist: die Markise,
+    die Trittstufe, eine Dachluke, eine Tür.
+
+
+    Was geprüft wird, wählt man in der Integration CamperMinder unter
+    *Konfigurieren* („Abfahrtscheck“); die Markise des Wetterwächters zählt
+    von selbst dazu. Sobald „In Bewegung“ angeht und davon noch etwas offen
+    ist, springt dort der Melder „Abfahrt Warnung“ an. Mit eingerichtetem
+    Ansageziel sagt die Integration es zusätzlich an.
+
+
+    Diese Automatisierung bringt die Meldung dorthin, wo du sie liest - etwa
+    aufs Handy oder an einen Lautsprecher im Fahrerhaus.
+  domain: automation
+  source_url: https://github.com/rcdev67/camperminder/blob/main/blueprints/automation/camperminder/abfahrt.yaml
+  input:
+    warnung:
+      name: Abfahrt Warnung
+      description: Der Melder der Integration (`binary_sensor`, endet auf „Abfahrt Warnung“).
+      selector:
+        entity:
+          filter:
+            - domain: binary_sensor
+    benachrichtigung:
+      name: Was soll passieren?
+      description: >-
+        Frei wählbar: Handymeldung, Lautsprecher, Licht. Der Text steht in
+        `{{ meldung }}` bereit.
+      selector:
+        action: {}
+
+mode: single
+max_exceeded: silent
+
+variables:
+  warnung_entitaet: !input warnung
+
+trigger:
+  # Nur der echte Wechsel von "aus" auf "an". Nach einem Neustart springt der
+  # Melder von "nicht verfügbar" um - das ist keine neue Abfahrt.
+  - platform: state
+    entity_id: !input warnung
+    from: "off"
+    to: "on"
+
+action:
+  - variables:
+      meldung: >-
+        {% set satz = state_attr(warnung_entitaet, 'meldung') %}
+        {% if satz is string and satz | length > 0 %}
+          {{ satz }}
+        {% else %}
+          Abfahrt - bitte nachsehen, ob noch etwas offen ist.
+        {% endif %}
+  - choose: []
+    default: !input benachrichtigung
