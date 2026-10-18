@@ -27,6 +27,8 @@ from .const import (
     CONF_AWNING_WIND,
     CONF_FRIDGE_VENT_SIDE,
     CONF_HEADING,
+    CONF_HEADING_AT,
+    CONF_HEADING_SOURCE,
     CONF_SATELLITE,
     CONF_LEVEL_HOLD,
     CONF_LEVEL_METHOD,
@@ -144,6 +146,8 @@ VALUE_DEFAULTS: dict[str, float | bool | str | None] = {
     # eine geratene Vorgabe hätte falsche Sonnenzeiten ergeben, die niemand
     # als falsch erkennt.
     CONF_HEADING: None,
+    CONF_HEADING_SOURCE: None,
+    CONF_HEADING_AT: None,
     CONF_AWNING_SIDE: SEITE_RECHTS,
     CONF_FRIDGE_VENT_SIDE: SEITE_KEINE,
     CONF_SATELLITE: SATELLIT_VORGABE,
@@ -332,6 +336,30 @@ class CamperCoordinator:
         self.values[key] = value
         self.async_notify()
         self._async_persist(key, value)
+
+    @callback
+    def async_set_values(self, werte: dict[str, float | bool | str | None]) -> None:
+        """Mehrere Werte auf einmal - ein Schreibvorgang statt einer je Wert."""
+        neu = {k: v for k, v in werte.items() if self.values.get(k) != v}
+        if not neu:
+            return
+        self.values.update(neu)
+        self.async_notify()
+        entry = self.hass.config_entries.async_get_entry(self.entry_id)
+        if entry is None:
+            return
+        self.hass.config_entries.async_update_entry(entry, options={**entry.options, **neu})
+
+    @callback
+    def async_set_heading(self, grad: float, quelle: str) -> None:
+        """Die Richtung des Fahrzeugs samt Herkunft und Zeitpunkt."""
+        self.async_set_values(
+            {
+                CONF_HEADING: round(float(grad) % 360, 1),
+                CONF_HEADING_SOURCE: quelle,
+                CONF_HEADING_AT: dt_util.utcnow().isoformat(timespec="seconds"),
+            }
+        )
 
     @callback
     def _async_persist(self, key: str, value: float | bool | str | None) -> None:

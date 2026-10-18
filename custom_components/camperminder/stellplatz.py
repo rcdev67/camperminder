@@ -75,6 +75,32 @@ def vom_fahrzeug(azimut: float, front: float) -> str:
     return stufen[round(relativ / 45) % 8]
 
 
+def relativ(azimut: float, front: float) -> float:
+    """Winkel vom Fahrzeug aus: 0 vorne, positiv nach rechts, -180 bis 180."""
+    return round(((azimut - front + 180) % 360) - 180, 1)
+
+
+def vom_fahrzeug_genau(azimut: float, front: float) -> str:
+    """Wo eine Richtung vom Fahrzeug aus liegt, auf das Grad.
+
+    Für die Schüssel reichen acht Stufen nicht: "rechts vorne" sind 45° - so
+    findet niemand den Satelliten. "17° links von vorne" lässt sich mit dem
+    Arm abschätzen und an der Schüssel einstellen.
+    """
+    r = relativ(azimut, front)
+    seite = "rechts" if r > 0 else "links"
+    b = abs(r)
+    if b <= 2:
+        return "genau vorne"
+    if b >= 178:
+        return "genau hinten"
+    if abs(b - 90) <= 2:
+        return f"genau {seite}"
+    if b < 90:
+        return f"{round(b)}° {seite} von vorne"
+    return f"{round(180 - b)}° {seite} von hinten"
+
+
 def _winkelabstand(a: float, b: float) -> float:
     return abs((a - b + 180) % 360 - 180)
 
@@ -146,8 +172,11 @@ class Stellplatz:
     satellit: str = ""
     satellit_azimut: float = 0.0
     satellit_hoehe: float = 0.0
+    # Vom Fahrzeug aus, 0 vorne, positiv nach rechts. None ohne Richtung.
+    satellit_relativ: float | None = None
     satz_satellit: str = ""
     starlink_azimut: float = 0.0
+    starlink_relativ: float | None = None
     satz_starlink: str = ""
 
 
@@ -241,8 +270,10 @@ def berechne(
     else:
         ergebnis.satz_satellit = (
             f"{name}: {himmelsrichtung(sat_az)} ({round(sat_az)}°), {round(sat_h)}° hoch"
-            + (f" – vom Fahrzeug aus {vom_fahrzeug(sat_az, front)}." if front is not None else ".")
+            + (f" – vom Fahrzeug aus {vom_fahrzeug_genau(sat_az, front)}." if front is not None else ".")
         )
+        if front is not None:
+            ergebnis.satellit_relativ = relativ(sat_az, front)
 
     # Starlink: Auf der Nordhalbkugel richtet sich die Schüssel nach Norden
     # aus, dort braucht sie freien Himmel; auf der Südhalbkugel nach Süden.
@@ -252,8 +283,9 @@ def berechne(
     if front is None:
         ergebnis.satz_starlink = f"Starlink braucht freien Himmel, vor allem nach {himmel}."
     else:
+        ergebnis.starlink_relativ = relativ(starlink_az, front)
         ergebnis.satz_starlink = (
-            f"Starlink: {himmel} liegt {vom_fahrzeug(starlink_az, front)} – "
+            f"Starlink: {himmel} liegt {vom_fahrzeug_genau(starlink_az, front)} – "
             "dort keine Bäume oder Aufbauten."
         )
     return ergebnis

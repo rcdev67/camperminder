@@ -418,10 +418,48 @@ Seite des Fahrzeugs heute wann in der Sonne liegt, wohin die
 Satellitenschüssel muss und wo Norden ist — dorthin braucht Starlink freien
 Himmel.
 
-Dafür braucht es die Richtung des Fahrzeugs. Level hat keinen Kompass, also
-stellst du sie ein: Schau mit dem Handy-Kompass, wohin die Front zeigt, und
-dreh das Fahrzeug in der Karte mit **−15° / −5° / +5° / +15°**, bis es passt.
-Dasselbe steht als Regler **„Front zeigt nach“** am Gerät *CamperMinder*.
+Die Angaben sind auf das Grad genau, zum Beispiel:
+
+> 📡 Astra 19,2° Ost: Südsüdost (164°), 30° hoch – vom Fahrzeug aus 17° links
+> von vorne.
+
+> 🛰️ Starlink: Norden liegt 20° links von hinten – dort keine Bäume oder
+> Aufbauten.
+
+Dafür braucht es die Richtung des Fahrzeugs, also wohin die Front zeigt.
+Unter dem Kompassbild steht, woher sie stammt.
+
+**Automatisch nach jeder Fahrt.** Ist unter *Konfigurieren* eine GPS-Quelle
+des Fahrzeugs eingetragen (siehe oben), übernimmt CamperMinder die Richtung
+eine Minute nach dem Abstellen von selbst. Level hat keinen Kompass, aber es
+misst, um wie viel sich das Fahrzeug dreht. Die Home-Assistant-App meldet bei
+flotter Fahrt die Fahrtrichtung. Zusammen ergibt das die Richtung beim
+Abstellen — auch wenn du zum Schluss gewendet und rückwärts eingeparkt hast.
+In der Karte steht dann „Aus der Fahrt übernommen“.
+
+Damit das klappt, muss die App während der Fahrt ihren Standort melden. Am
+zuverlässigsten mit dem Hochgenauigkeitsmodus der Home-Assistant-App
+(Android: in der App unter *Companion-App → Sensoren verwalten*, beim
+Standort im Hintergrund).
+
+Mit einer älteren Firmware ohne Drehungsmessung gibt es nur die Fahrtrichtung
+des GPS. Dann steht in der Karte „Aus der Fahrtrichtung übernommen“. Wer
+rückwärts eingeparkt hat, drückt einmal **„↻ 180° drehen“**.
+
+**Mit dem Handy-Kompass.** In der Karte **„📱 Handy-Kompass“** drücken und
+das Handy flach halten, die Oberkante in Fahrtrichtung. Im Fahrzeug lenkt
+Metall den Kompass oft um 10° und mehr ab. Genauer wird es neben dem
+Fahrzeug: das Handy flach vor dem Bauch, die Oberkante parallel zum Fahrzeug
+nach vorn. Das geht in der Home-Assistant-App und im Browser des Handys, aber
+nur über eine sichere Verbindung (https, etwa über Home Assistant Cloud).
+
+**Von Hand.** Mit einer Kompass-App hinter das Fahrzeug stellen und in
+Fahrtrichtung schauen. Die Gradzahl stellst du mit **−15° / −5° / −1° / +1° /
++5° / +15°** ein: 0° ist Norden, 90° Osten, 180° Süden, 270° Westen. Dasselbe
+steht als Regler **„Front zeigt nach“** am Gerät *CamperMinder*. Von Hand
+eingestellt gilt die Richtung bis zur nächsten Fahrt.
+
+In der Karte erklärt **„Wie stelle ich das ein?“** dasselbe in Kurzform.
 
 Einmal einstellen, am Gerät *CamperMinder*:
 

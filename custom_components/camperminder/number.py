@@ -16,6 +16,8 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import (
     CONF_HEADING,
+    CONF_HEADING_AT,
+    CONF_HEADING_SOURCE,
     CONF_AWNING_GUST,
     CONF_AWNING_LEAD,
     CONF_AWNING_RAIN,
@@ -27,6 +29,7 @@ from .const import (
     CONF_WHEELBASE,
     DOMAIN,
 )
+from .ausrichtung import QUELLE_HAND
 from .coordinator import CamperCoordinator
 from .entity import CamperEntity
 
@@ -100,8 +103,9 @@ NUMBERS: tuple[CamperNumberDescription, ...] = (
 )
 
 
-# Wohin die Front des Fahrzeugs zeigt - von Hand, denn Level hat keinen
-# Kompass. Davon hängen Sonnenzeiten, Satellit und Starlink ab.
+# Wohin die Front des Fahrzeugs zeigt. Nach einer Fahrt setzt sie die
+# Integration selbst (ausrichtung.py); von Hand eingestellt gilt sie bis zur
+# nächsten Fahrt. Davon hängen Sonnenzeiten, Satellit und Starlink ab.
 HEADING = CamperNumberDescription(
     key="vehicle_heading",
     translation_key="vehicle_heading",
@@ -241,4 +245,12 @@ class CamperHeadingNumber(CamperNumber):
         return None if wert is None else float(wert)
 
     async def async_set_native_value(self, value: float) -> None:
-        self.coordinator.async_set_value(self.entity_description.value_key, float(value) % 360)
+        self.coordinator.async_set_heading(float(value), QUELLE_HAND)
+
+    @property
+    def extra_state_attributes(self) -> dict[str, object]:
+        return {
+            **super().extra_state_attributes,
+            "quelle": self.coordinator.get_value(CONF_HEADING_SOURCE),
+            "seit": self.coordinator.get_value(CONF_HEADING_AT),
+        }

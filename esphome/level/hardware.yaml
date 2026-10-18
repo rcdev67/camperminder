@@ -903,6 +903,45 @@ globals:
     type: uint32_t
     initial_value: "0"
 
+  # --- Drehung um die Hochachse ---------------------------------------------
+  #
+  # Level hat keinen Kompass, aber es merkt, um wie viel sich das Fahrzeug
+  # dreht. Zusammen mit der Fahrtrichtung aus dem GPS der letzten flotten
+  # Fahrt ergibt das, wohin die Front beim Abstellen zeigt - auch wenn
+  # rückwärts eingeparkt wurde. Die Rechnung dazu steht in der Integration
+  # (ausrichtung.py); hier wird nur aufsummiert.
+  #
+  # Hochachse ist die Richtung der Schwerkraft, nicht eine Achse des Chips:
+  # So stimmt es, egal wie das Gerät eingebaut ist. Die Schwerkraft als
+  # langsamer Mittelwert der Beschleunigung, damit Kurvenfahrt sie kaum kippt.
+  #
+  # Ohne restore_value: Nach einem Neustart beginnt die Summe bei 0, und die
+  # Integration verwirft, was davor lag.
+  - id: drehung_summe
+    type: float
+    initial_value: "0.0"
+  - id: drehung_gesendet
+    type: float
+    initial_value: "-100000.0"
+  - id: schwere_x
+    type: float
+    initial_value: "0.0"
+  - id: schwere_y
+    type: float
+    initial_value: "0.0"
+  - id: schwere_z
+    type: float
+    initial_value: "0.0"
+  # Versatz der Drehrate um die Hochachse. Eigener Wert, nur im Stand gelernt:
+  # Der Versatz für "In Bewegung" lernt auch während der Fahrt weiter und
+  # würde in einem Kreisverkehr die halbe Drehung schlucken.
+  - id: gier_null
+    type: float
+    initial_value: "0.0"
+  - id: gier_zeit
+    type: uint32_t
+    initial_value: "0"
+
   # --- Wächtermodus ---------------------------------------------------------
   #
   # Der Alarm RASTET EIN. Das ist der ganze Sinn: Wer nachts schläft, verpasst
@@ -1912,6 +1951,21 @@ sensor:
     state_class: measurement
     update_interval: never
 
+  # Wie weit sich das Fahrzeug seit dem Einschalten im Uhrzeigersinn gedreht
+  # hat, in Grad und ohne Umlauf (zwei Runden sind 720). Für sich genommen
+  # bedeutungslos - die Integration rechnet nur mit Differenzen. Gesendet,
+  # sobald sich etwas um mindestens ein halbes Grad geändert hat.
+  - platform: template
+    name: "Drehung"
+    id: drehung
+    state_topic: camperminder/level/sensor/drehung/state
+    unit_of_measurement: "°"
+    icon: mdi:rotate-right
+    entity_category: diagnostic
+    accuracy_decimals: 1
+    state_class: measurement
+    update_interval: never
+
   - platform: wifi_signal
     name: "WLAN Signal"
     update_interval: 60s
@@ -2492,6 +2546,41 @@ interval:
           if (betrag > id(unruhe_spitze_min)) id(unruhe_spitze_min) = betrag;
           if (betrag > id(stoss_spitze)) id(stoss_spitze) = betrag;
 
+          /* Drehung um die Hochachse. Der Beschleunigungssensor zeigt im Stand
+           * +1 g nach OBEN; die Drehrate entlang dieser Richtung ist nach der
+           * Rechte-Hand-Regel positiv gegen den Uhrzeigersinn (von oben
+           * gesehen). Ein Kompass zählt im Uhrzeigersinn - daher das Minus. */
+          const float ax = id(accel_x).state;
+          const float ay = id(accel_y).state;
+          const float az = id(accel_z).state;
+          const uint32_t nun = millis();
+          if (!isnan(ax) && !isnan(ay) && !isnan(az)) {
+            if (id(schwere_x) == 0.0f && id(schwere_y) == 0.0f && id(schwere_z) == 0.0f) {
+              id(schwere_x) = ax; id(schwere_y) = ay; id(schwere_z) = az;
+            } else {
+              // Rund fünf Sekunden Zeitkonstante.
+              id(schwere_x) += 0.02f * (ax - id(schwere_x));
+              id(schwere_y) += 0.02f * (ay - id(schwere_y));
+              id(schwere_z) += 0.02f * (az - id(schwere_z));
+            }
+            const float sb = sqrtf(id(schwere_x) * id(schwere_x)
+                                   + id(schwere_y) * id(schwere_y)
+                                   + id(schwere_z) * id(schwere_z));
+            if (sb > 0.5f) {
+              const float gier = (gx * id(schwere_x) + gy * id(schwere_y) + gz * id(schwere_z)) / sb;
+              const bool faehrt = id(in_motion).has_state() && id(in_motion).state;
+              if (!faehrt) {
+                // Im Stand dreht sich nichts: Was hier ankommt, ist Versatz.
+                id(gier_null) += 0.005f * (gier - id(gier_null));
+              } else if (id(gier_zeit) != 0) {
+                float dt = (nun - id(gier_zeit)) / 1000.0f;
+                if (dt > 0.5f) dt = 0.5f;
+                id(drehung_summe) -= (gier - id(gier_null)) * dt;
+              }
+            }
+          }
+          id(gier_zeit) = nun;
+
   # --- Unruhe: einmal je Minute --------------------------------------------
   #
   # Effektivwert und Spitze der letzten Minute. Effektivwert für das
@@ -2516,6 +2605,16 @@ interval:
           id(unruhe_quadrate) = 0.0f;
           id(unruhe_proben) = 0;
           id(unruhe_spitze_min) = 0.0f;
+
+  # --- Drehung: senden, wenn sie sich geändert hat ---------------------------
+  - interval: 1s
+    then:
+      - lambda: |-
+          const float d = id(drehung_summe);
+          if (fabsf(d - id(drehung_gesendet)) >= 0.5f) {
+            id(drehung_gesendet) = d;
+            id(drehung).publish_state(d);
+          }
 
   - interval: 1s
     then:

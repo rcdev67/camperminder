@@ -27,6 +27,10 @@ CONF_AWNING_RAIN: Final = "awning_rain_mm"
 CONF_AWNING_LEAD: Final = "awning_lead_h"
 # Stellplatz: Sonne, Satellit, Starlink - siehe stellplatz.py.
 CONF_HEADING: Final = "vehicle_heading"
+# Woher die Richtung stammt ("fahrt", "gps", "hand") und seit wann - siehe
+# ausrichtung.py.
+CONF_HEADING_SOURCE: Final = "vehicle_heading_source"
+CONF_HEADING_AT: Final = "vehicle_heading_at"
 CONF_AWNING_SIDE: Final = "awning_side"
 CONF_FRIDGE_VENT_SIDE: Final = "fridge_vent_side"
 CONF_SATELLITE: Final = "satellite"

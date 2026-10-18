@@ -342,6 +342,7 @@ class CamperSatelliteSensor(CamperSiteSensor):
             "satellit": s.satellit,
             "azimut": s.satellit_azimut,
             "hoehe": s.satellit_hoehe,
+            "relativ": s.satellit_relativ,
         }
 
 
@@ -362,6 +363,7 @@ class CamperStarlinkSensor(CamperSiteSensor):
         return {
             **super().extra_state_attributes,
             "azimut": self.coordinator.stellplatz().starlink_azimut,
+            "relativ": self.coordinator.stellplatz().starlink_relativ,
         }
 
 

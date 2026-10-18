@@ -80,6 +80,7 @@ orange, die Abweichung grau.
 | `camperminder/level/binary_sensor/in_bewegung/state` | `ON` = Erschütterung, also Anwesenheit |
 | `camperminder/level/sensor/unruhe/state` | Wie stark das Fahrzeug schaukelt: Effektivwert der Drehrate der letzten Minute in °/s |
 | `camperminder/level/sensor/unruhe_spitze/state` | Größter Einzelwert der Drehrate der letzten Minute in °/s |
+| `camperminder/level/sensor/drehung/state` | Drehung des Fahrzeugs um die Hochachse seit dem Einschalten, im Uhrzeigersinn, in Grad und ohne Umlauf (720 = zwei Runden). Nur Differenzen haben eine Bedeutung |
 | `camperminder/level/text_sensor/eigenes_netz/state` | `offen` oder `mit Passwort` |
 | `camperminder/level/text_sensor/firmware_version/state` | z. B. `3.2.0` |
 | `camperminder/level/text_sensor/heimnetz_adresse/state` | zuletzt im Heimnetz vergebene Adresse, z. B. `192.168.178.45`; leer, solange das Gerät nie im Heimnetz war |

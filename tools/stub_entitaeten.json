@@ -44,6 +44,13 @@
       "wert": 0.0
     },
     {
+      "kennung": "sensor/Drehung",
+      "name": "Drehung",
+      "bereich": "sensor",
+      "zustand": "0.0",
+      "wert": 0.0
+    },
+    {
       "kennung": "sensor/WLAN Signal",
       "name": "WLAN Signal",
       "bereich": "sensor",

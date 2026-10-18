@@ -27,6 +27,68 @@ const STATIC = "/camperminder_static";
  */
 const VERSION = "4.5.0";
 
+/* Woher die Richtung des Fahrzeugs stammt, als ein Satz unter dem Kompass. */
+function herkunftSatz(front, quelle, seit) {
+  if (front === null) {
+    return "Noch keine Richtung. Nach der nächsten Fahrt kommt sie von selbst – " +
+      "oder hier einstellen.";
+  }
+  let wann = "";
+  if (seit) {
+    const d = new Date(seit);
+    if (!isNaN(d)) {
+      const zwei = (n) => String(n).padStart(2, "0");
+      wann = ` am ${zwei(d.getDate())}.${zwei(d.getMonth() + 1)}. um ${zwei(d.getHours())}:${zwei(d.getMinutes())}`;
+    }
+  }
+  if (quelle === "fahrt") return `Aus der Fahrt übernommen${wann}.`;
+  if (quelle === "gps") {
+    return `Aus der Fahrtrichtung übernommen${wann}. Rückwärts eingeparkt? Dann „180° drehen“.`;
+  }
+  return `Von Hand eingestellt${wann}.`;
+}
+
+/* Kompass des Handys: zwei Sekunden lang mitteln.
+ *
+ * Android liefert "deviceorientationabsolute" (alpha gegen den Uhrzeigersinn
+ * ab Norden), iOS "webkitCompassHeading" (im Uhrzeigersinn) nach einer
+ * Erlaubnis. Gemittelt wird über Sinus und Kosinus - sonst gäbe 359° und 1°
+ * im Mittel 180°. Ohne Kompass oder ohne sichere Verbindung: null. */
+async function kompassMessen() {
+  if (typeof window === "undefined" || typeof DeviceOrientationEvent === "undefined") return null;
+  try {
+    if (typeof DeviceOrientationEvent.requestPermission === "function") {
+      if ((await DeviceOrientationEvent.requestPermission()) !== "granted") return null;
+    }
+  } catch (_e) {
+    return null;
+  }
+  const ereignis = "ondeviceorientationabsolute" in window
+    ? "deviceorientationabsolute" : "deviceorientation";
+  return new Promise((fertig) => {
+    let x = 0, y = 0, n = 0;
+    const nimm = (e) => {
+      let h = null;
+      if (typeof e.webkitCompassHeading === "number" && !isNaN(e.webkitCompassHeading)) {
+        h = e.webkitCompassHeading;
+      } else if ((e.absolute || ereignis === "deviceorientationabsolute")
+                 && typeof e.alpha === "number") {
+        h = (360 - e.alpha) % 360;
+      }
+      if (h === null) return;
+      x += Math.cos((h * Math.PI) / 180);
+      y += Math.sin((h * Math.PI) / 180);
+      n += 1;
+    };
+    window.addEventListener(ereignis, nimm);
+    setTimeout(() => {
+      window.removeEventListener(ereignis, nimm);
+      if (n === 0) { fertig(null); return; }
+      fertig(((Math.atan2(y, x) * 180) / Math.PI + 360) % 360);
+    }, 2000);
+  });
+}
+
 /* Ist Fassung a älter als Fassung b? "4.0.3" gegen "4.0.10" - zahlweise. */
 function aelterAls(a, b) {
   const teile = (v) => String(v).split(/[.-]/).map((t) => (/^\d+$/.test(t) ? Number(t) : t));
@@ -521,6 +583,14 @@ class CamperMinderCard extends HTMLElement {
         .stellplatz .richtung button { border: 0; border-radius: 8px; padding: 7px 10px;
           font-size: .82rem; font-weight: 800; cursor: pointer;
           background: rgba(127,127,127,.18); color: inherit; }
+        .stellplatz .herkunft { margin-top: 6px; text-align: center; font-size: .8rem;
+          opacity: .75; line-height: 1.35; }
+        .stellplatz .herkunft.frage { opacity: 1; color: #ffd48a; }
+        .stellplatz .hilfe { margin-top: 8px; font-size: .8rem; line-height: 1.4;
+          padding: 8px 10px; border-radius: 10px; background: rgba(127,127,127,.12); }
+        .stellplatz .hilfe[hidden] { display: none; }
+        .stellplatz .hilfe p { margin: 0 0 6px; }
+        .stellplatz .hilfe p:last-child { margin-bottom: 0; }
 
         /* Fußzeile: bewusst zurückhaltend. Sie soll im Betrieb nicht
            auffallen, im Supportfall aber ohne Nachfragen die Version zeigen. */
@@ -1083,10 +1153,12 @@ class CamperMinderCard extends HTMLElement {
     const sa = sonne.state.attributes;
     const front = sa.front === null || sa.front === undefined ? null : Number(sa.front);
 
+    const ra = richtung ? richtung.state.attributes : {};
     const signature = JSON.stringify([
       sonne.state.state, sa.sonne_azimut, sa.sonne_hoehe, sa.bahn, front,
       sat && sat.state.state, sat && sat.state.attributes.azimut,
-      star && star.state.state,
+      star && star.state.state, ra.quelle, ra.seit, this._kompassMeldung || "",
+      !!this._hilfeOffen,
     ]);
     if (node.dataset.signature === signature) return;
     node.dataset.signature = signature;
@@ -1171,22 +1243,69 @@ class CamperMinderCard extends HTMLElement {
         ${star ? `<div>🛰️ ${esc(star.state.state)}</div>` : ""}
       </div>
       <div class="richtung">
-        <button data-d="-15">−15°</button><button data-d="-5">−5°</button>
+        <button data-d="-15">−15°</button><button data-d="-5">−5°</button><button data-d="-1">−1°</button>
         <span class="wert">Front: ${front === null ? "nicht eingestellt" : `${Math.round(front)}° ${wort(front)}`}</span>
-        <button data-d="5">+5°</button><button data-d="15">+15°</button>
+        <button data-d="1">+1°</button><button data-d="5">+5°</button><button data-d="15">+15°</button>
+      </div>
+      <div class="herkunft${ra.quelle === "gps" || front === null ? " frage" : ""}">${esc(
+        this._kompassMeldung || herkunftSatz(front, ra.quelle, ra.seit))}</div>
+      <div class="richtung">
+        <button data-d="180">↻ 180° drehen</button>
+        <button data-kompass="1">📱 Handy-Kompass</button>
+        <button data-hilfe="1">${this._hilfeOffen ? "Hilfe schließen" : "Wie stelle ich das ein?"}</button>
+      </div>
+      <div class="hilfe" ${this._hilfeOffen ? "" : "hidden"}>
+        <p><b>Automatisch:</b> Nach jeder Fahrt übernimmt CamperMinder die Richtung
+        selbst – aus der Fahrtrichtung des Handys oder Tablets im Fahrzeug und der
+        Drehung, die Level beim Einparken misst. Auch rückwärts eingeparkt stimmt sie.
+        Dafür muss unter „Konfigurieren“ die GPS-Quelle des Fahrzeugs eingetragen sein.</p>
+        <p><b>Mit dem Handy:</b> Handy flach hinlegen, die Oberkante zeigt in
+        Fahrtrichtung, dann „Handy-Kompass“. Im Fahrzeug lenkt Metall den Kompass
+        oft um 10° und mehr ab – genauer: neben dem Fahrzeug stehen, Handy flach vor
+        dem Bauch, Oberkante parallel zum Fahrzeug nach vorn.</p>
+        <p><b>Von Hand:</b> Mit einer Kompass-App hinter das Fahrzeug stellen und in
+        Fahrtrichtung schauen. Die Gradzahl mit den Knöpfen oben einstellen
+        (0° Norden, 90° Osten, 180° Süden, 270° Westen).</p>
+        <p><b>Rückwärts eingeparkt</b> und die Richtung stammt nur aus dem GPS?
+        Dann einmal „180° drehen“.</p>
       </div>`;
 
-    if (richtung) {
-      node.querySelectorAll(".richtung button").forEach((knopf) => {
-        knopf.addEventListener("click", () => {
-          const jetzt = front === null ? 0 : front;
-          const neu = (((jetzt + Number(knopf.dataset.d)) % 360) + 360) % 360;
-          hass.callService("number", "set_value", { entity_id: richtung.entityId, value: neu });
-        });
+    const setze = (wert) => {
+      const neu = Math.round(((((wert % 360) + 360) % 360)) * 10) / 10;
+      hass.callService("number", "set_value", { entity_id: richtung.entityId, value: neu });
+    };
+    node.querySelectorAll("button[data-d]").forEach((knopf) => {
+      if (!richtung) { knopf.disabled = true; return; }
+      knopf.addEventListener("click", () => {
+        this._kompassMeldung = "";
+        setze((front === null ? 0 : front) + Number(knopf.dataset.d));
       });
+    });
+    const kompass = node.querySelector("button[data-kompass]");
+    if (!richtung) {
+      kompass.disabled = true;
     } else {
-      node.querySelectorAll(".richtung button").forEach((knopf) => { knopf.disabled = true; });
+      kompass.addEventListener("click", async () => {
+        this._kompassMeldung = "Kompass misst – Handy flach und ruhig halten …";
+        node.dataset.signature = "";
+        this._renderStellplatz(node, hass);
+        const grad = await kompassMessen();
+        if (grad === null) {
+          this._kompassMeldung = "Dieses Gerät liefert hier keinen Kompass. Das geht nur in " +
+            "der App oder im Browser auf dem Handy und nur über eine sichere Verbindung (https).";
+        } else {
+          this._kompassMeldung = `Handy-Kompass: ${Math.round(grad)}° ${wort(grad)} übernommen.`;
+          setze(grad);
+        }
+        node.dataset.signature = "";
+        this._renderStellplatz(node, this._hass || hass);
+      });
     }
+    node.querySelector("button[data-hilfe]").addEventListener("click", () => {
+      this._hilfeOffen = !this._hilfeOffen;
+      node.dataset.signature = "";
+      this._renderStellplatz(node, this._hass || hass);
+    });
   }
 
   /* Die Wächterleiste.

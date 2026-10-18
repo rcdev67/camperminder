@@ -106,20 +106,37 @@ def test_ohne_richtung_kein_raten():
 
 
 def test_starlink_norden_vom_fahrzeug_aus():
-    assert "Norden liegt vorne" in _koeln(0).satz_starlink
-    assert "Norden liegt hinten" in _koeln(180).satz_starlink
-    assert "Norden liegt links" in _koeln(90).satz_starlink
-    assert "Norden liegt rechts vorne" in _koeln(315).satz_starlink
+    assert "Norden liegt genau vorne" in _koeln(0).satz_starlink
+    assert "Norden liegt genau hinten" in _koeln(180).satz_starlink
+    assert "Norden liegt genau links" in _koeln(90).satz_starlink
+    assert "Norden liegt 45° rechts von vorne" in _koeln(315).satz_starlink
+    assert "Norden liegt 20° links von hinten" in _koeln(160).satz_starlink
+    assert _koeln(160).starlink_relativ == -160
     sued = sp.berechne(datetime(2026, 10, 18, 10, 0, tzinfo=timezone.utc), -33.9, 18.4,
                        timezone.utc, front=0)
-    assert "Süden liegt hinten" in sued.satz_starlink
+    assert "Süden liegt genau hinten" in sued.satz_starlink
 
 
 def test_satellit_vom_fahrzeug_aus():
-    # Astra steht in Köln bei 164°: bei Front nach Süden fast vorne.
-    assert _koeln(180).satz_satellit.endswith("vom Fahrzeug aus vorne.")
-    assert _koeln(0).satz_satellit.endswith("vom Fahrzeug aus hinten.")
-    assert _koeln(90).satz_satellit.endswith("vom Fahrzeug aus rechts.")
+    # Astra steht in Köln bei rund 164°.
+    s = _koeln(180)
+    r = s.satellit_relativ
+    assert -18 < r < -14
+    assert s.satz_satellit.endswith(f"vom Fahrzeug aus {round(abs(r))}° links von vorne.")
+    assert _koeln(0).satz_satellit.endswith(f"vom Fahrzeug aus {round(abs(r))}° rechts von hinten.")
+    assert _koeln(164).satz_satellit.endswith("vom Fahrzeug aus genau vorne.")
+    assert _koeln(None).satellit_relativ is None
+
+
+def test_genau_auf_das_grad():
+    assert sp.vom_fahrzeug_genau(1, 0) == "genau vorne"
+    assert sp.vom_fahrzeug_genau(359, 0) == "genau vorne"
+    assert sp.vom_fahrzeug_genau(91, 0) == "genau rechts"
+    assert sp.vom_fahrzeug_genau(268, 0) == "genau links"
+    assert sp.vom_fahrzeug_genau(30, 0) == "30° rechts von vorne"
+    assert sp.vom_fahrzeug_genau(120, 0) == "60° rechts von hinten"
+    assert sp.vom_fahrzeug_genau(200, 0) == "20° links von hinten"
+    assert sp.vom_fahrzeug_genau(10, 350) == "20° rechts von vorne"
 
 
 def test_vom_fahrzeug_acht_stufen():

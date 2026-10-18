@@ -34,6 +34,7 @@ from .const import (
 )
 from .coordinator import CamperCoordinator
 from .abfahrt import AbfahrtsWaechter
+from .ausrichtung import RichtungsFolger
 from .gedaechtnis import GedaechtnisFolger
 from .heimatort import HeimatortFolger
 from .wetter import WetterWaechter
@@ -260,6 +261,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     heimatort: HeimatortFolger | None = None
     gedaechtnis: GedaechtnisFolger | None = None
+    richtung: RichtungsFolger | None = None
     if config.get(CONF_LOCATION_SOURCE):
         heimatort = HeimatortFolger(hass, config)
         heimatort.async_start()
@@ -272,6 +274,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             lambda: coordinator.async_notify(),
         )
         await gedaechtnis.async_start()
+        # Richtung des Fahrzeugs aus der Fahrt - dieselbe GPS-Quelle.
+        richtung = RichtungsFolger(
+            hass, config, lambda grad, quelle: coordinator.async_set_heading(grad, quelle)
+        )
+        richtung.async_start()
 
     wetter: WetterWaechter | None = None
     if config.get(CONF_WEATHER_ENTITY):
@@ -301,6 +308,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         "announcer": announcer,
         "heimatort": heimatort,
         "gedaechtnis": gedaechtnis,
+        "richtung": richtung,
         "abfahrt": abfahrt,
         "wetter": wetter,
     }
@@ -348,6 +356,8 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             stored["wetter"].async_stop()
         if stored.get("gedaechtnis") is not None:
             stored["gedaechtnis"].async_stop()
+        if stored.get("richtung") is not None:
+            stored["richtung"].async_stop()
         if stored.get("abfahrt") is not None:
             stored["abfahrt"].async_stop()
     return unloaded
