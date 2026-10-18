@@ -551,16 +551,113 @@ Installiert wird erst, wenn du tippst und bestätigst – nie von allein, also a
 <h2>10 · Mit Home Assistant (Erweiterung)</h2>
 <p>Sobald das Gerät in deinem WLAN ist, findet Home Assistant es über ESPHome von selbst. Die Integration <strong>CamperMinder</strong> kommt über
 HACS und bringt die Bedienkarte mit; Updates für die Software im Gerät meldet Home Assistant dann automatisch.</p>
+<p>Fast alles Weitere stellst du an einer Stelle ein: <em>Einstellungen → Geräte &amp; Dienste → CamperMinder → Konfigurieren</em>. Alle Felder dort
+sind freiwillig; was leer bleibt, gibt es einfach nicht.</p>
 
 <h3>Meldungen aufs Handy: die Blueprints</h3>
-<p>Drei fertige Automatisierungen bringen die Meldungen des Geräts dorthin, wo du sie liest. In Home Assistant: <em>Einstellungen → Automatisierungen &amp; Szenen →
+<p>Fünf fertige Automatisierungen bringen die Meldungen dorthin, wo du sie liest. In Home Assistant: <em>Einstellungen → Automatisierungen &amp; Szenen →
 Blueprints → Blueprint importieren</em>, dann die Adresse einfügen:</p>
 <ul>
 <li>Kühlschrankwarnung:<br><code>https://github.com/rcdev67/camperminder/blob/main/blueprints/automation/camperminder/kuehlschrank_warnung.yaml</code></li>
 <li>Wächteralarm:<br><code>https://github.com/rcdev67/camperminder/blob/main/blueprints/automation/camperminder/waechter_alarm.yaml</code></li>
 <li>Frostwarnung:<br><code>https://github.com/rcdev67/camperminder/blob/main/blueprints/automation/camperminder/frostwarnung.yaml</code></li>
+<li>Wetterwächter Markise:<br><code>https://github.com/rcdev67/camperminder/blob/main/blueprints/automation/camperminder/markise_wetter.yaml</code></li>
+<li>Abfahrtscheck:<br><code>https://github.com/rcdev67/camperminder/blob/main/blueprints/automation/camperminder/abfahrt.yaml</code></li>
 </ul>
 <p>Danach <em>Automatisierung erstellen → Aus einem Blueprint</em>, das Gerät auswählen und unter „Was soll passieren?“ eintragen, wie du benachrichtigt werden willst.</p>
+
+<h3>Heimatort folgt dem Fahrzeug</h3>
+<p>Läuft Home Assistant im Fahrzeug, steht sein Heimatort meist noch dort, wo er eingerichtet wurde. Davon hängen Sonnenauf- und -untergang, das Wetter
+und alles zum Stellplatz ab. Unter <em>Konfigurieren</em>:</p>
+<ul>
+<li><strong>GPS-Quelle des Fahrzeugs</strong> – ein Tablet oder Handy, das im Fahrzeug bleibt (die Home-Assistant-App meldet seinen Standort).
+<span class="lvl">Level</span> selbst hat kein GPS. Mit der Quelle gibt es auch den Knopf <strong>„Heimatort hierher“</strong>.</li>
+<li><strong>Heimatort folgt dem Fahrzeug</strong> – steht das Fahrzeug nach einer Fahrt fünf Minuten an einem Ort, der mehr als 500 m vom bisherigen
+entfernt ist, wird er zum Heimatort. Als Fahrt zählt nur, was <span class="lvl">Level</span> als Fahrt misst; wer das Tablet ins Restaurant mitnimmt,
+verschiebt nichts.</li>
+</ul>
+<p>Nur einschalten, wenn Home Assistant im Fahrzeug läuft. Bei einem Home Assistant zu Hause gehört der Heimatort nach Hause.</p>
+
+<h3>Wetterwächter für die Markise</h3>
+<p>Unter <em>Konfigurieren</em> eine <strong>Wettervorhersage</strong> wählen, am besten Open-Meteo mit der Zone „Zuhause“ – sie folgt dem Heimatort und
+liefert Böen. Halbstündlich prüft die Integration die nächsten Stunden. Bei Böen, Sturm, Gewitter, Hagel, Schnee oder Starkregen heißt die Meldung
+<em>Markise einfahren</em>, bei viel Regen kommt der Hinweis, die Markise auf einer Seite abzusenken. Die Grenzen stehen als Regler am Gerät
+<em>CamperMinder</em>. Die Karte zeigt die Warnung als gelbe Leiste; aufs Handy kommt sie mit dem Blueprint <em>Wetterwächter Markise</em>.</p>
+<p>Wer zusätzlich einen Melder für die Markise einträgt (<strong>Markise ausgefahren</strong>), bekommt die Warnung nur, solange sie wirklich draußen ist.</p>
+
+<h3>Stellplatz: Sonne, Satellit, Starlink</h3>
+<p>Beim Abstellen entscheidet die Richtung des Fahrzeugs über drei Dinge: ob die Markise in der Sonne liegt, ob die Satellitenschüssel freie Sicht hat
+und ob Starlink freien Himmel bekommt. Unten in der Karte steht dafür ein Kompassbild mit drei Sätzen darunter.</p>
+<p><strong>Was die Karte zeigt.</strong> Norden ist immer oben, das Fahrzeug dreht sich, nicht die Welt:</p>
+<ul>
+<li><strong>Fahrzeug</strong> in der Mitte, der Pfeil zeigt zur Front. Grau und gestrichelt mit „?“, solange die Richtung fehlt.</li>
+<li><strong>Gestrichelter gelber Bogen</strong> – der Weg der Sonne heute, mit Uhrzeiten. Je weiter innen, desto höher steht sie.</li>
+<li><strong>Gelber Kreis</strong> – wo die Sonne gerade steht.</li>
+<li><strong>Grüne Linie</strong> – wohin die Satellitenschüssel zeigen muss.</li>
+<li><strong>Blaue Fläche</strong> – der Himmel, den Starlink frei braucht.</li>
+</ul>
+<p>Darunter stehen die Sätze, auf das Grad genau, etwa: <em>„Astra 19,2° Ost: Südsüdost (164°), 30° hoch – vom Fahrzeug aus 17° links von vorne.“</em>
+oder <em>„Starlink: Norden liegt 20° links von hinten – dort keine Bäume oder Aufbauten.“</em></p>
+<p><strong>Einmal einstellen</strong>, am Gerät <em>CamperMinder</em>: <strong>Markise an Seite</strong> (rechts oder links in Fahrtrichtung),
+<strong>Kühlschrank-Lüftung an Seite</strong> (wo die Lüftungsgitter sitzen) und <strong>Satellit</strong> (Astra 19,2° Ost für deutsches Fernsehen,
+Hotbird 13° Ost, Astra 23,5° Ost oder Astra 28,2° Ost).</p>
+
+<h3>Die Richtung des Fahrzeugs</h3>
+<p>Alle drei Sätze hängen davon ab, wohin die Front zeigt. Unter dem Kompassbild steht, woher die Richtung stammt und seit wann sie gilt.</p>
+<p><strong>1. Automatisch nach jeder Fahrt (empfohlen).</strong> Mit eingetragener GPS-Quelle übernimmt CamperMinder die Richtung eine Minute nach dem
+Abstellen von selbst. <span class="lvl">Level</span> misst, um wie viel sich das Fahrzeug dreht; die Home-Assistant-App meldet bei flotter Fahrt die
+Fahrtrichtung. Zusammen ergibt das die Richtung beim Abstellen – auch wenn du zum Schluss gewendet und rückwärts eingeparkt hast. In der Karte steht dann
+„Aus der Fahrt übernommen“. (Mit einer Software im Gerät vor 4.6.0 gibt es nur die Fahrtrichtung; dann nach dem Rückwärtseinparken einmal
+<strong>„↻ 180° drehen“</strong>.)</p>
+<div class="warn"><p><strong>Wichtig: Hochgenauigkeitsmodus der Home-Assistant-App einschalten.</strong> Ohne ihn meldet die App ihren Standort während der
+Fahrt oft nur alle paar Minuten. Dann fehlt die Fahrtrichtung kurz vor dem Abstellen, und es kommt keine Richtung.</p></div>
+<p>So schaltest du ihn ein, auf dem Handy oder Tablet, das im Fahrzeug bleibt (Android):</p>
+<ol>
+<li>Die Home-Assistant-App öffnen, unten links auf <strong>Einstellungen</strong>.</li>
+<li><strong>Companion-App</strong> antippen.</li>
+<li><strong>Sensoren verwalten</strong> antippen.</li>
+<li>Im Abschnitt <em>Standort</em> den Sensor <strong>Standort im Hintergrund</strong> öffnen.</li>
+<li><strong>Hochgenauigkeitsmodus</strong> einschalten und darunter das Intervall auf 5 Sekunden stellen.</li>
+</ol>
+<p>Je nach Version der App heißen die Punkte etwas anders. Der Modus braucht mehr Akku: Hängt das Gerät im Fahrzeug am Strom, kann er dauerhaft an bleiben.
+Sonst lässt er sich an derselben Stelle so einstellen, dass er nur läuft, solange das Handy mit einem bestimmten Bluetooth-Gerät verbunden ist – etwa dem
+Radio im Fahrzeug. Auf iPhone und iPad gibt es diesen Modus nicht; dort kommt die Richtung eher über den Handy-Kompass oder von Hand.</p>
+<p><strong>2. Mit dem Handy-Kompass.</strong> In der Karte <strong>„📱 Handy-Kompass“</strong> drücken und das Handy flach halten, die Oberkante in Fahrtrichtung.
+Im Fahrzeug lenkt Metall den Kompass oft um 10° und mehr ab – genauer wird es neben dem Fahrzeug, das Handy flach vor dem Bauch, die Oberkante parallel
+zum Fahrzeug nach vorn. Das geht nur über eine sichere Verbindung (https, etwa über Home Assistant Cloud).</p>
+<p><strong>3. Von Hand.</strong> Mit einer Kompass-App hinter das Fahrzeug stellen und in Fahrtrichtung schauen. Die Gradzahl mit
+<strong>−15° / −5° / −1° / +1° / +5° / +15°</strong> einstellen: 0° ist Norden, 90° Osten, 180° Süden, 270° Westen. Dasselbe steht als Regler
+<strong>„Front zeigt nach“</strong> am Gerät <em>CamperMinder</em>.</p>
+<p>Von Hand oder mit dem Handy eingestellt gilt die Richtung bis zur nächsten Fahrt. In der Karte erklärt <strong>„Wie stelle ich das ein?“</strong>
+alle drei Wege in Kurzform.</p>
+
+<h3>So nutzt du die Angaben beim Abstellen</h3>
+<div class="tip"><p><strong>Vorher ausprobieren.</strong> Noch bevor du einparkst, kannst du das Fahrzeug in der Karte mit den Knöpfen in die geplante
+Richtung drehen – die Sätze zeigen sofort, wie es dann wäre. Steht das Fahrzeug, kommt die echte Richtung nach einer Minute von selbst.</p></div>
+<ul>
+<li><strong>Sonne.</strong> Der Satz nennt die Zeiten, zu denen Markise oder Kühlschrank-Lüftung heute in der Sonne liegen. Wer nachmittags Schatten
+unter der Markise will, stellt sie nach Osten oder Norden; wer Wärme will, eher nach Süden. Die Kühlschrank-Lüftung gehört in den Schatten – sonst kühlt
+ein Absorberkühlschrank an heißen Tagen merklich schlechter.</li>
+<li><strong>Satellit.</strong> <em>Südsüdost (164°), 30° hoch</em> ist die Richtung auf dem Kompass und die Höhe über dem Horizont, in die die Schüssel
+zeigen muss. <em>17° links von vorne</em> heißt: vom Fahrersitz aus etwas links von geradeaus. In genau dieser Richtung und Höhe darf nichts stehen – kein
+Baum, kein Gebäude, kein Nachbarfahrzeug. Eine automatische Schüssel findet den Satelliten selbst, braucht aber diese freie Sicht; eine Schüssel von Hand
+stellst du auf die Höhe ein, drehst sie in die Richtung und suchst mit dem Signal fein nach.</li>
+<li><strong>Starlink.</strong> Auf der Nordhalbkugel richtet sich die Antenne nach Norden aus und braucht dort weiten freien Himmel. <em>Norden liegt
+20° links von hinten</em> heißt: Die Antenne gehört dorthin, wo nach Norden nichts im Weg ist – nicht in den Schatten des eigenen Aufbaus, nicht unter
+Bäume. Genau prüfen lässt sich die freie Sicht mit der Hinderniserkennung in der Starlink-App.</li>
+</ul>
+
+<h3>Letztes Mal hier: das Stellplatz-Gedächtnis</h3>
+<p>Mit einer GPS-Quelle merkt sich CamperMinder an jedem Stellplatz, was er beim Ankommen zum Ausrichten brauchte. Fährst du denselben Platz wieder an,
+steht oben in der Karte etwa <em>„📍 Hier am 11.10.2026: vorne links 2,5 cm (1 Stufe).“</em> – dann liegen die Keile schon richtig, bevor du aussteigst.
+Als derselbe Platz gilt, was höchstens 60 m vom letzten Mal entfernt ist. Gespeichert wird nur im eigenen Home Assistant.</p>
+
+<h3>Abfahrtscheck</h3>
+<p>Markise draußen, Trittstufe ausgefahren, Dachluke offen: <span class="lvl">Level</span> merkt als Erstes, dass das Fahrzeug rollt. Unter
+<em>Konfigurieren</em> wählst du im Feld <strong>„Abfahrtscheck“</strong>, was beim Losfahren zu sein muss – Türkontakte, Dachluken, Trittstufe, Schlösser;
+die Markise des Wetterwächters gehört von selbst dazu. Rollt das Fahrzeug an und ist davon noch etwas offen, zeigt die Karte eine rote Leiste,
+<span class="lvl">Level</span> piept, und mit Ansageziel wird es angesagt. Aufs Handy kommt es mit dem Blueprint <em>Abfahrtscheck</em>.</p>
+
 <p>Beide Betriebsarten laufen mit derselben Software im Gerät. Wer klein anfängt, kann jederzeit umsteigen – ohne neue Software, ohne neues Gerät.</p>
 
 <!-- ======================= 11 MQTT ======================= -->

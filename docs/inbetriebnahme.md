@@ -413,12 +413,27 @@ Assistant zu Hause gehört der Heimatort nach Hause.
 
 ### Stellplatz: Sonne, Satellit, Starlink
 
-Unten in der Karte zeigt ein Kompassbild, was beim Abstellen zählt: welche
-Seite des Fahrzeugs heute wann in der Sonne liegt, wohin die
-Satellitenschüssel muss und wo Norden ist — dorthin braucht Starlink freien
-Himmel.
+Beim Abstellen entscheidet die Richtung des Fahrzeugs über drei Dinge: ob die
+Markise in der Sonne liegt, ob die Satellitenschüssel freie Sicht hat und ob
+Starlink freien Himmel bekommt. Unten in der Karte steht dafür ein
+Kompassbild mit drei Sätzen darunter.
 
-Die Angaben sind auf das Grad genau, zum Beispiel:
+#### Was die Karte zeigt
+
+Im Kompassbild ist Norden immer oben, wie auf jeder Landkarte. Das Fahrzeug
+dreht sich, nicht die Welt:
+
+- **Fahrzeug** in der Mitte, der Pfeil zeigt zur Front. Grau und gestrichelt
+  mit „?“, solange die Richtung fehlt.
+- **Gestrichelter gelber Bogen** — der Weg der Sonne heute, mit Uhrzeiten.
+  Je weiter innen ein Punkt, desto höher steht die Sonne.
+- **Gelber Kreis** — wo die Sonne gerade steht.
+- **Grüne Linie** — wohin die Satellitenschüssel zeigen muss.
+- **Blaue Fläche** — der Himmel, den Starlink frei braucht.
+
+Darunter stehen die drei Sätze, auf das Grad genau, zum Beispiel:
+
+> ☀️ Markise (rechts) in der Sonne 13:30–18:10.
 
 > 📡 Astra 19,2° Ost: Südsüdost (164°), 30° hoch – vom Fahrzeug aus 17° links
 > von vorne.
@@ -426,53 +441,112 @@ Die Angaben sind auf das Grad genau, zum Beispiel:
 > 🛰️ Starlink: Norden liegt 20° links von hinten – dort keine Bäume oder
 > Aufbauten.
 
-Dafür braucht es die Richtung des Fahrzeugs, also wohin die Front zeigt.
-Unter dem Kompassbild steht, woher sie stammt.
+#### Einmal einstellen
 
-**Automatisch nach jeder Fahrt.** Ist unter *Konfigurieren* eine GPS-Quelle
-des Fahrzeugs eingetragen (siehe oben), übernimmt CamperMinder die Richtung
-eine Minute nach dem Abstellen von selbst. Level hat keinen Kompass, aber es
-misst, um wie viel sich das Fahrzeug dreht. Die Home-Assistant-App meldet bei
-flotter Fahrt die Fahrtrichtung. Zusammen ergibt das die Richtung beim
-Abstellen — auch wenn du zum Schluss gewendet und rückwärts eingeparkt hast.
-In der Karte steht dann „Aus der Fahrt übernommen“.
+Am Gerät *CamperMinder* (*Einstellungen → Geräte & Dienste → CamperMinder*):
 
-Damit das klappt, muss die App während der Fahrt ihren Standort melden. Am
-zuverlässigsten mit dem Hochgenauigkeitsmodus der Home-Assistant-App
-(Android: in der App unter *Companion-App → Sensoren verwalten*, beim
-Standort im Hintergrund).
+- **Markise an Seite** — rechts oder links in Fahrtrichtung. Dann sagt die
+  Karte, wann die Markise in der Sonne liegt.
+- **Kühlschrank-Lüftung an Seite** — wo die Lüftungsgitter des Kühlschranks
+  sitzen. Ein Absorberkühlschrank kühlt schlechter, wenn die Sonne auf die
+  Gitter scheint.
+- **Satellit** — Astra 19,2° Ost (deutsches Fernsehen), Hotbird 13° Ost,
+  Astra 23,5° Ost oder Astra 28,2° Ost.
 
-Mit einer älteren Firmware ohne Drehungsmessung gibt es nur die Fahrtrichtung
-des GPS. Dann steht in der Karte „Aus der Fahrtrichtung übernommen“. Wer
-rückwärts eingeparkt hat, drückt einmal **„↻ 180° drehen“**.
+Der Ort kommt aus dem Heimatort von Home Assistant. Folgt er dem Fahrzeug
+(siehe „Heimatort folgt dem Fahrzeug“), stimmen die Angaben an jedem
+Stellplatz.
 
-**Mit dem Handy-Kompass.** In der Karte **„📱 Handy-Kompass“** drücken und
+#### Die Richtung des Fahrzeugs
+
+Alle drei Sätze hängen davon ab, wohin die Front zeigt. Unter dem
+Kompassbild steht, woher die Richtung stammt und seit wann sie gilt. Es gibt
+drei Wege, sie zu bekommen.
+
+**1. Automatisch nach jeder Fahrt (empfohlen).** Ist unter *Konfigurieren*
+eine GPS-Quelle des Fahrzeugs eingetragen (siehe „Heimatort folgt dem
+Fahrzeug“), übernimmt CamperMinder die Richtung eine Minute nach dem
+Abstellen von selbst. Level hat keinen Kompass, aber es misst, um wie viel
+sich das Fahrzeug dreht. Die Home-Assistant-App meldet bei flotter Fahrt die
+Fahrtrichtung. Zusammen ergibt das die Richtung beim Abstellen — auch wenn du
+zum Schluss gewendet und rückwärts eingeparkt hast. In der Karte steht dann
+„Aus der Fahrt übernommen“.
+
+Die Drehung misst Level ab Firmware 4.6.0. Mit älterer Firmware gibt es nur
+die Fahrtrichtung des GPS; dann steht in der Karte „Aus der Fahrtrichtung
+übernommen“, und wer rückwärts eingeparkt hat, drückt einmal
+**„↻ 180° drehen“**.
+
+> **Wichtig: Hochgenauigkeitsmodus der Home-Assistant-App einschalten.**
+> Ohne ihn meldet die App ihren Standort während der Fahrt oft nur alle
+> paar Minuten. Dann fehlt die Fahrtrichtung kurz vor dem Abstellen, und es
+> kommt keine Richtung.
+
+So schaltest du ihn ein, auf dem Handy oder Tablet, das im Fahrzeug bleibt
+(Android):
+
+1. Die Home-Assistant-App öffnen, unten links auf **Einstellungen**.
+2. **Companion-App** antippen.
+3. **Sensoren verwalten** antippen.
+4. Im Abschnitt *Standort* den Sensor **Standort im Hintergrund** öffnen.
+5. **Hochgenauigkeitsmodus** einschalten. Darunter das Intervall auf
+   5 Sekunden stellen.
+
+Je nach Version der App heißen die Punkte etwas anders; gemeint ist immer
+der Hochgenauigkeitsmodus beim Standort im Hintergrund.
+
+Der Modus braucht mehr Akku. Hängt das Gerät im Fahrzeug am Strom, kann er
+dauerhaft an bleiben. Sonst gibt es an derselben Stelle die Möglichkeit, ihn
+nur einzuschalten, solange das Handy mit einem bestimmten Bluetooth-Gerät
+verbunden ist — etwa dem Radio im Fahrzeug. Dann ist er genau während der
+Fahrt an. Auf iPhone und iPad gibt es diesen Modus nicht; dort meldet die App
+seltener, und die Richtung kommt eher über den Handy-Kompass oder von Hand.
+
+**2. Mit dem Handy-Kompass.** In der Karte **„📱 Handy-Kompass“** drücken und
 das Handy flach halten, die Oberkante in Fahrtrichtung. Im Fahrzeug lenkt
 Metall den Kompass oft um 10° und mehr ab. Genauer wird es neben dem
 Fahrzeug: das Handy flach vor dem Bauch, die Oberkante parallel zum Fahrzeug
 nach vorn. Das geht in der Home-Assistant-App und im Browser des Handys, aber
 nur über eine sichere Verbindung (https, etwa über Home Assistant Cloud).
 
-**Von Hand.** Mit einer Kompass-App hinter das Fahrzeug stellen und in
+**3. Von Hand.** Mit einer Kompass-App hinter das Fahrzeug stellen und in
 Fahrtrichtung schauen. Die Gradzahl stellst du mit **−15° / −5° / −1° / +1° /
 +5° / +15°** ein: 0° ist Norden, 90° Osten, 180° Süden, 270° Westen. Dasselbe
-steht als Regler **„Front zeigt nach“** am Gerät *CamperMinder*. Von Hand
-eingestellt gilt die Richtung bis zur nächsten Fahrt.
+steht als Regler **„Front zeigt nach“** am Gerät *CamperMinder*.
 
-In der Karte erklärt **„Wie stelle ich das ein?“** dasselbe in Kurzform.
+Von Hand oder mit dem Handy eingestellt gilt die Richtung bis zur nächsten
+Fahrt; danach kommt sie wieder automatisch. In der Karte erklärt
+**„Wie stelle ich das ein?“** alle drei Wege in Kurzform.
 
-Einmal einstellen, am Gerät *CamperMinder*:
+#### So nutzt du die Angaben beim Abstellen
 
-- **Markise an Seite** — rechts oder links in Fahrtrichtung. Dann sagt die
-  Karte, wann die Markise in der Sonne liegt.
-- **Kühlschrank-Lüftung an Seite** — wo die Lüftungsgitter des Kühlschranks
-  sitzen. Ein Absorberkühlschrank kühlt schlechter, wenn die Sonne auf die
-  Gitter scheint; stell das Fahrzeug so, dass sie im Schatten liegen.
-- **Satellit** — Astra 19,2° Ost (deutsches Fernsehen), Hotbird 13° Ost,
-  Astra 23,5° Ost oder Astra 28,2° Ost.
+**Vorher ausprobieren.** Noch bevor du einparkst, kannst du das Fahrzeug in
+der Karte mit den Knöpfen in die Richtung drehen, in der du es abstellen
+willst. Die drei Sätze zeigen sofort, wie es dann wäre. Steht das Fahrzeug,
+kommt die echte Richtung nach einer Minute von selbst.
 
-Der Ort kommt aus dem Heimatort von Home Assistant. Folgt er dem Fahrzeug
-(siehe oben), stimmen die Angaben an jedem Stellplatz.
+**Sonne.** Der Satz nennt die Zeiten, zu denen die Markise oder die
+Kühlschrank-Lüftung heute in der Sonne liegt. Wer nachmittags Schatten unter
+der Markise will, stellt das Fahrzeug so, dass die Markise nach Osten oder
+Norden zeigt; wer im Frühjahr Wärme will, eher nach Süden. Die
+Kühlschrank-Lüftung gehört in den Schatten — gerade an heißen Tagen kühlt
+ein Absorberkühlschrank sonst merklich schlechter.
+
+**Satellit.** Die Angabe *Südsüdost (164°), 30° hoch* ist die Richtung auf
+dem Kompass und die Höhe über dem Horizont, in die die Schüssel zeigen muss.
+*Vom Fahrzeug aus 17° links von vorne* heißt: vom Fahrersitz aus gesehen
+etwas links von geradeaus. In genau dieser Richtung und Höhe darf nichts
+stehen — kein Baum, kein Gebäude, kein Nachbarfahrzeug. Eine automatische
+Schüssel findet den Satelliten selbst, braucht aber diese freie Sicht. Eine
+Schüssel von Hand stellst du auf die Höhe ein, drehst sie in die Richtung und
+suchst dann mit dem Signal fein nach.
+
+**Starlink.** Auf der Nordhalbkugel richtet sich die Starlink-Antenne nach
+Norden aus und braucht dort einen weiten freien Himmel. *Norden liegt 20°
+links von hinten* heißt: Die Antenne gehört dorthin, wo hinter dem Fahrzeug
+nach Norden nichts im Weg ist — nicht in den Schatten des eigenen Aufbaus,
+nicht unter Bäume. Genau prüfen lässt sich die freie Sicht mit der
+Hinderniserkennung in der Starlink-App.
 
 ### Letztes Mal hier: das Stellplatz-Gedächtnis
 

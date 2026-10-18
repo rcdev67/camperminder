@@ -554,19 +554,118 @@ It is only installed when you tap and confirm – never on its own, so not while
 <p>As soon as the device is on your Wi-Fi, Home Assistant finds it by itself via ESPHome. The <strong>CamperMinder</strong> integration comes through
 HACS and brings the control card with it; Home Assistant then reports updates for the software in the device automatically.</p>
 
-<div class="tip"><p><strong>The entity names stay German.</strong> Home Assistant shows the entities of the device under their German names, for example <em>Wächter Alarm</em>.
+<div class="tip"><p><strong>The entity names of the device stay German.</strong> Home Assistant shows the entities of the device under their German names, for example <em>Wächter Alarm</em>.
 The software in the device deliberately does not translate them, so that existing installations – automations, dashboards, MQTT – do not break when the language is switched.
-Only the control page itself changes language.</p></div>
+Only the control page itself changes language. The entities of the integration and the sentences in the card about the pitch (sun, satellite, Starlink) are also
+German at the moment; this chapter gives the translation where it matters.</p></div>
+
+<p>Almost everything else is set in one place: <em>Settings → Devices &amp; services → CamperMinder → Configure</em>. All fields there are optional;
+whatever stays empty simply does not exist.</p>
 
 <h3>Messages to your phone: the blueprints</h3>
-<p>Three ready-made automations bring the messages of the device to where you read them. In Home Assistant: <em>Settings → Automations &amp; scenes →
+<p>Five ready-made automations bring the messages to where you read them. In Home Assistant: <em>Settings → Automations &amp; scenes →
 Blueprints → Import blueprint</em>, then paste the address:</p>
 <ul>
 <li>Fridge warning:<br><code>https://github.com/rcdev67/camperminder/blob/main/blueprints/automation/camperminder/kuehlschrank_warnung.yaml</code></li>
 <li>Guard alarm:<br><code>https://github.com/rcdev67/camperminder/blob/main/blueprints/automation/camperminder/waechter_alarm.yaml</code></li>
 <li>Frost warning:<br><code>https://github.com/rcdev67/camperminder/blob/main/blueprints/automation/camperminder/frostwarnung.yaml</code></li>
+<li>Awning weather guard:<br><code>https://github.com/rcdev67/camperminder/blob/main/blueprints/automation/camperminder/markise_wetter.yaml</code></li>
+<li>Departure check:<br><code>https://github.com/rcdev67/camperminder/blob/main/blueprints/automation/camperminder/abfahrt.yaml</code></li>
 </ul>
 <p>Then <em>Create automation → Use a blueprint</em>, choose the device and enter under “Was soll passieren?” (“What should happen?” – the blueprints are in German) how you want to be notified.</p>
+
+<h3>Home location follows the vehicle</h3>
+<p>If Home Assistant runs in the vehicle, its home location usually still sits where it was set up. Sunrise and sunset, the weather and everything about
+the pitch depend on it. Under <em>Configure</em>:</p>
+<ul>
+<li><strong>Vehicle GPS source</strong> – a tablet or phone that stays in the vehicle (the Home Assistant app reports its location).
+<span class="lvl">Level</span> itself has no GPS. With a source there is also the <strong>“Set home here”</strong> button.</li>
+<li><strong>Home location follows the vehicle</strong> – when the vehicle has stood for five minutes after a drive at a place more than 500 m from the old
+one, that place becomes home. Only what <span class="lvl">Level</span> measures as a drive counts; taking the tablet to a restaurant moves nothing.</li>
+</ul>
+<p>Only switch this on if Home Assistant runs in the vehicle. A Home Assistant at home keeps its home at home.</p>
+
+<h3>Weather guard for the awning</h3>
+<p>Under <em>Configure</em>, choose a <strong>weather forecast</strong>, ideally Open-Meteo with the zone “Home” – it follows the home location and
+reports gusts. Every half hour the integration checks the next hours. For gusts, storm, thunderstorm, hail, snow or heavy rain the message is
+<em>retract the awning</em>; for a lot of rain it reminds you to lower the awning on one side. The limits are sliders on the <em>CamperMinder</em> device.
+The card shows the warning as a yellow bar; it reaches your phone with the <em>awning weather guard</em> blueprint.</p>
+<p>If you also enter a sensor for the awning (<strong>Awning extended</strong>), you only get the warning while it really is out.</p>
+
+<h3>The pitch: sun, satellite, Starlink</h3>
+<p>When you park, the direction of the vehicle decides three things: whether the awning is in the sun, whether the satellite dish has a clear view
+and whether Starlink gets open sky. For this, the bottom of the card shows a compass picture with three sentences below it.</p>
+<p><strong>What the card shows.</strong> North is always at the top; the vehicle turns, not the world:</p>
+<ul>
+<li><strong>Vehicle</strong> in the middle, the arrow points to the front. Grey and dashed with “?” as long as the direction is missing.</li>
+<li><strong>Dashed yellow arc</strong> – the path of the sun today, with times. The further inside, the higher the sun.</li>
+<li><strong>Yellow circle</strong> – where the sun is right now.</li>
+<li><strong>Green line</strong> – where the satellite dish has to point.</li>
+<li><strong>Blue area</strong> – the sky Starlink needs to be clear.</li>
+</ul>
+<p>Below are the sentences, to the degree, for example <em>“Astra 19,2° Ost: Südsüdost (164°), 30° hoch – vom Fahrzeug aus 17° links von vorne.”</em>
+(south-south-east, 164°, 30° high – seen from the vehicle 17° left of straight ahead) or <em>“Starlink: Norden liegt 20° links von hinten”</em>
+(north lies 20° left of straight behind).</p>
+<p><strong>Set once</strong>, on the <em>CamperMinder</em> device: <strong>Awning on side</strong> (right or left in driving direction),
+<strong>Fridge vents on side</strong> (where the vent grilles are) and <strong>Satellite</strong> (Astra 19.2° E, Hotbird 13° E,
+Astra 23.5° E or Astra 28.2° E).</p>
+
+<h3>The direction of the vehicle</h3>
+<p>All three sentences depend on where the front points. Below the compass picture it says where the direction came from and since when it applies.</p>
+<p><strong>1. Automatically after every drive (recommended).</strong> With a GPS source entered, CamperMinder takes the direction by itself one minute
+after you park. <span class="lvl">Level</span> measures how far the vehicle turns; the Home Assistant app reports the driving direction while moving at
+speed. Together this gives the direction when parked – even if you turned round at the end and reversed in. The card then says
+“Aus der Fahrt übernommen” (taken from the drive). (With software in the device older than 4.6.0 there is only the driving direction; after reversing in,
+press <strong>“↻ 180° drehen”</strong> (turn by 180°) once.)</p>
+<div class="warn"><p><strong>Important: switch on the high accuracy mode of the Home Assistant app.</strong> Without it the app often reports its location only
+every few minutes while driving. Then the driving direction just before parking is missing, and no direction comes.</p></div>
+<p>How to switch it on, on the phone or tablet that stays in the vehicle (Android):</p>
+<ol>
+<li>Open the Home Assistant app, tap <strong>Settings</strong> at the bottom left.</li>
+<li>Tap <strong>Companion app</strong>.</li>
+<li>Tap <strong>Manage sensors</strong>.</li>
+<li>In the <em>Location</em> section, open the <strong>Background location</strong> sensor.</li>
+<li>Switch on <strong>High accuracy mode</strong> and set the interval below it to 5 seconds.</li>
+</ol>
+<p>Depending on the app version the items may be named slightly differently. The mode uses more battery: if the device in the vehicle is plugged in, it can
+stay on. Otherwise, in the same place, it can be limited to the time the phone is connected to a particular Bluetooth device – such as the vehicle's radio.
+iPhone and iPad have no such mode; there the direction is better set with the phone compass or by hand.</p>
+<p><strong>2. With the phone compass.</strong> In the card press <strong>“📱 Handy-Kompass”</strong> and hold the phone flat, top edge pointing in the
+driving direction. Inside the vehicle, metal often deflects the compass by 10° or more – it is more accurate beside the vehicle, phone flat in front of you,
+top edge parallel to the vehicle pointing forward. This only works over a secure connection (https, for example via Home Assistant Cloud).</p>
+<p><strong>3. By hand.</strong> Stand behind the vehicle with a compass app and look in the driving direction. Set the degrees with
+<strong>−15° / −5° / −1° / +1° / +5° / +15°</strong>: 0° is north, 90° east, 180° south, 270° west. The same is available as the
+<strong>“Front points to”</strong> slider on the <em>CamperMinder</em> device.</p>
+<p>Set by hand or with the phone, the direction applies until the next drive. In the card, <strong>“Wie stelle ich das ein?”</strong> (how do I set this?)
+explains all three ways in short.</p>
+
+<h3>Using the information when parking</h3>
+<div class="tip"><p><strong>Try it beforehand.</strong> Before you park, you can turn the vehicle in the card with the buttons to the planned direction –
+the sentences immediately show what it would be like. Once the vehicle stands, the real direction follows by itself after a minute.</p></div>
+<ul>
+<li><strong>Sun.</strong> The sentence names the times when the awning or the fridge vents are in the sun today. If you want shade under the awning in
+the afternoon, point it east or north; for warmth, rather south. The fridge vents belong in the shade – otherwise an absorber fridge cools noticeably worse
+on hot days.</li>
+<li><strong>Satellite.</strong> <em>164°, 30° high</em> is the compass direction and the height above the horizon the dish has to point to.
+<em>17° left of straight ahead</em> means: seen from the driver's seat, a little left of straight on. Nothing may stand in exactly this direction and height –
+no tree, no building, no neighbouring vehicle. An automatic dish finds the satellite by itself but needs this clear view; a manual dish is set to the
+height, turned to the direction and then fine-tuned with the signal.</li>
+<li><strong>Starlink.</strong> In the northern hemisphere the antenna aligns itself towards the north and needs a wide clear sky there.
+<em>North lies 20° left of straight behind</em> means: the antenna belongs where nothing is in the way towards the north – not in the shadow of your own
+body, not under trees. The obstruction check in the Starlink app shows the clear view exactly.</li>
+</ul>
+
+<h3>Last time here: the pitch memory</h3>
+<p>With a GPS source, CamperMinder remembers at every pitch what it took to level the vehicle on arrival. If you come back to the same pitch, the top of
+the card shows for example <em>“📍 Hier am 11.10.2026: vorne links 2,5 cm (1 Stufe).”</em> (here on 11 Oct 2026: front left 2.5 cm, 1 step) – the
+wedges are in place before you get out. Anything within 60 m of last time counts as the same pitch. It is stored only in your own Home Assistant.</p>
+
+<h3>Departure check</h3>
+<p>Awning out, step extended, roof vent open: <span class="lvl">Level</span> is the first to notice that the vehicle is rolling. Under
+<em>Configure</em>, choose in the field <strong>“Departure check”</strong> what has to be closed when driving off – door contacts, roof vents, step, locks;
+the awning of the weather guard is included automatically. If the vehicle starts rolling while something of it is still open, the card shows a red bar,
+<span class="lvl">Level</span> beeps, and with an announcement target it is announced. It reaches your phone with the <em>departure check</em> blueprint.</p>
+
 <p>Both modes run with the same software in the device. If you start small, you can switch at any time – no new software, no new device.</p>
 
 <!-- ======================= 11 MQTT ======================= -->
