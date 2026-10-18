@@ -25,7 +25,7 @@ const STATIC = "/camperminder_static";
  * tools/build_release.ps1 bricht ab und tests/test_gleichlauf.py schlägt an,
  * sobald sie voneinander abweichen - wie bei SEITE_VERSION der Geräteseite.
  */
-const VERSION = "4.5.0";
+const VERSION = "4.6.0";
 
 /* Woher die Richtung des Fahrzeugs stammt, als ein Satz unter dem Kompass. */
 function herkunftSatz(front, quelle, seit) {
