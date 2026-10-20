@@ -190,12 +190,27 @@ class RichtungsFolger:
         self._setzen = setzen
         self.rechnung = RichtungAusFahrt()
         self.drehung: str | None = None
+        self._geraete: list[str] = [self.quelle]
         self._abmelden: list = []
+
+    def _fahrzeuge(self) -> list[str]:
+        """Die Entitäten, die Fahrtrichtung und Tempo melden.
+
+        Eine Person hat weder "course" noch "speed" - die liefert nur das
+        Gerät dahinter (die Home-Assistant-App am Handy). Wer eine Person als
+        GPS-Quelle wählt, meint dieses Gerät.
+        """
+        if not self.quelle.startswith("person."):
+            return [self.quelle]
+        state = self.hass.states.get(self.quelle)
+        geraete = state.attributes.get("device_trackers") if state is not None else None
+        return [self.quelle, *(geraete or [])]
 
     @callback
     def async_start(self) -> None:
         self.drehung = finde_drehung(self.hass, self._pitch)
-        verfolgt = [self.quelle]
+        self._geraete = self._fahrzeuge()
+        verfolgt = list(self._geraete)
         if self._bewegung:
             verfolgt.append(self._bewegung)
         if self.drehung:
@@ -233,8 +248,12 @@ class RichtungsFolger:
         rollt = self._level_rollt()
         if rollt is None:
             # Ohne Bewegungssensor entscheidet das Tempo des GPS.
-            state = self.hass.states.get(self.quelle)
-            tempo = _zahl(state.attributes.get("speed")) if state is not None else None
+            tempo = None
+            for geraet in self._geraete:
+                state = self.hass.states.get(geraet)
+                tempo = _zahl(state.attributes.get("speed")) if state is not None else None
+                if tempo is not None:
+                    break
             rollt = tempo is not None and tempo >= 1.0
         self.rechnung.bewegung(rollt, jetzt)
 
@@ -245,7 +264,7 @@ class RichtungsFolger:
         if entity_id == self.drehung:
             self._lies_drehung()
             return
-        if entity_id == self.quelle:
+        if entity_id in self._geraete:
             state = event.data.get("new_state")
             if state is not None:
                 attr = state.attributes

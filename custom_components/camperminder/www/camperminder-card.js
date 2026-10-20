@@ -25,7 +25,7 @@ const STATIC = "/camperminder_static";
  * tools/build_release.ps1 bricht ab und tests/test_gleichlauf.py schlägt an,
  * sobald sie voneinander abweichen - wie bei SEITE_VERSION der Geräteseite.
  */
-const VERSION = "4.6.0";
+const VERSION = "4.6.1";
 
 /* Woher die Richtung des Fahrzeugs stammt, als ein Satz unter dem Kompass. */
 function herkunftSatz(front, quelle, seit) {
@@ -53,15 +53,23 @@ function herkunftSatz(front, quelle, seit) {
  * Android liefert "deviceorientationabsolute" (alpha gegen den Uhrzeigersinn
  * ab Norden), iOS "webkitCompassHeading" (im Uhrzeigersinn) nach einer
  * Erlaubnis. Gemittelt wird über Sinus und Kosinus - sonst gäbe 359° und 1°
- * im Mittel 180°. Ohne Kompass oder ohne sichere Verbindung: null. */
+ * im Mittel 180°. Ergebnis: {grad} oder {fehler} mit dem Grund, damit die
+ * Karte sagen kann, woran es liegt - "kein Kompass" war für vier verschiedene
+ * Ursachen derselbe Satz. */
 async function kompassMessen() {
-  if (typeof window === "undefined" || typeof DeviceOrientationEvent === "undefined") return null;
+  if (typeof window === "undefined" || typeof DeviceOrientationEvent === "undefined") {
+    return { fehler: "kein_sensor" };
+  }
+  // Chrome und die Android-App geben Lagedaten nur über https frei.
+  if (window.isSecureContext === false) return { fehler: "unsicher" };
   try {
     if (typeof DeviceOrientationEvent.requestPermission === "function") {
-      if ((await DeviceOrientationEvent.requestPermission()) !== "granted") return null;
+      if ((await DeviceOrientationEvent.requestPermission()) !== "granted") {
+        return { fehler: "abgelehnt" };
+      }
     }
   } catch (_e) {
-    return null;
+    return { fehler: "abgelehnt" };
   }
   const ereignis = "ondeviceorientationabsolute" in window
     ? "deviceorientationabsolute" : "deviceorientation";
@@ -83,11 +91,24 @@ async function kompassMessen() {
     window.addEventListener(ereignis, nimm);
     setTimeout(() => {
       window.removeEventListener(ereignis, nimm);
-      if (n === 0) { fertig(null); return; }
-      fertig(((Math.atan2(y, x) * 180) / Math.PI + 360) % 360);
+      if (n === 0) { fertig({ fehler: "keine_daten" }); return; }
+      fertig({ grad: ((Math.atan2(y, x) * 180) / Math.PI + 360) % 360 });
     }, 2000);
   });
 }
+
+const KOMPASS_FEHLER = {
+  unsicher: "Der Kompass ist gesperrt: Home Assistant ist hier über http geöffnet, " +
+    "Handys geben Lagedaten nur über https frei. Mit der https-Adresse öffnen " +
+    "(z. B. Nabu Casa) – oder die Richtung unten von Hand einstellen.",
+  abgelehnt: "Der Zugriff auf die Bewegungssensoren wurde abgelehnt. Auf dem iPhone: " +
+    "Einstellungen → Home Assistant → Bewegung und Fitness erlauben, dann erneut tippen.",
+  keine_daten: "Das Gerät schickt keine Kompassdaten. In der Home-Assistant-App ist das " +
+    "oft so; es geht meist im Browser des Handys (Chrome, Safari) über https. " +
+    "Sonst die Richtung von Hand einstellen.",
+  kein_sensor: "Dieses Gerät hat keinen Kompass (Computer?). Am Handy versuchen " +
+    "oder die Richtung von Hand einstellen.",
+};
 
 /* Ist Fassung a älter als Fassung b? "4.0.3" gegen "4.0.10" - zahlweise. */
 function aelterAls(a, b) {
@@ -1289,11 +1310,11 @@ class CamperMinderCard extends HTMLElement {
         this._kompassMeldung = "Kompass misst – Handy flach und ruhig halten …";
         node.dataset.signature = "";
         this._renderStellplatz(node, hass);
-        const grad = await kompassMessen();
-        if (grad === null) {
-          this._kompassMeldung = "Dieses Gerät liefert hier keinen Kompass. Das geht nur in " +
-            "der App oder im Browser auf dem Handy und nur über eine sichere Verbindung (https).";
+        const messung = await kompassMessen();
+        if (messung.fehler) {
+          this._kompassMeldung = KOMPASS_FEHLER[messung.fehler];
         } else {
+          const grad = messung.grad;
           this._kompassMeldung = `Handy-Kompass: ${Math.round(grad)}° ${wort(grad)} übernommen.`;
           setze(grad);
         }
