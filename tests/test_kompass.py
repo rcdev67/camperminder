@@ -18,9 +18,9 @@ pytestmark = pytest.mark.skipif(shutil.which("node") is None, reason="Node fehlt
 LAUF = r"""
 const fs = require("fs");
 const src = fs.readFileSync(process.argv[2], "utf8");
-const a = src.indexOf("async function kompassMessen");
+const a = src.indexOf("function kompassRichtung");
 const b = src.indexOf("const KOMPASS_FEHLER");
-const kompassMessen = new Function(src.slice(a, b) + "; return kompassMessen;")();
+const { kompassMessen, kompassLive } = new Function(src.slice(a, b) + "; return { kompassMessen, kompassLive };")();
 
 function umgebung(opt) {
   const hoerer = {};
@@ -39,11 +39,26 @@ function umgebung(opt) {
       for (const e of werte) (hoerer[art] || []).forEach((f) => f(e));
     }
   }, 5);
+  win._hoerer = hoerer;
   return win;
 }
 
 (async () => {
   const fall = JSON.parse(process.argv[3]);
+  if (fall.live) {
+    const werte = [];
+    let still = false;
+    const win = umgebung(fall);
+    const r = await kompassLive((w) => werte.push(w), () => { still = true; }, win);
+    if (r.fehler) { console.log(JSON.stringify(r)); return; }
+    await new Promise((ok) => setTimeout(ok, fall.warte || 60));
+    r.stop();
+    const nachStop = werte.length;
+    for (const e of (fall.nachher || [])) (win._hoerer.deviceorientationabsolute || []).forEach((f) => f(e));
+    console.log(JSON.stringify({ werte, still, neuNachStop: werte.length - nachStop,
+                                 abgemeldet: (win._hoerer.deviceorientationabsolute || []).length === 0 }));
+    return;
+  }
   const r = await kompassMessen(umgebung(fall), 50);
   console.log(JSON.stringify(r));
 })();
@@ -169,3 +184,45 @@ def test_flach_oberkante_zeigt_in_richtung(tmp_path, alpha):
                                        "absolute": True}] * 3})
     assert ergebnis["lage"] == "flach"
     assert _winkel_gleich(ergebnis["grad"], wahr, eps=4)
+
+
+# -- Live-Betrieb ------------------------------------------------------------
+
+def test_live_liefert_geglaettete_werte(tmp_path):
+    ereignisse = [{"alpha": 270, "absolute": True}] * 5
+    r = messen(tmp_path, live=True, absolut=True,
+               ereignisse={"deviceorientationabsolute": ereignisse})
+    assert len(r["werte"]) == 5
+    assert all(round(w["grad"]) == 90 for w in r["werte"])
+    assert r["werte"][0]["lage"] == "flach"
+
+
+def test_live_glaettet_ueber_norden_ohne_sprung_durch_180(tmp_path):
+    # 359 und 1 Grad: der Mittelwert darf nie in die Naehe von 180 geraten.
+    folge = [{"alpha": 1, "absolute": True}, {"alpha": 359, "absolute": True}] * 4
+    r = messen(tmp_path, live=True, absolut=True,
+               ereignisse={"deviceorientationabsolute": folge})
+    for w in r["werte"]:
+        assert min(w["grad"], 360 - w["grad"]) < 5, w
+
+
+def test_live_haltung_aufrecht(tmp_path):
+    rot = _dreh(30, 90, 0)
+    wahr = _richtung(_anwenden(rot, [0, 0, -1]))
+    r = messen(tmp_path, live=True, absolut=True, ereignisse={
+        "deviceorientationabsolute": [{"alpha": 30, "beta": 90, "gamma": 0, "absolute": True}] * 3})
+    assert r["werte"][-1]["lage"] == "aufrecht"
+    assert _winkel_gleich(r["werte"][-1]["grad"], wahr)
+
+
+def test_live_stop_meldet_ab(tmp_path):
+    r = messen(tmp_path, live=True, absolut=True,
+               ereignisse={"deviceorientationabsolute": [{"alpha": 10, "absolute": True}]},
+               nachher=[{"alpha": 99, "absolute": True}] * 3)
+    assert r["abgemeldet"] is True
+    assert r["neuNachStop"] == 0
+
+
+def test_live_ohne_https_meldet_fehler(tmp_path):
+    r = messen(tmp_path, live=True, sicher=False, schnittstelle=False)
+    assert r["fehler"] == "unsicher"

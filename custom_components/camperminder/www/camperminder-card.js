@@ -25,7 +25,7 @@ const STATIC = "/camperminder_static";
  * tools/build_release.ps1 bricht ab und tests/test_gleichlauf.py schlägt an,
  * sobald sie voneinander abweichen - wie bei SEITE_VERSION der Geräteseite.
  */
-const VERSION = "4.6.3";
+const VERSION = "4.6.4";
 
 /* Woher die Richtung des Fahrzeugs stammt, als ein Satz unter dem Kompass. */
 function herkunftSatz(front, quelle, seit) {
@@ -48,7 +48,7 @@ function herkunftSatz(front, quelle, seit) {
   return `Von Hand eingestellt${wann}.`;
 }
 
-/* Kompass des Handys: zwei Sekunden lang mitteln.
+/* Kompass des Handys.
  *
  * Android liefert "deviceorientationabsolute" (alpha gegen den Uhrzeigersinn
  * ab Norden), iOS "webkitCompassHeading" (im Uhrzeigersinn) nach einer
@@ -58,15 +58,42 @@ function herkunftSatz(front, quelle, seit) {
  * Beide Ereignisarten werden gleichzeitig abgehört: Dass ein Gerät
  * "deviceorientationabsolute" kennt, heißt nicht, dass es dort auch sendet.
  *
- * Ergebnis: {grad, diagnose} oder {fehler, diagnose}. Die Diagnose nennt, was
- * das Gerät tatsächlich hat und liefert - damit ein Misserfolg zu erklären
- * ist, statt zu raten. "win" und "dauer" sind für den Test austauschbar. */
-async function kompassMessen(win = typeof window === "undefined" ? undefined : window, dauer = 2000) {
-  if (!win) return { fehler: "kein_sensor", diagnose: "kein window" };
+ * Die Funktionen nehmen "win" entgegen, damit der Test (tests/test_kompass.py)
+ * sie gegen eine nachgebaute Umgebung laufen lassen kann. Der Test schneidet
+ * den Abschnitt von der ersten Funktion hier bis zur Tabelle der Fehlertexte
+ * aus dieser Datei - neue Hilfen gehören in diesen Abschnitt. */
+
+/* Die Richtung aus EINEM Ereignis: {h, lage} oder null. */
+function kompassRichtung(e, art) {
+  if (typeof e.webkitCompassHeading === "number" && !isNaN(e.webkitCompassHeading)) {
+    return { h: e.webkitCompassHeading, lage: "" };
+  }
+  if (!((e.absolute || art === "deviceorientationabsolute") && typeof e.alpha === "number")) {
+    return null;
+  }
+  // Zwei Haltungen, zwei Richtungen:
+  //  - flach (Rückseite zeigt zum Boden): die Oberkante zeigt in die
+  //    Richtung, 360 - alpha;
+  //  - aufrecht, etwa hochkant in der Halterung: die RÜCKSEITE zeigt in die
+  //    Richtung (nach vorn, der Bildschirm sieht den Fahrer). Das ist die
+  //    Formel aus dem W3C-Entwurf: Blickrichtung der Rückseite aus alpha,
+  //    beta und gamma. Bei flachem Gerät ist sie nicht definiert - deshalb
+  //    die Unterscheidung.
+  const R = Math.PI / 180;
+  const hatLage = typeof e.beta === "number" && typeof e.gamma === "number";
+  const flach = !hatLage || Math.abs(Math.cos(e.beta * R) * Math.cos(e.gamma * R)) > 0.75;
+  if (flach) return { h: (360 - e.alpha) % 360, lage: "flach" };
+  const a = e.alpha * R, b = e.beta * R, g = e.gamma * R;
+  const vx = -Math.cos(a) * Math.sin(g) - Math.sin(a) * Math.sin(b) * Math.cos(g);
+  const vy = -Math.sin(a) * Math.sin(g) + Math.cos(a) * Math.sin(b) * Math.cos(g);
+  return { h: (Math.atan2(vx, vy) / R + 360) % 360, lage: "aufrecht" };
+}
+
+/* Was das Gerät hat und liefert - damit ein Misserfolg zu erklären ist,
+ * statt zu raten. */
+function kompassDiagnose(win, zaehler, beispiel) {
   const DOE = win.DeviceOrientationEvent;
-  const zaehler = { deviceorientationabsolute: 0, deviceorientation: 0 };
-  const beispiel = {};
-  const diagnose = () => [
+  return [
     `https: ${win.isSecureContext}`,
     `Schnittstelle: ${DOE === undefined ? "fehlt" : "da"}`,
     `Erlaubnisfrage: ${DOE && typeof DOE.requestPermission === "function" ? "ja" : "nein"}`,
@@ -74,69 +101,96 @@ async function kompassMessen(win = typeof window === "undefined" ? undefined : w
     `Ereignisse absolut ${zaehler.deviceorientationabsolute}, relativ ${zaehler.deviceorientation}`,
     beispiel.text ? `Beispiel ${beispiel.text}` : "",
   ].filter(Boolean).join(" · ");
-  // Die Schnittstelle gibt es nur in sicheren Kontexten (https) - bei http
-  // ist DeviceOrientationEvent undefined. Deshalb zuerst die Verbindung.
-  if (win.isSecureContext === false) return { fehler: "unsicher", diagnose: diagnose() };
-  if (DOE === undefined) return { fehler: "kein_sensor", diagnose: diagnose() };
+}
+
+/* Darf gemessen werden? Fehlercode oder null. Die Schnittstelle gibt es nur
+ * in sicheren Kontexten (https) - bei http ist DeviceOrientationEvent
+ * undefined. Deshalb zuerst die Verbindung. Muss aus einem Tippen heraus
+ * aufgerufen werden: iOS fragt nur dann nach der Erlaubnis. */
+async function kompassFreigabe(win) {
+  if (win.isSecureContext === false) return "unsicher";
+  const DOE = win.DeviceOrientationEvent;
+  if (DOE === undefined) return "kein_sensor";
   try {
     if (typeof DOE.requestPermission === "function") {
-      if ((await DOE.requestPermission()) !== "granted") {
-        return { fehler: "abgelehnt", diagnose: diagnose() };
-      }
+      if ((await DOE.requestPermission()) !== "granted") return "abgelehnt";
     }
   } catch (_e) {
-    return { fehler: "abgelehnt", diagnose: diagnose() };
+    return "abgelehnt";
   }
+  return null;
+}
+
+/* Hört auf beide Ereignisarten; "bei" bekommt {h, lage} je brauchbarem
+ * Ereignis. Gibt die Abmeldung zurück. */
+function kompassBeobachten(win, bei, zaehler, beispiel) {
+  const nimm = (art) => (e) => {
+    zaehler[art] += 1;
+    if (!beispiel.text) {
+      beispiel.text = `${art === "deviceorientation" ? "rel" : "abs"} alpha=${e.alpha} ` +
+        `beta=${e.beta} gamma=${e.gamma} absolute=${e.absolute} webkit=${e.webkitCompassHeading}`;
+    }
+    const r = kompassRichtung(e, art);
+    if (r) bei(r);
+  };
+  const abs = nimm("deviceorientationabsolute");
+  const rel = nimm("deviceorientation");
+  win.addEventListener("deviceorientationabsolute", abs);
+  win.addEventListener("deviceorientation", rel);
+  return () => {
+    win.removeEventListener("deviceorientationabsolute", abs);
+    win.removeEventListener("deviceorientation", rel);
+  };
+}
+
+/* Zwei Sekunden lang mitteln. Ergebnis: {grad, lage, diagnose} oder
+ * {fehler, diagnose}. */
+async function kompassMessen(win = typeof window === "undefined" ? undefined : window, dauer = 2000) {
+  if (!win) return { fehler: "kein_sensor", diagnose: "kein window" };
+  const zaehler = { deviceorientationabsolute: 0, deviceorientation: 0 };
+  const beispiel = {};
+  const diagnose = () => kompassDiagnose(win, zaehler, beispiel);
+  const fehler = await kompassFreigabe(win);
+  if (fehler) return { fehler, diagnose: diagnose() };
   return new Promise((fertig) => {
     let x = 0, y = 0, n = 0, lage = "";
-    const nimm = (art) => (e) => {
-      zaehler[art] += 1;
-      if (!beispiel.text) {
-        beispiel.text = `${art === "deviceorientation" ? "rel" : "abs"} alpha=${e.alpha} ` +
-          `beta=${e.beta} gamma=${e.gamma} absolute=${e.absolute} webkit=${e.webkitCompassHeading}`;
-      }
-      let h = null;
-      if (typeof e.webkitCompassHeading === "number" && !isNaN(e.webkitCompassHeading)) {
-        h = e.webkitCompassHeading;
-      } else if ((e.absolute || art === "deviceorientationabsolute")
-                 && typeof e.alpha === "number") {
-        // Zwei Haltungen, zwei Richtungen:
-        //  - flach (Rückseite zeigt zum Boden): die Oberkante zeigt in die
-        //    Richtung, 360 - alpha;
-        //  - aufrecht, etwa hochkant in der Halterung: die RÜCKSEITE zeigt
-        //    in die Richtung (nach vorn, der Bildschirm sieht den Fahrer).
-        //    Das ist die Formel aus dem W3C-Entwurf: Blickrichtung der
-        //    Rückseite aus alpha, beta und gamma. Bei flachem Gerät ist sie
-        //    nicht definiert - deshalb die Unterscheidung.
-        const R = Math.PI / 180;
-        const hatLage = typeof e.beta === "number" && typeof e.gamma === "number";
-        const flach = !hatLage || Math.abs(Math.cos(e.beta * R) * Math.cos(e.gamma * R)) > 0.75;
-        if (flach) {
-          h = (360 - e.alpha) % 360;
-        } else {
-          const a = e.alpha * R, b = e.beta * R, g = e.gamma * R;
-          const vx = -Math.cos(a) * Math.sin(g) - Math.sin(a) * Math.sin(b) * Math.cos(g);
-          const vy = -Math.sin(a) * Math.sin(g) + Math.cos(a) * Math.sin(b) * Math.cos(g);
-          h = (Math.atan2(vx, vy) / R + 360) % 360;
-        }
-        lage = flach ? "flach" : "aufrecht";
-      }
-      if (h === null) return;
-      x += Math.cos((h * Math.PI) / 180);
-      y += Math.sin((h * Math.PI) / 180);
+    const ab = kompassBeobachten(win, (r) => {
+      x += Math.cos((r.h * Math.PI) / 180);
+      y += Math.sin((r.h * Math.PI) / 180);
       n += 1;
-    };
-    const abs = nimm("deviceorientationabsolute");
-    const rel = nimm("deviceorientation");
-    win.addEventListener("deviceorientationabsolute", abs);
-    win.addEventListener("deviceorientation", rel);
+      if (r.lage) lage = r.lage;
+    }, zaehler, beispiel);
     setTimeout(() => {
-      win.removeEventListener("deviceorientationabsolute", abs);
-      win.removeEventListener("deviceorientation", rel);
+      ab();
       if (n === 0) { fertig({ fehler: "keine_daten", diagnose: diagnose() }); return; }
       fertig({ grad: ((Math.atan2(y, x) * 180) / Math.PI + 360) % 360, lage, diagnose: diagnose() });
     }, dauer);
   });
+}
+
+/* Fortlaufend messen, geglättet (gleitender Mittelwert über Sinus und
+ * Kosinus, damit der Sprung 359° -> 1° nicht durch 180° läuft).
+ *
+ * "bei" bekommt {grad, lage}; "beiStille" einmal, wenn drei Sekunden lang
+ * nichts Brauchbares kommt. Ergebnis: {stop} oder {fehler, diagnose}. */
+async function kompassLive(bei, beiStille, win = typeof window === "undefined" ? undefined : window) {
+  if (!win) return { fehler: "kein_sensor", diagnose: "kein window" };
+  const zaehler = { deviceorientationabsolute: 0, deviceorientation: 0 };
+  const beispiel = {};
+  const diagnose = () => kompassDiagnose(win, zaehler, beispiel);
+  const fehler = await kompassFreigabe(win);
+  if (fehler) return { fehler, diagnose: diagnose() };
+  const K = 0.2;
+  let x = null, y = 0, brauchbar = 0;
+  const ab = kompassBeobachten(win, (r) => {
+    const cx = Math.cos((r.h * Math.PI) / 180);
+    const cy = Math.sin((r.h * Math.PI) / 180);
+    if (x === null) { x = cx; y = cy; } else { x += K * (cx - x); y += K * (cy - y); }
+    brauchbar += 1;
+    bei({ grad: ((Math.atan2(y, x) * 180) / Math.PI + 360) % 360, lage: r.lage });
+  }, zaehler, beispiel);
+  const stille = setTimeout(() => { if (brauchbar === 0) beiStille(diagnose()); }, 3000);
+  return { stop: () => { clearTimeout(stille); ab(); } };
 }
 
 const KOMPASS_FEHLER = {
@@ -367,6 +421,17 @@ class CamperMinderCard extends HTMLElement {
   /* Damit eine später geladene Fassung erkennt, wer schon definiert ist. */
   static get version() {
     return VERSION;
+  }
+
+  disconnectedCallback() {
+    this._liveStop();
+  }
+
+  /* Den Live-Kompass abmelden - sonst lauscht das Gerät weiter, auch wenn die
+   * Karte nicht mehr zu sehen ist. */
+  _liveStop() {
+    if (this._live && this._live.stop) this._live.stop();
+    this._live = null;
   }
 
   constructor() {
@@ -651,6 +716,10 @@ class CamperMinderCard extends HTMLElement {
         .stellplatz .herkunft { margin-top: 6px; text-align: center; font-size: .8rem;
           opacity: .75; line-height: 1.35; }
         .stellplatz .herkunft.frage { opacity: 1; color: #ffd48a; }
+        .stellplatz .live { margin-top: 10px; padding: 10px; border-radius: 12px; text-align: center;
+          background: rgba(55,214,122,.12); border: 1px solid rgba(55,214,122,.35); }
+        .stellplatz .live .livewert { font-size: 2rem; font-weight: 800; line-height: 1.1; }
+        .stellplatz .live .livelage { font-size: .78rem; opacity: .75; margin-top: 2px; }
         .stellplatz .hilfe { margin-top: 8px; font-size: .8rem; line-height: 1.4;
           padding: 8px 10px; border-radius: 10px; background: rgba(127,127,127,.12); }
         .stellplatz .hilfe[hidden] { display: none; }
@@ -1223,7 +1292,7 @@ class CamperMinderCard extends HTMLElement {
       sonne.state.state, sa.sonne_azimut, sa.sonne_hoehe, sa.bahn, front,
       sat && sat.state.state, sat && sat.state.attributes.azimut,
       star && star.state.state, ra.quelle, ra.seit, this._kompassMeldung || "",
-      !!this._hilfeOffen,
+      !!this._hilfeOffen, this._live ? (this._live.stop ? 2 : 1) : 0,
     ]);
     if (node.dataset.signature === signature) return;
     node.dataset.signature = signature;
@@ -1317,7 +1386,13 @@ class CamperMinderCard extends HTMLElement {
       <div class="richtung">
         <button data-d="180">↻ 180° drehen</button>
         <button data-kompass="1">📱 Handy-Kompass</button>
+        <button data-live="1">${this._live ? "🧭 Live beenden" : "🧭 Live-Kompass"}</button>
         <button data-hilfe="1">${this._hilfeOffen ? "Hilfe schließen" : "Wie stelle ich das ein?"}</button>
+      </div>
+      <div class="live" ${this._live ? "" : "hidden"}>
+        <div class="livewert">${this._live && this._live.stop ? "…" : "Kompass startet …"}</div>
+        <div class="livelage"></div>
+        <div class="richtung"><button data-live-uebernehmen="1" disabled>Als Front übernehmen</button></div>
       </div>
       <div class="hilfe" ${this._hilfeOffen ? "" : "hidden"}>
         <p><b>Automatisch:</b> Nach jeder Fahrt übernimmt CamperMinder die Richtung
@@ -1328,6 +1403,11 @@ class CamperMinderCard extends HTMLElement {
         flach hingelegt (Oberkante in Fahrtrichtung), dann „Handy-Kompass“. Im Fahrzeug lenkt Metall den Kompass
         oft um 10° und mehr ab – genauer: neben dem Fahrzeug stehen, Handy flach vor
         dem Bauch, Oberkante parallel zum Fahrzeug nach vorn.</p>
+        <p><b>Live-Kompass:</b> zeigt fortlaufend, wohin das Gerät zeigt – hochkant in
+        der Halterung die Rückseite, flach liegend die Oberkante. Gut zum Prüfen: Fahrzeug
+        drehen oder neben dem Fahrzeug stehen und sehen, wo das Metall den Wert verschiebt.
+        „Als Front übernehmen“ stellt die Richtung ein. Der Wert ist magnetisch Nord;
+        gegenüber dem wahren Norden liegen bei uns wenige Grad.</p>
         <p><b>Meldet der Knopf „gesperrt“?</b> Dann ist Home Assistant über http
         geöffnet; Handys geben den Kompass nur über https frei. In der App gilt
         im Heim-WLAN die „Interne URL“ – steht dort http://…, bleibt der Kompass
@@ -1370,6 +1450,71 @@ class CamperMinderCard extends HTMLElement {
           this._kompassMeldung = `Handy-Kompass: ${Math.round(grad)}° ${wort(grad)} übernommen${lageText}.`;
           setze(grad);
         }
+        node.dataset.signature = "";
+        this._renderStellplatz(node, this._hass || hass);
+      });
+    }
+    const liveKnopf = node.querySelector("button[data-live]");
+    const lageText = (l) => (l === "aufrecht" ? "Rückseite zeigt dorthin"
+      : l === "flach" ? "Oberkante zeigt dorthin" : "");
+    // Nur den Wert nachziehen, nicht die ganze Karte neu bauen: Das Gerät
+    // meldet mehrmals je Sekunde.
+    const zeigeLive = (live) => {
+      const wo = this.shadowRoot.getElementById("stellplatz");
+      if (!wo || !live || live.grad === null || live.grad === undefined) return;
+      const jetzt = Date.now();
+      if (live.zuletzt && jetzt - live.zuletzt < 150) return;
+      live.zuletzt = jetzt;
+      const w = wo.querySelector(".livewert");
+      const l = wo.querySelector(".livelage");
+      const u = wo.querySelector("button[data-live-uebernehmen]");
+      if (w) w.textContent = `${Math.round(live.grad)}° ${wort(live.grad)}`;
+      if (l) l.textContent = lageText(live.lage);
+      if (u && richtung) u.disabled = false;
+    };
+    if (this._live && this._live.stop) zeigeLive({ ...this._live, zuletzt: 0 });
+    liveKnopf.addEventListener("click", async () => {
+      if (this._live) {
+        this._liveStop();
+        node.dataset.signature = "";
+        this._renderStellplatz(node, this._hass || hass);
+        return;
+      }
+      this._kompassMeldung = "";
+      this._live = { grad: null };
+      node.dataset.signature = "";
+      this._renderStellplatz(node, hass);
+      const live = this._live;
+      const r = await kompassLive(
+        (w) => { live.grad = w.grad; live.lage = w.lage; zeigeLive(live); },
+        (diagnose) => {
+          if (this._live !== live) return;
+          this._liveStop();
+          this._kompassMeldung = `${KOMPASS_FEHLER.keine_daten} [${diagnose}]`;
+          node.dataset.signature = "";
+          this._renderStellplatz(node, this._hass || hass);
+        },
+      );
+      if (this._live !== live) { if (r.stop) r.stop(); return; }
+      if (r.fehler) {
+        this._live = null;
+        this._kompassMeldung = `${KOMPASS_FEHLER[r.fehler]} [${r.diagnose}]`;
+      } else {
+        live.stop = r.stop;
+      }
+      node.dataset.signature = "";
+      this._renderStellplatz(node, this._hass || hass);
+    });
+    const uebernehmen = node.querySelector("button[data-live-uebernehmen]");
+    if (uebernehmen) {
+      uebernehmen.addEventListener("click", () => {
+        const live = this._live;
+        if (!live || live.grad === null || live.grad === undefined) return;
+        const grad = live.grad;
+        this._liveStop();
+        this._kompassMeldung = `Live-Kompass: ${Math.round(grad)}° ${wort(grad)} übernommen` +
+          `${lageText(live.lage) ? ` (${lageText(live.lage)})` : ""}.`;
+        setze(grad);
         node.dataset.signature = "";
         this._renderStellplatz(node, this._hass || hass);
       });
