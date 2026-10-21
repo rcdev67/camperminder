@@ -122,8 +122,10 @@ async function kompassMessen(win = typeof window === "undefined" ? undefined : w
 
 const KOMPASS_FEHLER = {
   unsicher: "Der Kompass ist gesperrt: Home Assistant ist hier über http geöffnet, " +
-    "Handys geben Lagedaten nur über https frei. Mit der https-Adresse öffnen " +
-    "(z. B. Nabu Casa) – oder die Richtung unten von Hand einstellen.",
+    "Handys geben Lagedaten nur über https frei. In der App: Einstellungen → " +
+    "Companion-App → Server → „Interne URL“ auf die https-Adresse setzen oder leeren " +
+    "(im Heim-WLAN nimmt die App sonst die interne http-Adresse), dann die App " +
+    "neu starten. Oder die Richtung unten von Hand einstellen.",
   abgelehnt: "Der Zugriff auf die Bewegungssensoren wurde abgelehnt. Auf dem iPhone: " +
     "Einstellungen → Home Assistant → Bewegung und Fitness erlauben, dann erneut tippen.",
   keine_daten: "Das Gerät schickt keine Kompassdaten. In der Home-Assistant-App ist das " +
@@ -1307,6 +1309,12 @@ class CamperMinderCard extends HTMLElement {
         Fahrtrichtung, dann „Handy-Kompass“. Im Fahrzeug lenkt Metall den Kompass
         oft um 10° und mehr ab – genauer: neben dem Fahrzeug stehen, Handy flach vor
         dem Bauch, Oberkante parallel zum Fahrzeug nach vorn.</p>
+        <p><b>Meldet der Knopf „gesperrt“?</b> Dann ist Home Assistant über http
+        geöffnet; Handys geben den Kompass nur über https frei. In der App gilt
+        im Heim-WLAN die „Interne URL“ – steht dort http://…, bleibt der Kompass
+        aus, auch wenn die externe Adresse https hat. Abhilfe: unter Einstellungen →
+        Companion-App → Server die interne URL auf die https-Adresse setzen oder
+        leeren, die App neu starten.</p>
         <p><b>Von Hand:</b> Mit einer Kompass-App hinter das Fahrzeug stellen und in
         Fahrtrichtung schauen. Die Gradzahl mit den Knöpfen oben einstellen
         (0° Norden, 90° Osten, 180° Süden, 270° Westen).</p>
