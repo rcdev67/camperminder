@@ -109,3 +109,63 @@ def test_mittelung_ueber_norden(tmp_path):
         "deviceorientationabsolute": [{"alpha": 1, "absolute": True},
                                       {"alpha": 359, "absolute": True}]})
     assert round(r["grad"]) % 360 == 0
+
+
+# -- Echte Geometrie: Haltung und Richtung unabhaengig von der Formel -------
+
+import math
+
+
+def _dreh(alpha, beta, gamma):
+    """Rotation Z(alpha) X(beta) Y(gamma), wie W3C sie fuer Lagedaten festlegt."""
+    a, b, g = (math.radians(w) for w in (alpha, beta, gamma))
+    ca, sa, cb, sb, cg, sg = math.cos(a), math.sin(a), math.cos(b), math.sin(b), math.cos(g), math.sin(g)
+    rz = [[ca, -sa, 0], [sa, ca, 0], [0, 0, 1]]
+    rx = [[1, 0, 0], [0, cb, -sb], [0, sb, cb]]
+    ry = [[cg, 0, sg], [0, 1, 0], [-sg, 0, cg]]
+
+    def mal(m, n):
+        return [[sum(m[i][k] * n[k][j] for k in range(3)) for j in range(3)] for i in range(3)]
+
+    return mal(mal(rz, rx), ry)
+
+
+def _richtung(vektor):
+    """Kompassrichtung eines Vektors in Welt (x Ost, y Nord)."""
+    return math.degrees(math.atan2(vektor[0], vektor[1])) % 360
+
+
+def _anwenden(r, v):
+    return [sum(r[i][k] * v[k] for k in range(3)) for i in range(3)]
+
+
+def _winkel_gleich(a, b, eps=1.5):
+    return abs((a - b + 180) % 360 - 180) <= eps
+
+
+@pytest.mark.parametrize("alpha,beta,gamma", [
+    (30, 90, 0),      # hochkant in der Halterung, Bildschirm zum Fahrer
+    (200, 85, 5),     # leicht geneigt
+    (310, 80, -10),
+    (120, 95, 8),     # etwas nach hinten gekippt
+    (75, 5, 85),      # Querformat hochkant (gamma gross)
+])
+def test_aufrecht_rueckseite_zeigt_in_blickrichtung(tmp_path, alpha, beta, gamma):
+    r = _dreh(alpha, beta, gamma)
+    wahr = _richtung(_anwenden(r, [0, 0, -1]))      # Rueckseite
+    ergebnis = messen(tmp_path, absolut=True, ereignisse={
+        "deviceorientationabsolute": [{"alpha": alpha, "beta": beta, "gamma": gamma,
+                                       "absolute": True}] * 3})
+    assert ergebnis["lage"] == "aufrecht"
+    assert _winkel_gleich(ergebnis["grad"], wahr), (ergebnis["grad"], wahr)
+
+
+@pytest.mark.parametrize("alpha", [0, 45, 135, 250, 359])
+def test_flach_oberkante_zeigt_in_richtung(tmp_path, alpha):
+    r = _dreh(alpha, 0, 0)
+    wahr = _richtung(_anwenden(r, [0, 1, 0]))       # Oberkante
+    ergebnis = messen(tmp_path, absolut=True, ereignisse={
+        "deviceorientationabsolute": [{"alpha": alpha, "beta": 3, "gamma": -2,
+                                       "absolute": True}] * 3})
+    assert ergebnis["lage"] == "flach"
+    assert _winkel_gleich(ergebnis["grad"], wahr, eps=4)

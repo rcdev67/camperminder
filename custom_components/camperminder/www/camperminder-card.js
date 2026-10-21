@@ -88,19 +88,38 @@ async function kompassMessen(win = typeof window === "undefined" ? undefined : w
     return { fehler: "abgelehnt", diagnose: diagnose() };
   }
   return new Promise((fertig) => {
-    let x = 0, y = 0, n = 0;
+    let x = 0, y = 0, n = 0, lage = "";
     const nimm = (art) => (e) => {
       zaehler[art] += 1;
       if (!beispiel.text) {
         beispiel.text = `${art === "deviceorientation" ? "rel" : "abs"} alpha=${e.alpha} ` +
-          `absolute=${e.absolute} webkit=${e.webkitCompassHeading}`;
+          `beta=${e.beta} gamma=${e.gamma} absolute=${e.absolute} webkit=${e.webkitCompassHeading}`;
       }
       let h = null;
       if (typeof e.webkitCompassHeading === "number" && !isNaN(e.webkitCompassHeading)) {
         h = e.webkitCompassHeading;
       } else if ((e.absolute || art === "deviceorientationabsolute")
                  && typeof e.alpha === "number") {
-        h = (360 - e.alpha) % 360;
+        // Zwei Haltungen, zwei Richtungen:
+        //  - flach (Rückseite zeigt zum Boden): die Oberkante zeigt in die
+        //    Richtung, 360 - alpha;
+        //  - aufrecht, etwa hochkant in der Halterung: die RÜCKSEITE zeigt
+        //    in die Richtung (nach vorn, der Bildschirm sieht den Fahrer).
+        //    Das ist die Formel aus dem W3C-Entwurf: Blickrichtung der
+        //    Rückseite aus alpha, beta und gamma. Bei flachem Gerät ist sie
+        //    nicht definiert - deshalb die Unterscheidung.
+        const R = Math.PI / 180;
+        const hatLage = typeof e.beta === "number" && typeof e.gamma === "number";
+        const flach = !hatLage || Math.abs(Math.cos(e.beta * R) * Math.cos(e.gamma * R)) > 0.75;
+        if (flach) {
+          h = (360 - e.alpha) % 360;
+        } else {
+          const a = e.alpha * R, b = e.beta * R, g = e.gamma * R;
+          const vx = -Math.cos(a) * Math.sin(g) - Math.sin(a) * Math.sin(b) * Math.cos(g);
+          const vy = -Math.sin(a) * Math.sin(g) + Math.cos(a) * Math.sin(b) * Math.cos(g);
+          h = (Math.atan2(vx, vy) / R + 360) % 360;
+        }
+        lage = flach ? "flach" : "aufrecht";
       }
       if (h === null) return;
       x += Math.cos((h * Math.PI) / 180);
@@ -115,7 +134,7 @@ async function kompassMessen(win = typeof window === "undefined" ? undefined : w
       win.removeEventListener("deviceorientationabsolute", abs);
       win.removeEventListener("deviceorientation", rel);
       if (n === 0) { fertig({ fehler: "keine_daten", diagnose: diagnose() }); return; }
-      fertig({ grad: ((Math.atan2(y, x) * 180) / Math.PI + 360) % 360, diagnose: diagnose() });
+      fertig({ grad: ((Math.atan2(y, x) * 180) / Math.PI + 360) % 360, lage, diagnose: diagnose() });
     }, dauer);
   });
 }
@@ -1305,8 +1324,8 @@ class CamperMinderCard extends HTMLElement {
         selbst – aus der Fahrtrichtung des Handys oder Tablets im Fahrzeug und der
         Drehung, die Level beim Einparken misst. Auch rückwärts eingeparkt stimmt sie.
         Dafür muss unter „Konfigurieren“ die GPS-Quelle des Fahrzeugs eingetragen sein.</p>
-        <p><b>Mit dem Handy:</b> Handy flach hinlegen, die Oberkante zeigt in
-        Fahrtrichtung, dann „Handy-Kompass“. Im Fahrzeug lenkt Metall den Kompass
+        <p><b>Mit dem Handy:</b> Hochkant in der Halterung (Rückseite nach vorn) oder
+        flach hingelegt (Oberkante in Fahrtrichtung), dann „Handy-Kompass“. Im Fahrzeug lenkt Metall den Kompass
         oft um 10° und mehr ab – genauer: neben dem Fahrzeug stehen, Handy flach vor
         dem Bauch, Oberkante parallel zum Fahrzeug nach vorn.</p>
         <p><b>Meldet der Knopf „gesperrt“?</b> Dann ist Home Assistant über http
@@ -1346,7 +1365,9 @@ class CamperMinderCard extends HTMLElement {
           this._kompassMeldung = `${KOMPASS_FEHLER[messung.fehler]} [${messung.diagnose}]`;
         } else {
           const grad = messung.grad;
-          this._kompassMeldung = `Handy-Kompass: ${Math.round(grad)}° ${wort(grad)} übernommen.`;
+          const lageText = messung.lage === "aufrecht"
+            ? " (Rückseite zeigt dorthin)" : messung.lage === "flach" ? " (Oberkante zeigt dorthin)" : "";
+          this._kompassMeldung = `Handy-Kompass: ${Math.round(grad)}° ${wort(grad)} übernommen${lageText}.`;
           setze(grad);
         }
         node.dataset.signature = "";
