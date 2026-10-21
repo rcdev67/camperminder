@@ -25,7 +25,7 @@ const STATIC = "/camperminder_static";
  * tools/build_release.ps1 bricht ab und tests/test_gleichlauf.py schlägt an,
  * sobald sie voneinander abweichen - wie bei SEITE_VERSION der Geräteseite.
  */
-const VERSION = "4.6.1";
+const VERSION = "4.6.2";
 
 /* Woher die Richtung des Fahrzeugs stammt, als ein Satz unter dem Kompass. */
 function herkunftSatz(front, quelle, seit) {
@@ -53,33 +53,52 @@ function herkunftSatz(front, quelle, seit) {
  * Android liefert "deviceorientationabsolute" (alpha gegen den Uhrzeigersinn
  * ab Norden), iOS "webkitCompassHeading" (im Uhrzeigersinn) nach einer
  * Erlaubnis. Gemittelt wird über Sinus und Kosinus - sonst gäbe 359° und 1°
- * im Mittel 180°. Ergebnis: {grad} oder {fehler} mit dem Grund, damit die
- * Karte sagen kann, woran es liegt - "kein Kompass" war für vier verschiedene
- * Ursachen derselbe Satz. */
-async function kompassMessen() {
-  if (typeof window === "undefined" || typeof DeviceOrientationEvent === "undefined") {
-    return { fehler: "kein_sensor" };
-  }
-  // Chrome und die Android-App geben Lagedaten nur über https frei.
-  if (window.isSecureContext === false) return { fehler: "unsicher" };
+ * im Mittel 180°.
+ *
+ * Beide Ereignisarten werden gleichzeitig abgehört: Dass ein Gerät
+ * "deviceorientationabsolute" kennt, heißt nicht, dass es dort auch sendet.
+ *
+ * Ergebnis: {grad, diagnose} oder {fehler, diagnose}. Die Diagnose nennt, was
+ * das Gerät tatsächlich hat und liefert - damit ein Misserfolg zu erklären
+ * ist, statt zu raten. "win" und "dauer" sind für den Test austauschbar. */
+async function kompassMessen(win = typeof window === "undefined" ? undefined : window, dauer = 2000) {
+  if (!win) return { fehler: "kein_sensor", diagnose: "kein window" };
+  const DOE = win.DeviceOrientationEvent;
+  const zaehler = { deviceorientationabsolute: 0, deviceorientation: 0 };
+  const beispiel = {};
+  const diagnose = () => [
+    `https: ${win.isSecureContext}`,
+    `Schnittstelle: ${DOE === undefined ? "fehlt" : "da"}`,
+    `Erlaubnisfrage: ${DOE && typeof DOE.requestPermission === "function" ? "ja" : "nein"}`,
+    `absolut: ${"ondeviceorientationabsolute" in win ? "bekannt" : "unbekannt"}`,
+    `Ereignisse absolut ${zaehler.deviceorientationabsolute}, relativ ${zaehler.deviceorientation}`,
+    beispiel.text ? `Beispiel ${beispiel.text}` : "",
+  ].filter(Boolean).join(" · ");
+  // Die Schnittstelle gibt es nur in sicheren Kontexten (https) - bei http
+  // ist DeviceOrientationEvent undefined. Deshalb zuerst die Verbindung.
+  if (win.isSecureContext === false) return { fehler: "unsicher", diagnose: diagnose() };
+  if (DOE === undefined) return { fehler: "kein_sensor", diagnose: diagnose() };
   try {
-    if (typeof DeviceOrientationEvent.requestPermission === "function") {
-      if ((await DeviceOrientationEvent.requestPermission()) !== "granted") {
-        return { fehler: "abgelehnt" };
+    if (typeof DOE.requestPermission === "function") {
+      if ((await DOE.requestPermission()) !== "granted") {
+        return { fehler: "abgelehnt", diagnose: diagnose() };
       }
     }
   } catch (_e) {
-    return { fehler: "abgelehnt" };
+    return { fehler: "abgelehnt", diagnose: diagnose() };
   }
-  const ereignis = "ondeviceorientationabsolute" in window
-    ? "deviceorientationabsolute" : "deviceorientation";
   return new Promise((fertig) => {
     let x = 0, y = 0, n = 0;
-    const nimm = (e) => {
+    const nimm = (art) => (e) => {
+      zaehler[art] += 1;
+      if (!beispiel.text) {
+        beispiel.text = `${art === "deviceorientation" ? "rel" : "abs"} alpha=${e.alpha} ` +
+          `absolute=${e.absolute} webkit=${e.webkitCompassHeading}`;
+      }
       let h = null;
       if (typeof e.webkitCompassHeading === "number" && !isNaN(e.webkitCompassHeading)) {
         h = e.webkitCompassHeading;
-      } else if ((e.absolute || ereignis === "deviceorientationabsolute")
+      } else if ((e.absolute || art === "deviceorientationabsolute")
                  && typeof e.alpha === "number") {
         h = (360 - e.alpha) % 360;
       }
@@ -88,12 +107,16 @@ async function kompassMessen() {
       y += Math.sin((h * Math.PI) / 180);
       n += 1;
     };
-    window.addEventListener(ereignis, nimm);
+    const abs = nimm("deviceorientationabsolute");
+    const rel = nimm("deviceorientation");
+    win.addEventListener("deviceorientationabsolute", abs);
+    win.addEventListener("deviceorientation", rel);
     setTimeout(() => {
-      window.removeEventListener(ereignis, nimm);
-      if (n === 0) { fertig({ fehler: "keine_daten" }); return; }
-      fertig({ grad: ((Math.atan2(y, x) * 180) / Math.PI + 360) % 360 });
-    }, 2000);
+      win.removeEventListener("deviceorientationabsolute", abs);
+      win.removeEventListener("deviceorientation", rel);
+      if (n === 0) { fertig({ fehler: "keine_daten", diagnose: diagnose() }); return; }
+      fertig({ grad: ((Math.atan2(y, x) * 180) / Math.PI + 360) % 360, diagnose: diagnose() });
+    }, dauer);
   });
 }
 
@@ -106,8 +129,8 @@ const KOMPASS_FEHLER = {
   keine_daten: "Das Gerät schickt keine Kompassdaten. In der Home-Assistant-App ist das " +
     "oft so; es geht meist im Browser des Handys (Chrome, Safari) über https. " +
     "Sonst die Richtung von Hand einstellen.",
-  kein_sensor: "Dieses Gerät hat keinen Kompass (Computer?). Am Handy versuchen " +
-    "oder die Richtung von Hand einstellen.",
+  kein_sensor: "Die Kompass-Schnittstelle fehlt in dieser Umgebung. Die Richtung " +
+    "von Hand einstellen.",
 };
 
 /* Ist Fassung a älter als Fassung b? "4.0.3" gegen "4.0.10" - zahlweise. */
@@ -1312,7 +1335,7 @@ class CamperMinderCard extends HTMLElement {
         this._renderStellplatz(node, hass);
         const messung = await kompassMessen();
         if (messung.fehler) {
-          this._kompassMeldung = KOMPASS_FEHLER[messung.fehler];
+          this._kompassMeldung = `${KOMPASS_FEHLER[messung.fehler]} [${messung.diagnose}]`;
         } else {
           const grad = messung.grad;
           this._kompassMeldung = `Handy-Kompass: ${Math.round(grad)}° ${wort(grad)} übernommen.`;
