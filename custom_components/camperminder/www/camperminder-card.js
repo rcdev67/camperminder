@@ -25,7 +25,7 @@ const STATIC = "/camperminder_static";
  * tools/build_release.ps1 bricht ab und tests/test_gleichlauf.py schlägt an,
  * sobald sie voneinander abweichen - wie bei SEITE_VERSION der Geräteseite.
  */
-const VERSION = "4.6.4";
+const VERSION = "4.6.5";
 
 /* Woher die Richtung des Fahrzeugs stammt, als ein Satz unter dem Kompass. */
 function herkunftSatz(front, quelle, seit) {
@@ -719,6 +719,7 @@ class CamperMinderCard extends HTMLElement {
         .stellplatz .live { margin-top: 10px; padding: 10px; border-radius: 12px; text-align: center;
           background: rgba(55,214,122,.12); border: 1px solid rgba(55,214,122,.35); }
         .stellplatz .live .livewert { font-size: 2rem; font-weight: 800; line-height: 1.1; }
+        .stellplatz .live .livehinweis { font-size: .76rem; opacity: .85; margin-top: 6px; line-height: 1.35; }
         .stellplatz .live .livelage { font-size: .78rem; opacity: .75; margin-top: 2px; }
         .stellplatz .hilfe { margin-top: 8px; font-size: .8rem; line-height: 1.4;
           padding: 8px 10px; border-radius: 10px; background: rgba(127,127,127,.12); }
@@ -1392,6 +1393,9 @@ class CamperMinderCard extends HTMLElement {
       <div class="live" ${this._live ? "" : "hidden"}>
         <div class="livewert">${this._live && this._live.stop ? "…" : "Kompass startet …"}</div>
         <div class="livelage"></div>
+        <div class="livehinweis">Handy hochkant halten (nicht flach). Die Rückseite des
+          Handys zeigt in diese Richtung – für die Front des Fahrzeugs also dorthin, wohin das
+          Fahrzeug blickt.</div>
         <div class="richtung"><button data-live-uebernehmen="1" disabled>Als Front übernehmen</button></div>
       </div>
       <div class="hilfe" ${this._hilfeOffen ? "" : "hidden"}>
@@ -1399,15 +1403,20 @@ class CamperMinderCard extends HTMLElement {
         selbst – aus der Fahrtrichtung des Handys oder Tablets im Fahrzeug und der
         Drehung, die Level beim Einparken misst. Auch rückwärts eingeparkt stimmt sie.
         Dafür muss unter „Konfigurieren“ die GPS-Quelle des Fahrzeugs eingetragen sein.</p>
-        <p><b>Mit dem Handy:</b> Hochkant in der Halterung (Rückseite nach vorn) oder
-        flach hingelegt (Oberkante in Fahrtrichtung), dann „Handy-Kompass“. Im Fahrzeug lenkt Metall den Kompass
-        oft um 10° und mehr ab – genauer: neben dem Fahrzeug stehen, Handy flach vor
-        dem Bauch, Oberkante parallel zum Fahrzeug nach vorn.</p>
-        <p><b>Live-Kompass:</b> zeigt fortlaufend, wohin das Gerät zeigt – hochkant in
-        der Halterung die Rückseite, flach liegend die Oberkante. Gut zum Prüfen: Fahrzeug
-        drehen oder neben dem Fahrzeug stehen und sehen, wo das Metall den Wert verschiebt.
-        „Als Front übernehmen“ stellt die Richtung ein. Der Wert ist magnetisch Nord;
-        gegenüber dem wahren Norden liegen bei uns wenige Grad.</p>
+        <p><b>Mit dem Handy:</b> Anders als bei üblichen Kompass-Apps halten Sie das Handy
+        <b>hochkant</b>, nicht flach: Bildschirm zu Ihnen, die <b>Rückseite des Handys</b>
+        zeigt in die Richtung, die gemessen wird. Soll die Front des Fahrzeugs gemessen
+        werden, zeigt die Handy-Rückseite also dorthin, wohin das Fahrzeug blickt – im
+        Cockpit in der Halterung zur Windschutzscheibe, oder Sie stehen hinter dem
+        Fahrzeug und halten das Handy mit der Rückseite in Fahrtrichtung. Dann
+        „Handy-Kompass“. Liegt das Handy flach, zählt stattdessen die Oberkante.
+        Im Fahrzeug lenkt Metall den Kompass oft um 10° und mehr ab; genauer ist es neben
+        dem Fahrzeug, Abstand zu Metall halten.</p>
+        <p><b>Live-Kompass:</b> zeigt fortlaufend, wohin die Handy-Rückseite zeigt (flach
+        liegend: die Oberkante). Gut zum Prüfen: Fahrzeug drehen oder neben dem Fahrzeug
+        stehen und sehen, wo das Metall den Wert verschiebt. „Als Front übernehmen“
+        stellt die Richtung ein. Der Wert ist magnetisch Nord; gegenüber dem wahren
+        Norden liegen bei uns wenige Grad.</p>
         <p><b>Meldet der Knopf „gesperrt“?</b> Dann ist Home Assistant über http
         geöffnet; Handys geben den Kompass nur über https frei. In der App gilt
         im Heim-WLAN die „Interne URL“ – steht dort http://…, bleibt der Kompass
@@ -1437,7 +1446,7 @@ class CamperMinderCard extends HTMLElement {
       kompass.disabled = true;
     } else {
       kompass.addEventListener("click", async () => {
-        this._kompassMeldung = "Kompass misst – Handy flach und ruhig halten …";
+        this._kompassMeldung = "Kompass misst – Handy hochkant und ruhig halten, Rückseite in die gewünschte Richtung …";
         node.dataset.signature = "";
         this._renderStellplatz(node, hass);
         const messung = await kompassMessen();
@@ -1446,7 +1455,7 @@ class CamperMinderCard extends HTMLElement {
         } else {
           const grad = messung.grad;
           const lageText = messung.lage === "aufrecht"
-            ? " (Rückseite zeigt dorthin)" : messung.lage === "flach" ? " (Oberkante zeigt dorthin)" : "";
+            ? " (Rückseite des Handys zeigt dorthin)" : messung.lage === "flach" ? " (Oberkante des Handys zeigt dorthin)" : "";
           this._kompassMeldung = `Handy-Kompass: ${Math.round(grad)}° ${wort(grad)} übernommen${lageText}.`;
           setze(grad);
         }
@@ -1455,8 +1464,8 @@ class CamperMinderCard extends HTMLElement {
       });
     }
     const liveKnopf = node.querySelector("button[data-live]");
-    const lageText = (l) => (l === "aufrecht" ? "Rückseite zeigt dorthin"
-      : l === "flach" ? "Oberkante zeigt dorthin" : "");
+    const lageText = (l) => (l === "aufrecht" ? "Rückseite des Handys zeigt dorthin"
+      : l === "flach" ? "Oberkante des Handys zeigt dorthin" : "");
     // Nur den Wert nachziehen, nicht die ganze Karte neu bauen: Das Gerät
     // meldet mehrmals je Sekunde.
     const zeigeLive = (live) => {
